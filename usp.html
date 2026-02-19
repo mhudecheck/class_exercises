@@ -1,0 +1,1493 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Value Proposition → Competition Matrix</title>
+  <style>
+    :root{
+      --page:#f5f7fb;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:#e5e7eb;
+      --shadow:0 10px 30px rgba(15,23,42,.08);
+      --radius:16px;
+      --primary:#2563eb;
+      --primary2:#1d4ed8;
+      --danger:#dc2626;
+      --danger2:#b91c1c;
+      --ok:#16a34a;
+      --ring:rgba(37,99,235,.22);
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{ height:auto; min-height:100%; }
+
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: var(--page);
+      color: var(--text);
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      padding: 18px 14px 96px; /* ensure bottom breathing room */
+      overflow-x:hidden;
+      overflow-y:auto;
+    }
+
+    .app{
+      width: 100%;
+      max-width: 1400px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-bottom: 36px; /* extra spacing at bottom */
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 2px;
+    }
+
+    .title{
+      font-weight: 850;
+      letter-spacing: .2px;
+      font-size: 16px;
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: visible;
+    }
+
+    .hd{
+      padding: 12px 12px 10px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .hd b{ font-size: 13px; }
+    .bd{ padding: 12px; }
+
+    label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 6px;
+    }
+
+    textarea, input[type="text"], input[type="password"], select{
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+
+    textarea{ min-height: 180px; resize: vertical; }
+
+    textarea:focus, input:focus, select:focus{
+      border-color: rgba(37,99,235,.45);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+    .btn{
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor:pointer;
+      font-weight: 650;
+      font-size: 13px;
+      background: var(--primary);
+      color: #fff;
+      user-select:none;
+    }
+    .btn:hover{ background: var(--primary2); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .btn.secondary{
+      background: #fff;
+      color: var(--text);
+      border-color: var(--border);
+      font-weight: 650;
+    }
+    .btn.secondary:hover{ background: #f8fafc; }
+
+    .btn.danger{ background: var(--danger); }
+    .btn.danger:hover{ background: var(--danger2); }
+
+    .iconBtn{
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--muted);
+      padding: 8px 10px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight: 700;
+    }
+    .iconBtn:hover{ background:#f8fafc; color: var(--text); }
+
+    .muted{ color: var(--muted); font-size: 12px; }
+
+    .msg{
+      display:none;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+    .msg.err{
+      display:block;
+      border-color: rgba(220,38,38,.25);
+      background: rgba(220,38,38,.06);
+      color: #7f1d1d;
+    }
+    .msg.ok{
+      display:block;
+      border-color: rgba(22,163,74,.22);
+      background: rgba(22,163,74,.06);
+      color: #14532d;
+    }
+    .msg.info{ display:block; }
+
+    .drop{
+      border: 1px dashed var(--border);
+      background: #fafafa;
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .drop.dragover{
+      border-color: rgba(37,99,235,.5);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+    .thumbRow{ display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; margin-top:10px; }
+    .thumb{ width: 160px; height: 105px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); background:#fff; }
+
+    .list{ display:flex; flex-direction: column; gap:10px; }
+
+    .lineItem{
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 14px;
+      padding: 10px;
+      display:flex;
+      gap: 10px;
+      align-items:flex-start;
+      flex-wrap: wrap;
+    }
+
+    .lineItem input[type="text"]{
+      padding: 10px 10px;
+      border-radius: 12px;
+      flex: 1 1 320px;
+      min-width: 0;
+    }
+
+    .lineItem .chk{ width: 18px; height: 18px; margin-top: 10px; }
+
+    .subfield{
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 10px;
+      background:#fff;
+      color: var(--text);
+      min-height: 72px;
+      resize: vertical;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .fadeIn{ animation: fade .18s ease-out; }
+    @keyframes fade{ from{ opacity:0; transform: translateY(6px); } to{ opacity:1; transform: translateY(0); } }
+
+    /* Matrix */
+    .matrixWrap{
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: visible;
+    }
+
+    table{ width: max-content; min-width: 100%; border-collapse: collapse; }
+    th, td{ padding: 10px 10px; border-bottom: 1px solid var(--border); font-size: 13px; text-align:left; vertical-align: top; }
+    th{ font-size: 12px; color: var(--muted); font-weight: 800; background: #fbfdff; position: sticky; top: 0; z-index: 1; }
+
+    .cellSel{
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 9px 10px;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    /* Modal */
+    .modalBackdrop{
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,.40);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      z-index: 50;
+    }
+
+    .modal{
+      width: min(720px, 100%);
+      background: #fff;
+      color: var(--text);
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 60px rgba(15,23,42,.22);
+      overflow:hidden;
+    }
+
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 760px){ .grid2{ grid-template-columns: 1fr; } }
+
+    .note{
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="title">Value Proposition → Competition Matrix</div>
+      <button id="openSettings" class="iconBtn" aria-label="Open settings">Settings</button>
+    </div>
+
+    <!-- Step 1: Business idea -->
+    <div class="card" id="ideaCard">
+      <div class="hd">
+        <b>Business idea</b>
+        <div class="row" style="gap:8px;">
+          <button id="toggleShot" class="btn secondary" type="button">Add screenshot</button>
+        </div>
+      </div>
+      <div class="bd">
+        <textarea id="idea" placeholder="Type your business idea…"></textarea>
+
+        <div id="shotBox" class="fadeIn" style="display:none; margin-top:10px;">
+          <div class="drop" id="dropZone">
+            <div class="row" style="justify-content: space-between;">
+              <div class="muted">Drop / paste / choose an image</div>
+              <div>
+                <input id="imgFile" type="file" accept="image/*" style="display:none" />
+                <button id="chooseImg" class="btn secondary" type="button">Choose</button>
+              </div>
+            </div>
+            <div class="thumbRow" id="imgPrev" style="display:none;">
+              <img class="thumb" id="thumb" alt="uploaded screenshot preview" />
+              <div style="flex:1 1 220px; min-width:220px;">
+                <div class="muted" id="imgMeta">—</div>
+                <div class="row" style="margin-top:10px;">
+                  <button id="removeImg" class="btn danger" type="button">Remove</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px; justify-content: space-between;">
+          <div class="muted" id="ideaHint"></div>
+          <button id="analyzeBtn" class="btn" type="button">Generate value props + competitors</button>
+        </div>
+
+        <div class="msg" id="status"></div>
+      </div>
+    </div>
+
+    <!-- Step 2: Value propositions -->
+    <div class="card fadeIn" id="vpCard" style="display:none;">
+      <div class="hd">
+        <b>Value propositions</b>
+        <button id="addVp" class="btn secondary" type="button">+ Add</button>
+      </div>
+      <div class="bd">
+        <div class="list" id="vpList"></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Competitors -->
+    <div class="card fadeIn" id="compCard" style="display:none;">
+      <div class="hd">
+        <b>Competitors</b>
+        <button id="addComp" class="btn secondary" type="button">+ Add</button>
+      </div>
+      <div class="bd">
+        <div class="list" id="compList"></div>
+      </div>
+    </div>
+
+    <!-- Step 4: Matrix -->
+    <div class="card fadeIn" id="matrixCard" style="display:none;">
+      <div class="hd">
+        <b>Matrix (Yes/No)</b>
+        <div class="row" style="gap:8px;">
+          <button id="fillMatrix" class="btn secondary" type="button">Fill with ChatGPT</button>
+          <button id="exportCsv" class="btn secondary" type="button">Export CSV</button>
+          <button id="resetMatrix" class="btn danger" type="button">Reset</button>
+        </div>
+      </div>
+      <div class="bd" style="padding:0 0 12px;">
+        <div class="matrixWrap">
+          <table id="matrix"></table>
+        </div>
+        <div class="msg" id="matrixStatus" style="margin: 12px 12px 0;"></div>
+      </div>
+    </div>
+
+    <!-- Step 5: USP -->
+    <div class="card fadeIn" id="uspCard" style="display:none;">
+      <div class="hd">
+        <b>Unique Selling Proposition</b>
+        <div class="row" style="gap:8px;">
+          <button id="genUsp" class="btn secondary" type="button">Generate</button>
+          <button id="clearUsp" class="btn danger" type="button">Clear</button>
+        </div>
+      </div>
+      <div class="bd">
+        <textarea id="usp" class="subfield" style="min-height: 120px;" placeholder="Generate a Unique Selling Proposition…"></textarea>
+        <div class="msg" id="uspStatus"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settingsBackdrop" class="modalBackdrop" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="modal">
+      <div class="hd" style="border-bottom:1px solid var(--border);">
+        <b>Settings</b>
+        <button id="closeSettings" class="iconBtn" type="button">Close</button>
+      </div>
+      <div class="bd">
+        <div class="grid2">
+          <div>
+            <label for="model">Model</label>
+            <select id="model">
+              <option value="gpt-5.2" selected>gpt-5.2</option>
+              <option value="gpt-5-mini">gpt-5-mini</option>
+            </select>
+          </div>
+          <div>
+            <label for="endpoint">Endpoint</label>
+            <input id="endpoint" type="text" value="https://api.openai.com/v1/responses" />
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label for="apiKey">OpenAI API key</label>
+          <input id="apiKey" type="password" placeholder="sk-…" autocomplete="off" />
+          <div class="row" style="margin-top:8px; justify-content: space-between;">
+            <label style="display:flex; gap:8px; align-items:center; margin:0;">
+              <input id="rememberKey" type="checkbox" />
+              <span class="muted">Remember in this browser</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:12px;">
+          If you host on GitHub Pages, do <b>not</b> call OpenAI directly from the browser with a real API key.
+          Use a small proxy endpoint (Cloudflare Worker / Netlify / Vercel) that injects the key server-side.
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  // -------------------- State --------------------
+  const state = {
+    imageDataUrl: null,
+    valueProps: [],  // {id, text}
+    competitors: [], // {id, name, type, notes, selected}
+    matrix: {},      // matrix[rowId][colId] = number (0/1)
+    uspText: '',
+  };
+
+  // -------------------- Storage --------------------
+  const LS_KEY = 'vp_comp_matrix_v4';
+  const LS_KEY_API = 'vp_comp_matrix_apiKey_v4';
+
+  function uid(prefix='id'){
+    return prefix + '_' + Math.random().toString(16).slice(2) + '_' + Date.now().toString(16);
+  }
+
+  function normalizeCompetitor(c){
+    return {
+      id: String(c?.id || uid('c')),
+      name: String(c?.name || '').trim(),
+      type: (c?.type === 'direct' || c?.type === 'indirect' || c?.type === 'alternative') ? c.type : 'direct',
+      notes: String(c?.notes || ''),
+      selected: typeof c?.selected === 'boolean' ? c.selected : true,
+    };
+  }
+
+  function saveState(){
+    const payload = {
+      ideaText: $('idea').value || '',
+      imageDataUrl: state.imageDataUrl,
+      valueProps: state.valueProps,
+      competitors: state.competitors.map(normalizeCompetitor),
+      matrix: state.matrix,
+      uspText: $('usp').value || '',
+      endpoint: $('endpoint').value || '',
+      model: $('model').value || 'gpt-5.2',
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(payload));
+
+    if ($('rememberKey').checked){
+      localStorage.setItem(LS_KEY_API, $('apiKey').value || '');
+    } else {
+      localStorage.removeItem(LS_KEY_API);
+    }
+  }
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw){
+        const p = JSON.parse(raw);
+        $('idea').value = p.ideaText || '';
+        state.imageDataUrl = p.imageDataUrl || null;
+        state.valueProps = Array.isArray(p.valueProps) ? p.valueProps : [];
+        state.competitors = Array.isArray(p.competitors) ? p.competitors.map(normalizeCompetitor) : [];
+        state.matrix = (p.matrix && typeof p.matrix === 'object') ? p.matrix : {};
+        state.uspText = String(p.uspText || '');
+        $('usp').value = state.uspText;
+        if (p.endpoint) $('endpoint').value = p.endpoint;
+        if (p.model) $('model').value = p.model;
+      }
+      const api = localStorage.getItem(LS_KEY_API);
+      if (api){
+        $('apiKey').value = api;
+        $('rememberKey').checked = true;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // -------------------- UI helpers --------------------
+  function setMsg(targetId, text, kind='info'){ // info|err|ok
+    const box = $(targetId);
+    box.className = 'msg ' + kind;
+    box.textContent = text || '';
+    box.style.display = text ? 'block' : 'none';
+  }
+
+  function dedupeStrings(arr){
+    const seen = new Set();
+    const out = [];
+    for (const s of arr){
+      const t = String(s || '').trim();
+      if (!t) continue;
+      const key = t.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(t);
+    }
+    return out;
+  }
+
+  function cap(arr, n){
+    return Array.isArray(arr) ? arr.slice(0, n) : [];
+  }
+
+  function ratingOptions(){
+    return [
+      {v:0, label:'No'},
+      {v:1, label:'Yes'},
+    ];
+  }
+
+  function ensureMatrixKeys(){
+    const cols = [{id:'our', label:'Your offering'}]
+      .concat(state.competitors.filter(c => c.selected).map(c => ({id:c.id, label:c.name})));
+
+    for (const vp of state.valueProps){
+      if (!state.matrix[vp.id]) state.matrix[vp.id] = {};
+      for (const col of cols){
+        if (typeof state.matrix[vp.id][col.id] !== 'number') state.matrix[vp.id][col.id] = 0;
+      }
+      for (const k of Object.keys(state.matrix[vp.id])){
+        if (!cols.some(c => c.id === k)) delete state.matrix[vp.id][k];
+      }
+    }
+    for (const rid of Object.keys(state.matrix)){
+      if (!state.valueProps.some(v => v.id === rid)) delete state.matrix[rid];
+    }
+  }
+
+  function isMatrixReady(){
+    const vpsReady = state.valueProps.some(v => String(v.text || '').trim().length > 0);
+    const compsReady = state.competitors.some(c => c.selected && String(c.name || '').trim().length > 0);
+    return vpsReady && compsReady;
+  }
+
+  function hasIdea(){
+    return (String($('idea').value || '').trim().length > 0) || !!state.imageDataUrl;
+  }
+
+  function ensureOpenAIReady(){
+    const endpoint = ($('endpoint').value || '').trim();
+    const apiKey = ($('apiKey').value || '').trim();
+    if (!endpoint) throw new Error('Missing endpoint URL.');
+    if (endpoint.includes('api.openai.com') && !apiKey) throw new Error('Missing API key (or use a proxy endpoint).');
+    return { endpoint, apiKey, model: ($('model').value || 'gpt-5.2').trim() };
+  }
+
+  // -------------------- OpenAI (Responses API) --------------------
+  function extractOutputText(resp){
+    const out = resp && Array.isArray(resp.output) ? resp.output : [];
+    let s = '';
+    for (const item of out){
+      if (item && item.type === 'message' && item.role === 'assistant' && Array.isArray(item.content)){
+        for (const c of item.content){
+          if (c && c.type === 'output_text' && typeof c.text === 'string') s += c.text;
+        }
+      }
+    }
+    return s.trim();
+  }
+
+  async function callOpenAIStructured({schemaName, schema, instructions, content}){
+    const { endpoint, apiKey, model } = ensureOpenAIReady();
+
+    const body = {
+      model,
+      input: [{ role: 'user', content }],
+      instructions,
+      store: false,
+      text: {
+        format: {
+          type: 'json_schema',
+          name: schemaName,
+          strict: true,
+          schema,
+        }
+      }
+    };
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (endpoint.includes('api.openai.com')) headers['Authorization'] = `Bearer ${apiKey}`;
+
+    const res = await fetch(endpoint, { method:'POST', headers, body: JSON.stringify(body) });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok){
+      const msg = (json && json.error && (json.error.message || json.error))
+        ? (json.error.message || String(json.error))
+        : JSON.stringify(json);
+      throw new Error(`OpenAI API error (${res.status}): ${msg}`);
+    }
+
+    const outText = extractOutputText(json);
+    if (!outText) throw new Error('No output text found in response.');
+
+    let parsed;
+    try { parsed = JSON.parse(outText); }
+    catch {
+      throw new Error('Failed to parse model output as JSON. Raw output:\n' + outText);
+    }
+
+    return parsed;
+  }
+
+  async function generateListsFromIdea({text, imageDataUrl}){
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        value_propositions: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 4,
+          items: { type: 'string', minLength: 3 }
+        },
+        competitors: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 3,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              name: { type: 'string', minLength: 1 },
+              type: { type: 'string', enum: ['direct','indirect','alternative'] },
+              notes: { type: 'string' }
+            },
+            required: ['name','type','notes']
+          }
+        }
+      },
+      required: ['value_propositions','competitors']
+    };
+
+    const instructions =
+`You are a product strategist.
+
+Given a business idea, return:
+
+(1) Value propositions (max 4): each is an easy-to-understand reason a customer should purchase from THIS business.
+- Customer-facing outcome, not internal features.
+- Prefer explicit differentiation (why this business) when possible.
+- Keep each short and concrete (roughly 6–14 words).
+
+(2) Competitors (max 3): list real, named competitors (companies/products) whenever possible.
+- If the idea mentions a location (city/region/country), prioritize competitors that operate there.
+- Only include non-company "alternatives" if you truly cannot identify real competitors.
+- For each competitor, include notes as EXACTLY THREE sentences describing what it is, who it serves, and how it competes.
+
+Return ONLY JSON matching the provided schema. Avoid duplicates.`;
+
+    const content = [
+      { type: 'input_text', text: `Business idea:\n${text || '(no text provided)'}` }
+    ];
+    if (imageDataUrl){
+      content.push({ type: 'input_image', image_url: imageDataUrl });
+    }
+
+    return await callOpenAIStructured({
+      schemaName: 'vp_competitors',
+      schema,
+      instructions,
+      content,
+    });
+  }
+
+  async function fillMatrixWithModel(){
+    if (!isMatrixReady()) throw new Error('Add at least one value proposition and select at least one competitor.');
+
+    const idea = String($('idea').value || '').trim();
+    const vps = state.valueProps.filter(v => String(v.text || '').trim()).map(v => v.text.trim());
+    const selected = state.competitors.filter(c => c.selected && String(c.name || '').trim());
+
+    if (vps.length === 0) throw new Error('No value propositions to evaluate.');
+    if (selected.length === 0) throw new Error('No competitors selected.');
+
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        rows: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 60,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              vp_index: { type: 'integer', minimum: 0, maximum: 59 },
+              our: { type: 'integer', enum: [0,1] },
+              competitors: {
+                type: 'array',
+                minItems: 0,
+                maxItems: 30,
+                items: { type: 'integer', enum: [0,1] }
+              }
+            },
+            required: ['vp_index','our','competitors']
+          }
+        }
+      },
+      required: ['rows']
+    };
+
+    const competitorLines = selected.map((c, i) => {
+      const notes = String(c.notes || '').trim();
+      return `${i+1}. ${c.name} (${c.type})${notes ? ` — ${notes}` : ''}`;
+    }).join('\n');
+
+    const instructions =
+`You are an analyst building a value proposition (VP) competition matrix.
+
+Task:
+For each value proposition, decide whether each offering delivers it (Yes/No).
+- "Yes" means the offering clearly provides the VP as a meaningful promised benefit.
+- "No" means it does not, or only weakly/incidentally.
+
+Fill the matrix for:
+A) Our offering: based on the business idea.
+B) Each competitor: based on general market knowledge and the provided descriptions.
+
+Output format:
+Return JSON with rows[].
+- Return EXACTLY one row per VP index 0..N-1.
+- Each row has: vp_index, our (0/1), and competitors[] length exactly M.
+- competitors[] order must match the competitor list order provided.
+
+Be decisive and consistent. Return ONLY JSON matching the schema.`;
+
+    const content = [
+      { type: 'input_text', text: `Business idea:\n${idea || '(no text provided)'}\n\nValue propositions (in order):\n${vps.map((t,i)=>`${i}. ${t}`).join('\n')}\n\nCompetitors (in order):\n${competitorLines}` }
+    ];
+
+    const parsed = await callOpenAIStructured({
+      schemaName: 'matrix_fill',
+      schema,
+      instructions,
+      content,
+    });
+
+    // Validate + apply
+    const rows = Array.isArray(parsed.rows) ? parsed.rows : [];
+    const M = selected.length;
+    const N = vps.length;
+
+    if (rows.length !== N) throw new Error(`Matrix fill returned ${rows.length} rows; expected ${N}.`);
+
+    // Map VP index -> row
+    const byIndex = new Map();
+    for (const r of rows){
+      const idx = Number(r.vp_index);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= N) throw new Error('Matrix fill returned invalid vp_index.');
+      if (byIndex.has(idx)) throw new Error('Matrix fill returned duplicate vp_index.');
+      if (!Array.isArray(r.competitors) || r.competitors.length !== M) throw new Error('Matrix fill returned competitor array of wrong length.');
+      byIndex.set(idx, r);
+    }
+
+    // Apply to state.matrix using current VP ids
+    const vpObjs = state.valueProps.filter(v => String(v.text || '').trim());
+    ensureMatrixKeys();
+
+    for (let i=0; i<N; i++){
+      const row = byIndex.get(i);
+      const vpId = vpObjs[i].id;
+      state.matrix[vpId]['our'] = row.our === 1 ? 1 : 0;
+      for (let j=0; j<M; j++){
+        state.matrix[vpId][selected[j].id] = row.competitors[j] === 1 ? 1 : 0;
+      }
+    }
+
+    saveState();
+  }
+
+  function computeUniqueVps(){
+    // Unique = our==Yes and all selected competitors==No
+    ensureMatrixKeys();
+    const selected = state.competitors.filter(c => c.selected && String(c.name || '').trim());
+    const vps = state.valueProps.filter(v => String(v.text || '').trim());
+
+    const unique = [];
+    for (const vp of vps){
+      const row = state.matrix[vp.id] || {};
+      const ours = (row['our'] ?? 0) === 1;
+      if (!ours) continue;
+      let allNo = true;
+      for (const c of selected){
+        if ((row[c.id] ?? 0) === 1){ allNo = false; break; }
+      }
+      if (allNo) unique.push(vp.text.trim());
+    }
+    return unique;
+  }
+
+  async function generateUSP(){
+    if (!isMatrixReady()) throw new Error('Fill out the matrix first.');
+
+    const idea = String($('idea').value || '').trim();
+    const selected = state.competitors.filter(c => c.selected && String(c.name || '').trim());
+    const vps = state.valueProps.filter(v => String(v.text || '').trim()).map(v => v.text.trim());
+
+    if (vps.length === 0 || selected.length === 0) throw new Error('Need value propositions and competitors.');
+
+    // Build a compact matrix snapshot
+    ensureMatrixKeys();
+    const vpObjs = state.valueProps.filter(v => String(v.text || '').trim());
+
+    const header = ['VP', 'Our offering'].concat(selected.map(c => c.name));
+    const grid = [header.join(' | ')];
+    grid.push(header.map(()=>'---').join(' | '));
+
+    for (const vp of vpObjs){
+      const row = state.matrix[vp.id] || {};
+      const ours = (row['our'] ?? 0) === 1 ? 'Yes' : 'No';
+      const comps = selected.map(c => ((row[c.id] ?? 0) === 1 ? 'Yes' : 'No'));
+      grid.push([vp.text.trim(), ours].concat(comps).join(' | '));
+    }
+
+    const uniqueVps = computeUniqueVps();
+
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        usp: { type: 'string', minLength: 10 }
+      },
+      required: ['usp']
+    };
+
+    const instructions =
+`You are a brand strategist.
+
+Definition:
+A USP (unique selling proposition) is the intersection between what we provide and what competitors do not.
+It can also combine multiple VPs, including "thunderbolts" (seemingly contradictory propositions that become uniquely valuable together).
+
+Task:
+Using the business idea, the value propositions, and the Yes/No matrix, write ONE USP.
+- Ground it in VPs where Our offering = Yes and most/all competitors = No.
+- If possible, incorporate a thunderbolt combination from the VP list.
+- Keep it concise: 1–2 sentences.
+- Do not mention the words "matrix" or "competitors".
+
+Return ONLY JSON matching the schema.`;
+
+    const competitorLines = selected.map((c, i) => {
+      const notes = String(c.notes || '').trim();
+      return `${i+1}. ${c.name}${notes ? ` — ${notes}` : ''}`;
+    }).join('\n');
+
+    const content = [
+      { type: 'input_text', text:
+        `Business idea:\n${idea || '(no text provided)'}\n\nValue propositions:\n${vps.map((t,i)=>`- ${t}`).join('\n')}\n\nCompetitors:\n${competitorLines}\n\nVP Matrix (markdown table):\n${grid.join('\n')}\n\nCurrently unique VPs (Our=Yes, all selected competitors=No):\n${uniqueVps.length ? uniqueVps.map(t=>`- ${t}`).join('\n') : '(none identified yet)'}`
+      }
+    ];
+
+    const parsed = await callOpenAIStructured({
+      schemaName: 'usp_gen',
+      schema,
+      instructions,
+      content,
+    });
+
+    const usp = String(parsed.usp || '').trim();
+    if (!usp) throw new Error('USP generation returned empty text.');
+    $('usp').value = usp;
+    saveState();
+  }
+
+  // -------------------- Renderers --------------------
+  function renderValueProps(){
+    const host = $('vpList');
+    host.innerHTML = '';
+
+    if (state.valueProps.length === 0){
+      const line = document.createElement('div');
+      line.className = 'lineItem';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Add a value proposition (why buy from you?)…';
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter'){
+          e.preventDefault();
+          const t = input.value.trim();
+          if (!t) return;
+          state.valueProps.push({ id: uid('vp'), text: t });
+          input.value = '';
+          update();
+        }
+      };
+      line.appendChild(input);
+      host.appendChild(line);
+      return;
+    }
+
+    state.valueProps.forEach((vp, idx) => {
+      const line = document.createElement('div');
+      line.className = 'lineItem';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = vp.text;
+      input.placeholder = 'Value proposition (why buy from you?)…';
+      input.oninput = () => {
+        vp.text = input.value;
+        saveState();
+        if (isMatrixReady()) renderMatrix();
+        updateVisibility();
+      };
+
+      const up = document.createElement('button');
+      up.className = 'iconBtn';
+      up.textContent = '↑';
+      up.disabled = idx === 0;
+      up.onclick = () => {
+        const t = state.valueProps[idx-1];
+        state.valueProps[idx-1] = state.valueProps[idx];
+        state.valueProps[idx] = t;
+        update();
+      };
+
+      const dn = document.createElement('button');
+      dn.className = 'iconBtn';
+      dn.textContent = '↓';
+      dn.disabled = idx === state.valueProps.length - 1;
+      dn.onclick = () => {
+        const t = state.valueProps[idx+1];
+        state.valueProps[idx+1] = state.valueProps[idx];
+        state.valueProps[idx] = t;
+        update();
+      };
+
+      const rm = document.createElement('button');
+      rm.className = 'iconBtn';
+      rm.textContent = '✕';
+      rm.onclick = () => {
+        state.valueProps.splice(idx, 1);
+        update();
+      };
+
+      line.appendChild(input);
+      line.appendChild(up);
+      line.appendChild(dn);
+      line.appendChild(rm);
+      host.appendChild(line);
+    });
+  }
+
+  function renderCompetitors(){
+    const host = $('compList');
+    host.innerHTML = '';
+
+    if (state.competitors.length === 0){
+      const line = document.createElement('div');
+      line.className = 'lineItem';
+
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.className = 'chk';
+      chk.checked = true;
+      chk.disabled = true;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Add a competitor (company/product)…';
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter'){
+          e.preventDefault();
+          const t = input.value.trim();
+          if (!t) return;
+          state.competitors.push(normalizeCompetitor({ id: uid('c'), name: t, type:'direct', notes:'', selected:true }));
+          input.value = '';
+          update();
+        }
+      };
+
+      line.appendChild(chk);
+      line.appendChild(input);
+      host.appendChild(line);
+      return;
+    }
+
+    state.competitors = state.competitors.map(normalizeCompetitor);
+
+    state.competitors.forEach((c, idx) => {
+      const line = document.createElement('div');
+      line.className = 'lineItem';
+
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.className = 'chk';
+      chk.checked = !!c.selected;
+      chk.onchange = () => {
+        c.selected = chk.checked;
+        update();
+      };
+
+      const name = document.createElement('input');
+      name.type = 'text';
+      name.value = c.name;
+      name.placeholder = 'Competitor (company/product)…';
+      name.oninput = () => {
+        c.name = name.value;
+        saveState();
+        if (isMatrixReady()) renderMatrix();
+      };
+
+      const notes = document.createElement('textarea');
+      notes.className = 'subfield';
+      notes.placeholder = '3-sentence description (what it is, who it serves, how it competes)…';
+      notes.value = c.notes;
+      notes.oninput = () => {
+        c.notes = notes.value;
+        saveState();
+      };
+
+      const rm = document.createElement('button');
+      rm.className = 'iconBtn';
+      rm.textContent = '✕';
+      rm.onclick = () => {
+        state.competitors.splice(idx, 1);
+        update();
+      };
+
+      line.appendChild(chk);
+      line.appendChild(name);
+      line.appendChild(rm);
+      line.appendChild(notes);
+      host.appendChild(line);
+    });
+  }
+
+  function renderMatrix(){
+    const table = $('matrix');
+    table.innerHTML = '';
+
+    ensureMatrixKeys();
+
+    const selected = state.competitors.filter(c => c.selected && String(c.name || '').trim());
+    const cols = [{id:'our', label:'Your offering'}]
+      .concat(selected.map(c => ({id:c.id, label:c.name})));
+
+    const vps = state.valueProps.filter(v => String(v.text || '').trim());
+
+    const thead = document.createElement('thead');
+    const hr = document.createElement('tr');
+
+    const th0 = document.createElement('th');
+    th0.textContent = 'Value proposition';
+    th0.style.minWidth = '280px';
+    hr.appendChild(th0);
+
+    for (const col of cols){
+      const th = document.createElement('th');
+      th.textContent = col.label;
+      th.style.minWidth = '170px';
+      hr.appendChild(th);
+    }
+
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    const opts = ratingOptions();
+
+    for (const vp of vps){
+      const tr = document.createElement('tr');
+
+      const td0 = document.createElement('td');
+      td0.textContent = vp.text;
+      tr.appendChild(td0);
+
+      for (const col of cols){
+        const td = document.createElement('td');
+        const sel = document.createElement('select');
+        sel.className = 'cellSel';
+
+        for (const o of opts){
+          const opt = document.createElement('option');
+          opt.value = String(o.v);
+          opt.textContent = o.label;
+          sel.appendChild(opt);
+        }
+
+        sel.value = String(state.matrix[vp.id]?.[col.id] ?? 0);
+        sel.onchange = () => {
+          const v = parseInt(sel.value, 10);
+          state.matrix[vp.id][col.id] = isFinite(v) ? v : 0;
+          saveState();
+        };
+
+        td.appendChild(sel);
+        tr.appendChild(td);
+      }
+
+      tbody.appendChild(tr);
+    }
+
+    table.appendChild(tbody);
+  }
+
+  function resetMatrixCells(){
+    ensureMatrixKeys();
+    for (const rid of Object.keys(state.matrix)){
+      for (const cid of Object.keys(state.matrix[rid])){
+        state.matrix[rid][cid] = 0;
+      }
+    }
+  }
+
+  // -------------------- Screenshot handling --------------------
+  function setImage(dataUrl, metaText=''){
+    state.imageDataUrl = dataUrl;
+    const prev = $('imgPrev');
+    const thumb = $('thumb');
+    const meta = $('imgMeta');
+
+    if (dataUrl){
+      prev.style.display = 'flex';
+      thumb.src = dataUrl;
+      meta.textContent = metaText || 'Image attached.';
+    } else {
+      prev.style.display = 'none';
+      thumb.removeAttribute('src');
+      meta.textContent = '—';
+    }
+
+    saveState();
+  }
+
+  async function fileToDataUrl(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error || new Error('File read failed'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // -------------------- Visibility (walk-through) --------------------
+  function updateVisibility(){
+    const vpCard = $('vpCard');
+    const compCard = $('compCard');
+    const matrixCard = $('matrixCard');
+    const uspCard = $('uspCard');
+
+    const showVP = hasIdea() || state.valueProps.length > 0;
+    vpCard.style.display = showVP ? 'block' : 'none';
+
+    const hasVPText = state.valueProps.some(v => String(v.text || '').trim());
+    compCard.style.display = (showVP && hasVPText) ? 'block' : 'none';
+
+    const ready = isMatrixReady();
+    matrixCard.style.display = ready ? 'block' : 'none';
+    uspCard.style.display = ready ? 'block' : 'none';
+  }
+
+  function update(){
+    renderValueProps();
+    renderCompetitors();
+    updateVisibility();
+    if (isMatrixReady()) renderMatrix();
+    saveState();
+  }
+
+  // -------------------- Actions --------------------
+  async function analyze(){
+    const idea = String($('idea').value || '').trim();
+    const img = state.imageDataUrl;
+
+    if (!idea && !img){
+      setMsg('status', 'Add idea text (or attach a screenshot).', 'err');
+      return;
+    }
+
+    setMsg('status', 'Generating…', 'info');
+    $('analyzeBtn').disabled = true;
+
+    try{
+      const parsed = await generateListsFromIdea({ text: idea, imageDataUrl: img });
+
+      const vps = cap(dedupeStrings(parsed.value_propositions || []), 4);
+      const compsRaw = cap(Array.isArray(parsed.competitors) ? parsed.competitors : [], 3);
+
+      state.valueProps = vps.map(t => ({ id: uid('vp'), text: t }));
+
+      state.competitors = compsRaw
+        .map(c => normalizeCompetitor({
+          id: uid('c'),
+          name: c?.name,
+          type: c?.type,
+          notes: c?.notes ?? '',
+          selected: true,
+        }))
+        .filter(c => c.name);
+
+      state.matrix = {};
+      ensureMatrixKeys();
+
+      setMsg('status', 'Review lists below, then fill the matrix.', 'ok');
+      setMsg('matrixStatus', '', 'info');
+      update();
+
+    } catch (e){
+      setMsg('status', String(e && e.message ? e.message : e), 'err');
+      console.error(e);
+    } finally {
+      $('analyzeBtn').disabled = false;
+    }
+  }
+
+  async function handleFillMatrix(){
+    setMsg('matrixStatus', 'Filling matrix…', 'info');
+    $('fillMatrix').disabled = true;
+
+    try{
+      await fillMatrixWithModel();
+      renderMatrix();
+      setMsg('matrixStatus', 'Matrix filled. Review and adjust.', 'ok');
+    } catch (e){
+      setMsg('matrixStatus', String(e && e.message ? e.message : e), 'err');
+      console.error(e);
+    } finally {
+      $('fillMatrix').disabled = false;
+    }
+  }
+
+  async function handleGenerateUSP(){
+    setMsg('uspStatus', 'Generating USP…', 'info');
+    $('genUsp').disabled = true;
+
+    try{
+      await generateUSP();
+      setMsg('uspStatus', 'USP generated. Edit as needed.', 'ok');
+    } catch (e){
+      setMsg('uspStatus', String(e && e.message ? e.message : e), 'err');
+      console.error(e);
+    } finally {
+      $('genUsp').disabled = false;
+    }
+  }
+
+  function clearUSP(){
+    $('usp').value = '';
+    saveState();
+    setMsg('uspStatus', '', 'info');
+  }
+
+  // -------------------- CSV export --------------------
+  function csvEscape(value){
+    const s = String(value ?? '');
+    if (/[\n\r,"]/g.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  function buildCsv(rows){
+    return rows.map(r => r.map(csvEscape).join(',')).join('\n');
+  }
+
+  function exportCsv(){
+    ensureMatrixKeys();
+
+    const selected = state.competitors.filter(c => c.selected && String(c.name || '').trim());
+    const cols = [{id:'our', label:'Your offering'}]
+      .concat(selected.map(c => ({id:c.id, label:c.name})));
+
+    const vps = state.valueProps.filter(v => String(v.text || '').trim());
+
+    const opts = ratingOptions();
+    const labelFor = (v) => (opts.find(o => o.v === v)?.label ?? String(v));
+
+    const rows = [];
+    rows.push(['Value proposition'].concat(cols.map(c => c.label)));
+
+    for (const vp of vps){
+      const r = [vp.text || ''];
+      for (const col of cols){
+        const v = state.matrix[vp.id]?.[col.id] ?? 0;
+        r.push(labelFor(v));
+      }
+      rows.push(r);
+    }
+
+    const csv = buildCsv(rows);
+
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'competition-matrix.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // -------------------- Modal --------------------
+  function openSettings(){
+    $('settingsBackdrop').style.display = 'flex';
+  }
+  function closeSettings(){
+    $('settingsBackdrop').style.display = 'none';
+    saveState();
+  }
+
+  // -------------------- Events --------------------
+  function wire(){
+    $('openSettings').addEventListener('click', openSettings);
+    $('closeSettings').addEventListener('click', closeSettings);
+    $('settingsBackdrop').addEventListener('click', (e) => {
+      if (e.target === $('settingsBackdrop')) closeSettings();
+    });
+
+    $('idea').addEventListener('input', () => {
+      updateVisibility();
+      saveState();
+    });
+
+    $('usp').addEventListener('input', saveState);
+
+    $('model').addEventListener('change', saveState);
+    $('endpoint').addEventListener('input', saveState);
+    $('apiKey').addEventListener('input', saveState);
+    $('rememberKey').addEventListener('change', saveState);
+
+    $('analyzeBtn').addEventListener('click', analyze);
+
+    $('addVp').addEventListener('click', () => {
+      state.valueProps.push({ id: uid('vp'), text: '' });
+      update();
+    });
+
+    $('addComp').addEventListener('click', () => {
+      state.competitors.push(normalizeCompetitor({ id: uid('c'), name: '', type:'direct', notes:'', selected:true }));
+      update();
+    });
+
+    $('fillMatrix').addEventListener('click', handleFillMatrix);
+
+    $('resetMatrix').addEventListener('click', () => {
+      resetMatrixCells();
+      renderMatrix();
+      saveState();
+      setMsg('matrixStatus', '', 'info');
+    });
+
+    $('exportCsv').addEventListener('click', exportCsv);
+
+    $('genUsp').addEventListener('click', handleGenerateUSP);
+    $('clearUsp').addEventListener('click', clearUSP);
+
+    $('toggleShot').addEventListener('click', () => {
+      const box = $('shotBox');
+      const on = box.style.display !== 'none';
+      box.style.display = on ? 'none' : 'block';
+    });
+
+    const dz = $('dropZone');
+    const fileInput = $('imgFile');
+
+    $('chooseImg').addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files && fileInput.files[0];
+      if (!f) return;
+      const dataUrl = await fileToDataUrl(f);
+      setImage(dataUrl, `${f.name} · ${(f.size/1024).toFixed(1)} KB`);
+      updateVisibility();
+    });
+
+    $('removeImg').addEventListener('click', () => {
+      fileInput.value = '';
+      setImage(null);
+      updateVisibility();
+    });
+
+    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+    dz.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dz.classList.remove('dragover');
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) return;
+      if (!f.type.startsWith('image/')){ setMsg('status', 'Please drop an image file.', 'err'); return; }
+      const dataUrl = await fileToDataUrl(f);
+      setImage(dataUrl, `${f.name} · ${(f.size/1024).toFixed(1)} KB`);
+      updateVisibility();
+    });
+
+    window.addEventListener('paste', async (e) => {
+      try{
+        const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : [];
+        const imgItem = items.find(i => i.type && i.type.startsWith('image/'));
+        if (!imgItem) return;
+        const blob = imgItem.getAsFile();
+        if (!blob) return;
+        const dataUrl = await fileToDataUrl(blob);
+        $('shotBox').style.display = 'block';
+        setImage(dataUrl, `Pasted image · ${(blob.size/1024).toFixed(1)} KB`);
+        updateVisibility();
+      } catch (err){
+        console.warn('Paste image failed:', err);
+      }
+    });
+  }
+
+  // -------------------- Self-tests --------------------
+  function runSelfTests(){
+    try{
+      const opts = ratingOptions();
+      console.assert(opts.length === 2, 'SelfTest: ratingOptions should be Yes/No');
+      console.assert(opts[0].label === 'No' && opts[1].label === 'Yes', 'SelfTest: ratingOptions labels should be No/Yes');
+
+      state.valueProps = [{id:'vp1', text:'Fast setup'}];
+      state.competitors = [normalizeCompetitor({id:'c1', name:'Competitor A', selected:true, type:'direct', notes:'One. Two. Three.'})];
+      console.assert(isMatrixReady() === true, 'SelfTest: isMatrixReady true when vp + selected competitor');
+      state.competitors[0].selected = false;
+      console.assert(isMatrixReady() === false, 'SelfTest: isMatrixReady false when none selected');
+
+      const fake = { output: [{ type:'message', role:'assistant', content:[{type:'output_text', text:'{"value_propositions":["A"],"competitors":[{"name":"X","type":"direct","notes":"One. Two. Three."}]}' }]}] };
+      const txt = extractOutputText(fake);
+      console.assert(txt.startsWith('{') && txt.endsWith('}'), 'SelfTest: extractOutputText should return JSON string');
+      JSON.parse(txt);
+
+      console.assert(csvEscape('a,b') === '"a,b"', 'SelfTest: csvEscape should quote commas');
+      console.assert(csvEscape('a\n b').startsWith('"'), 'SelfTest: csvEscape should quote newlines');
+      const csv = buildCsv([["h1","h2"],["x","y"]]);
+      console.assert(csv === 'h1,h2\nx,y', 'SelfTest: buildCsv should join rows with \\n');
+
+      console.assert(cap([1,2,3,4,5], 4).length === 4, 'SelfTest: cap should truncate');
+      console.assert(cap([], 3).length === 0, 'SelfTest: cap empty array');
+
+      const n = normalizeCompetitor({ name:'Z', type:'direct' });
+      console.assert(typeof n.notes === 'string', 'SelfTest: normalizeCompetitor should always include notes');
+
+      // Unique VP computation test
+      state.valueProps = [{id:'vpA', text:'VP A'}, {id:'vpB', text:'VP B'}];
+      state.competitors = [normalizeCompetitor({id:'c1', name:'C1', selected:true, notes:'One. Two. Three.'}), normalizeCompetitor({id:'c2', name:'C2', selected:true, notes:'One. Two. Three.'})];
+      state.matrix = {
+        vpA: { our: 1, c1: 0, c2: 0 },
+        vpB: { our: 1, c1: 1, c2: 0 },
+      };
+      const uniq = computeUniqueVps();
+      console.assert(uniq.length === 1 && uniq[0] === 'VP A', 'SelfTest: computeUniqueVps should return only VPs unique vs all competitors');
+
+      // Reset mutated state
+      state.valueProps = [];
+      state.competitors = [];
+      state.matrix = {};
+
+    } catch (e){
+      console.warn('Self-tests failed:', e);
+    }
+  }
+
+  // -------------------- Init --------------------
+  loadState();
+
+  if (state.imageDataUrl){
+    $('shotBox').style.display = 'block';
+    $('imgPrev').style.display = 'flex';
+    $('thumb').src = state.imageDataUrl;
+    $('imgMeta').textContent = 'Image attached.';
+  }
+
+  wire();
+  runSelfTests();
+  update();
+})();
+</script>
+</body>
+</html>
