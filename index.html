@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mike's Van Westendorp Pricing Exercise</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#111936;
+      --text:#f4f6ff;
+      --muted:#c3cbea;
+      --border:rgba(255,255,255,.12);
+      --accent:#7dd3fc;
+      --ok:#34d399;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+      --violet:#a78bfa;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:16px;
+    }
+
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: #e5e7eb; /* neutral gray behind the app */
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px 16px;
+      box-sizing: border-box;
+      overflow: auto;
+      color: #111827;
+    }
+
+    @media (max-height: 760px){
+      body{ align-items: flex-start; }
+    }
+
+    /* App container retains the original dark background + typography */
+    .shell{
+      width: min(1100px, 100%);
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(125,211,252,.15), transparent 45%),
+                  radial-gradient(1200px 800px at 80% 10%, rgba(167,139,250,.12), transparent 45%),
+                  radial-gradient(1400px 900px at 50% 90%, rgba(52,211,153,.10), transparent 55%),
+                  var(--bg);
+      border-radius: 22px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.28);
+      padding: 28px 16px 28px;
+      color: var(--text);
+    }
+
+    .wrap{ width: 100%; margin: 0; padding: 0; }
+
+    h1{ font-size: 22px; margin: 0 0 10px; letter-spacing: .2px; }
+    p{ margin: 8px 0; color: var(--muted); line-height: 1.45; }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:16px;
+      align-items:start;
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .card .hd{ padding: 14px 14px 10px; border-bottom: 1px solid var(--border); }
+    .card .bd{ padding: 14px; }
+
+    .row{ display:flex; gap:10px; flex-wrap:wrap; }
+
+    label{ display:block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+
+    input[type="number"], input[type="text"], select{
+      width: 100%;
+      box-sizing:border-box;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      outline: none;
+    }
+    input[type="number"]{ appearance: textfield; }
+
+    /* Readability + validation */
+    input[type="number"]:focus, input[type="text"]:focus, select:focus{
+      border-color: rgba(125,211,252,.55);
+      box-shadow: 0 0 0 3px rgba(125,211,252,.12);
+    }
+    input.invalid, select.invalid{
+      border-color: rgba(251,113,133,.60);
+      box-shadow: 0 0 0 3px rgba(251,113,133,.12);
+    }
+
+    .field{ flex: 1 1 190px; min-width: 190px; }
+
+    button{
+      border: 1px solid var(--border);
+      background: rgba(125,211,252,.15);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      transition: transform .04s ease;
+    }
+    button:active{ transform: translateY(1px); }
+    button.secondary{ background: rgba(255,255,255,.06); }
+    button.danger{ background: rgba(251,113,133,.14); }
+    button:disabled{
+      opacity: .55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .tiny{ font-size: 12px; color: var(--muted); }
+
+    table{ width:100%; border-collapse: collapse; }
+    th, td{ font-size: 12px; padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,.08); text-align:left; }
+    th{ color: var(--muted); font-weight: 600; }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      font-size: 12px;
+      color: var(--muted);
+      margin: 6px 6px 0 0;
+    }
+    .dot{ width:10px; height:10px; border-radius:999px; display:inline-block; }
+
+    .legend{ margin-top: 10px; }
+
+    .svgWrap{ padding: 0; }
+    .chartMeta{ display:flex; gap:10px; flex-wrap:wrap; padding: 12px 14px; border-top: 1px solid var(--border); background: rgba(0,0,0,.10); }
+
+    .kpi{ flex: 1 1 210px; min-width: 210px; }
+    .kpi b{ display:block; font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+    .kpi .val{ font-size: 14px; }
+
+    .warnBox{
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid rgba(251,191,36,.35);
+      background: rgba(251,191,36,.10);
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      display:none;
+    }
+    .warnBox.errorBox{
+      border-color: rgba(251,113,133,.40);
+      background: rgba(251,113,133,.10);
+      color: rgba(244,246,255,.92);
+    }
+
+    @media (max-width: 980px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="wrap">
+      <h1>Mike's Van Westendorp Pricing Exercise</h1>
+      <p>Enter responses (one row per respondent). The app plots the 4 Van Westendorp curves and estimates:</p>
+      <p> <b>PMC</b>, <b>PME</b>, <b>Range of Acceptable Pricing</b>, and <b>IPP</b></p> 
+      <p>(All computed automatically)</p>
+
+      <div class="grid">
+        <!-- Left: data entry + table -->
+        <div class="card">
+          <div class="hd">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap;">
+              <div>
+                <div style="font-size:14px; font-weight:700;">1) Collect responses</div>
+                <div class="tiny">Questions shown to respondent</div>
+              </div>
+              <div style="display:flex; gap:10px; align-items:center;">
+                <label style="margin:0;">
+                  <span class="tiny">Currency</span>
+                  <input id="currency" type="text" value="$" maxlength="5" style="width:72px; text-align:center; padding:8px 10px; border-radius:12px;" />
+                </label>
+                <button id="addDemo" class="secondary" title="Adds a small demo dataset">Add demo data</button>
+              </div>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="tiny" style="margin-bottom:8px;">
+              a) What price would make it feel so cheap that you’d doubt the quality? <br/>
+              b) What price would make it feel like a great value for the money? <br/>
+              c) What price would make it feel expensive but still worth considering? <br/>
+              d) What price would make it feel too expensive?
+            </div>
+
+            <div class="row">
+              <div class="field">
+                <label for="tc">a) Too cheap (doubt quality)</label>
+                <input id="tc" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 8" />
+              </div>
+              <div class="field">
+                <label for="gv">b) Great value</label>
+                <input id="gv" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 12" />
+              </div>
+              <div class="field">
+                <label for="ex">c) Expensive (still consider)</label>
+                <input id="ex" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 18" />
+              </div>
+              <div class="field">
+                <label for="te">d) Too expensive</label>
+                <input id="te" type="number" inputmode="decimal" min="0" step="0.01" placeholder="e.g., 24" />
+              </div>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap;">
+              <button id="addBtn">Add respondent</button>
+              <button id="clearBtn" class="danger">Clear all</button>
+              <span class="tiny" id="countInfo">0 respondents</span>
+            </div>
+
+            <div class="warnBox errorBox" id="inputBox"></div>
+            <div class="warnBox" id="warnBox"></div>
+
+            <div style="margin-top:14px;">
+              <div class="tiny" style="margin-bottom:8px;">Responses</div>
+              <div style="max-height: 300px; overflow:auto; border:1px solid rgba(255,255,255,.08); border-radius: 12px;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Too cheap</th>
+                      <th>Great value</th>
+                      <th>Expensive</th>
+                      <th>Too expensive</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="legend">
+              <span class="pill"><span class="dot" style="background:var(--accent)"></span>Too Cheap</span>
+              <span class="pill"><span class="dot" style="background:var(--ok)"></span>Great Value (Cheap)</span>
+              <span class="pill"><span class="dot" style="background:var(--warn)"></span>Expensive</span>
+              <span class="pill"><span class="dot" style="background:var(--bad)"></span>Too Expensive</span>
+              <span class="pill"><span class="dot" style="background:rgba(167,139,250,.95)"></span>Acceptable Range</span>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; align-items:flex-end;">
+              <div class="field" style="min-width:160px; flex: 0 1 160px;">
+                <label for="resolution">Plot resolution</label>
+                <select id="resolution">
+                  <option value="40">40 points</option>
+                  <option value="60" selected>60 points</option>
+                  <option value="90">90 points</option>
+                  <option value="120">120 points</option>
+                </select>
+              </div>
+              <div class="field" style="min-width:220px; flex: 1 1 220px;">
+                <label for="note">Idea / product name (optional)</label>
+                <input id="note" type="text" placeholder="e.g., Campus meal subscription" />
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Right: chart -->
+        <div class="card svgWrap">
+          <div class="hd">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap;">
+              <div>
+                <div style="font-size:14px; font-weight:700;">2) Plot & pricing outputs</div>
+                <div class="tiny">Curves are percentages of respondents (0–100%).</div>
+              </div>
+              <button id="downloadSvg" class="secondary">Download SVG</button>
+            </div>
+          </div>
+
+          <div class="bd" style="padding: 0;">
+            <svg id="chart" width="100%" height="520" viewBox="0 0 900 520" role="img" aria-label="Van Westendorp chart"></svg>
+          </div>
+
+          <div class="chartMeta">
+            <div class="kpi">
+              <b>Point of Marginal Cheapness (PMC)</b>
+              <div class="val" id="pmcVal">—</div>
+            </div>
+            <div class="kpi">
+              <b>Point of Marginal Expensiveness (PME)</b>
+              <div class="val" id="pmeVal">—</div>
+            </div>
+            <div class="kpi">
+              <b>Indifference Price Point (IPP)</b>
+              <div class="val" id="ippVal">—</div>
+            </div>
+            <div class="kpi">
+              <b>Range of Acceptable Pricing</b>
+              <div class="val" id="rangeVal">—</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const $ = (id) => document.getElementById(id);
+
+  const state = {
+    responses: [],
+    currency: '$',
+    resolution: 60,
+  };
+
+  // ---------- Utilities ----------
+  function fmtPrice(x){
+    if (x == null || !isFinite(x)) return '—';
+    const cur = (state.currency || '$').trim() || '$';
+    const abs = Math.abs(x);
+    // smart decimals
+    const s = abs >= 100 ? x.toFixed(0) : abs >= 10 ? x.toFixed(2) : x.toFixed(2);
+    return cur + s;
+  }
+
+  function showWarn(msg){
+    const box = $('warnBox');
+    if (!msg){ box.style.display = 'none'; box.textContent=''; return; }
+    box.style.display = 'block';
+    box.textContent = msg;
+  }
+
+  function showInput(msg){
+    const box = $('inputBox');
+    if (!box) return;
+    if (!msg){ box.style.display = 'none'; box.textContent=''; return; }
+    box.style.display = 'block';
+    box.textContent = msg;
+  }
+
+  function parseNum(v){
+    if (v == null) return NaN;
+    const s = String(v).trim();
+    if (s === '') return NaN;
+    const x = Number(s);
+    return Number.isFinite(x) ? x : NaN;
+  }
+
+  function setInvalid(id, isInvalid){
+    const el = $(id);
+    if (!el) return;
+    el.classList.toggle('invalid', !!isInvalid);
+  }
+
+  function clearInvalid(){
+    ['tc','gv','ex','te'].forEach(id => setInvalid(id, false));
+  }
+
+  function syncGuards(tc, gv, ex){
+    const gvEl = $('gv');
+    const exEl = $('ex');
+    const teEl = $('te');
+    if (!gvEl || !exEl || !teEl) return;
+
+    const base = Number.isFinite(tc) ? tc : 0;
+    gvEl.min = base;
+    exEl.min = Number.isFinite(gv) ? gv : base;
+    teEl.min = Number.isFinite(ex) ? ex : (Number.isFinite(gv) ? gv : base);
+  }
+
+  function validateDraft({showMessage=false} = {}){
+    const tc = parseNum($('tc').value);
+    const gv = parseNum($('gv').value);
+    const ex = parseNum($('ex').value);
+    const te = parseNum($('te').value);
+
+    syncGuards(tc, gv, ex);
+
+    const addBtn = $('addBtn');
+    const allPresent = [tc,gv,ex,te].every(Number.isFinite);
+
+    clearInvalid();
+
+    if (!allPresent){
+      if (addBtn) addBtn.disabled = true;
+      if (showMessage) showInput('Please enter all four prices (a–d) before adding a respondent.');
+      else showInput('');
+      return false;
+    }
+
+    if ([tc,gv,ex,te].some(v => v < 0)){
+      if (addBtn) addBtn.disabled = true;
+      if (showMessage) showInput('Prices must be non-negative.');
+      return false;
+    }
+
+    // Guardrails: enforce monotonic ordering a ≤ b ≤ c ≤ d
+    let ok = true;
+    if (gv < tc){ setInvalid('gv', true); ok = false; }
+    if (ex < gv){ setInvalid('ex', true); ok = false; }
+    if (te < ex){ setInvalid('te', true); ok = false; }
+
+    if (addBtn) addBtn.disabled = !ok;
+
+    if (!ok){
+      if (showMessage) showInput('Please keep the ordering nondecreasing: a) too cheap ≤ b) great value ≤ c) expensive ≤ d) too expensive.');
+    } else {
+      showInput('');
+    }
+
+    return ok;
+  }
+
+  function linInterp(x1, y1, x2, y2, y){
+    // interpolate x at which line through (x1,y1)-(x2,y2) hits value y
+    if (y2 === y1) return (x1 + x2)/2;
+    const t = (y - y1) / (y2 - y1);
+    return x1 + t * (x2 - x1);
+  }
+
+  function niceTicks(min, max, n){
+    if (!isFinite(min) || !isFinite(max) || min === max) return [min];
+    const span = max - min;
+    const step = span / (n - 1);
+    const pow = Math.pow(10, Math.floor(Math.log10(step)));
+    const err = step / pow;
+    let nice = 1;
+    if (err >= 7.5) nice = 10;
+    else if (err >= 3.5) nice = 5;
+    else if (err >= 1.5) nice = 2;
+    const niceStep = nice * pow;
+    const start = Math.floor(min / niceStep) * niceStep;
+    const ticks = [];
+    for (let x = start; x <= max + 1e-9; x += niceStep) ticks.push(x);
+    // ensure min/max included
+    if (ticks[0] > min) ticks.unshift(min);
+    if (ticks[ticks.length-1] < max) ticks.push(max);
+    return ticks;
+  }
+
+  // ---------- Core Van Westendorp calculations ----------
+  function computeCurves(responses, resolution){
+    const n = responses.length;
+    if (n === 0) return null;
+
+    // determine range across all answers
+    let min = Infinity, max = -Infinity;
+    for (const r of responses){
+      min = Math.min(min, r.tc, r.gv, r.ex, r.te);
+      max = Math.max(max, r.tc, r.gv, r.ex, r.te);
+    }
+    if (!isFinite(min) || !isFinite(max)) return null;
+    if (min === max){ min = min * 0.9; max = max * 1.1; }
+    if (min < 0) min = 0;
+
+    const m = Math.max(20, Math.min(300, resolution|0));
+    const prices = Array.from({length: m}, (_, i) => min + (max - min) * (i/(m-1)));
+
+    const TC = new Array(m).fill(0);
+    const C  = new Array(m).fill(0); // Great value (cheap)
+    const E  = new Array(m).fill(0);
+    const TE = new Array(m).fill(0);
+
+    for (let i=0; i<m; i++){
+      const p = prices[i];
+      let tc=0, c=0, e=0, te=0;
+      for (const r of responses){
+        if (p <= r.tc) tc++;   // at price p, it's too cheap if p is at/below their TC threshold
+        if (p <= r.gv) c++;    // cheap/great value at/below their GV threshold
+        if (p >= r.ex) e++;    // expensive at/above their EX threshold
+        if (p >= r.te) te++;   // too expensive at/above their TE threshold
+      }
+      TC[i] = 100 * tc / n;
+      C[i]  = 100 * c  / n;
+      E[i]  = 100 * e  / n;
+      TE[i] = 100 * te / n;
+    }
+
+    return {n, min, max, prices, TC, C, E, TE};
+  }
+
+  function findIntersection(prices, A, B){
+    // returns {x, kind:'cross'|'closest', err} or null
+    const m = prices.length;
+    let best = {idx: 0, err: Infinity};
+
+    for (let i=0; i<m; i++){
+      const err = Math.abs(A[i] - B[i]);
+      if (err < best.err){ best = {idx:i, err}; }
+    }
+
+    for (let i=0; i<m-1; i++){
+      const d1 = A[i] - B[i];
+      const d2 = A[i+1] - B[i+1];
+      if (d1 === 0) return {x: prices[i], kind:'cross', err: 0};
+      if (d1 * d2 < 0 || d2 === 0){
+        // linear interpolate where A-B = 0
+        const x = linInterp(prices[i], d1, prices[i+1], d2, 0);
+        return {x, kind:'cross', err: 0};
+      }
+    }
+
+    // no crossing: return closest point (still useful in messy data)
+    if (best.err < Infinity) return {x: prices[best.idx], kind:'closest', err: best.err};
+    return null;
+  }
+
+  // ---------- Rendering (SVG) ----------
+  function svgEl(tag, attrs={}){
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+    return el;
+  }
+
+  function polyPoints(prices, values, xScale, yScale){
+    const pts = [];
+    for (let i=0; i<prices.length; i++){
+      pts.push(`${xScale(prices[i]).toFixed(2)},${yScale(values[i]).toFixed(2)}`);
+    }
+    return pts.join(' ');
+  }
+
+  function renderChart(cur){
+    const svg = $('chart');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+    const W = 900, H = 520;
+    const padL = 70, padR = 20, padT = 26, padB = 54;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    // background
+    svg.appendChild(svgEl('rect', {x:0, y:0, width:W, height:H, fill:'rgba(0,0,0,0)'}));
+
+    if (!cur || cur.n === 0){
+      const t = svgEl('text', {x: W/2, y: H/2, 'text-anchor':'middle', fill:'rgba(233,236,245,.8)', 'font-size':'14'});
+      t.textContent = 'Add at least 1 respondent to see the chart.';
+      svg.appendChild(t);
+      // clear KPIs
+      $('pmcVal').textContent = '—';
+      $('pmeVal').textContent = '—';
+      $('ippVal').textContent = '—';
+      $('rangeVal').textContent = '—';
+      return;
+    }
+
+    const {prices, TC, C, E, TE, min, max, n} = cur;
+
+    const xScale = (p) => padL + (p - min) / (max - min) * plotW;
+    const yScale = (v) => padT + (100 - v) / 100 * plotH;
+
+    // gridlines + y ticks
+    for (let y=0; y<=100; y+=20){
+      const yy = yScale(y);
+      svg.appendChild(svgEl('line', {x1: padL, y1: yy, x2: padL+plotW, y2: yy, stroke:'rgba(255,255,255,.08)'}));
+      const lbl = svgEl('text', {x: padL-10, y: yy+4, 'text-anchor':'end', fill:'rgba(174,183,214,.9)', 'font-size':'11'});
+      lbl.textContent = y + '%';
+      svg.appendChild(lbl);
+    }
+
+    // x ticks
+    const xt = niceTicks(min, max, 6);
+    for (const x of xt){
+      const xx = xScale(x);
+      svg.appendChild(svgEl('line', {x1: xx, y1: padT, x2: xx, y2: padT+plotH, stroke:'rgba(255,255,255,.06)'}));
+      svg.appendChild(svgEl('line', {x1: xx, y1: padT+plotH, x2: xx, y2: padT+plotH+6, stroke:'rgba(255,255,255,.15)'}));
+      const lbl = svgEl('text', {x: xx, y: padT+plotH+22, 'text-anchor':'middle', fill:'rgba(174,183,214,.9)', 'font-size':'11'});
+      lbl.textContent = fmtPrice(x);
+      svg.appendChild(lbl);
+    }
+
+    // axes
+    svg.appendChild(svgEl('rect', {x: padL, y: padT, width: plotW, height: plotH, fill:'rgba(0,0,0,.12)', stroke:'rgba(255,255,255,.12)'}));
+
+    // curves
+    const curves = [
+      {name:'Too Cheap', values: TC, stroke:'rgba(125,211,252,.95)', w:2.5},
+      {name:'Great Value (Cheap)', values: C, stroke:'rgba(52,211,153,.95)', w:2.5},
+      {name:'Expensive', values: E, stroke:'rgba(251,191,36,.95)', w:2.5},
+      {name:'Too Expensive', values: TE, stroke:'rgba(251,113,133,.95)', w:2.5},
+    ];
+
+    // intersections
+    const pmc = findIntersection(prices, TC, E); // PMC: Too Cheap vs Expensive
+    const pme = findIntersection(prices, TE, C); // PME: Too Expensive vs Cheap
+    const ipp = findIntersection(prices, C, E);  // IPP: Cheap vs Expensive
+
+    // acceptable range shading
+    if (pmc && pme){
+      const x1 = xScale(pmc.x);
+      const x2 = xScale(pme.x);
+      const left = Math.min(x1, x2);
+      const width = Math.abs(x2-x1);
+      svg.appendChild(svgEl('rect', {x:left, y:padT, width, height:plotH, fill:'rgba(167,139,250,.12)'}));
+      svg.appendChild(svgEl('line', {x1:left, y1:padT, x2:left, y2:padT+plotH, stroke:'rgba(167,139,250,.55)', 'stroke-dasharray':'6 6'}));
+      svg.appendChild(svgEl('line', {x1:left+width, y1:padT, x2:left+width, y2:padT+plotH, stroke:'rgba(167,139,250,.55)', 'stroke-dasharray':'6 6'}));
+    }
+
+    // draw polylines
+    for (const cdef of curves){
+      const pl = svgEl('polyline', {
+        points: polyPoints(prices, cdef.values, xScale, yScale),
+        fill:'none',
+        stroke: cdef.stroke,
+        'stroke-width': cdef.w,
+        'stroke-linejoin':'round',
+        'stroke-linecap':'round'
+      });
+      svg.appendChild(pl);
+    }
+
+    // vertical markers and labels
+    function marker(x, label, color, kind){
+      const xx = xScale(x);
+      svg.appendChild(svgEl('line', {x1:xx, y1:padT, x2:xx, y2:padT+plotH, stroke:color, 'stroke-width':2, 'stroke-dasharray':'5 6'}));
+      const g = svgEl('g', {});
+      const box = svgEl('rect', {x: xx-58, y: 6, width: 116, height: 20, rx: 10, fill:'rgba(0,0,0,.35)', stroke:'rgba(255,255,255,.10)'});
+      const t = svgEl('text', {x: xx, y: 20, 'text-anchor':'middle', fill:'rgba(233,236,245,.95)', 'font-size':'11'});
+      t.textContent = label + (kind==='closest' ? ' (closest)' : '');
+      g.appendChild(box);
+      g.appendChild(t);
+      svg.appendChild(g);
+    }
+
+    if (pmc) marker(pmc.x, 'PMC ' + fmtPrice(pmc.x), 'rgba(125,211,252,.9)', pmc.kind);
+    if (pme) marker(pme.x, 'PME ' + fmtPrice(pme.x), 'rgba(251,113,133,.9)', pme.kind);
+    if (ipp) marker(ipp.x, 'IPP ' + fmtPrice(ipp.x), 'rgba(52,211,153,.9)', ipp.kind);
+
+    // Title
+    const note = ($('note').value || '').trim();
+    const title = svgEl('text', {x: padL, y: 18, fill:'rgba(233,236,245,.95)', 'font-size':'13', 'font-weight':'700'});
+    title.textContent = note ? `PSM — ${note}` : 'Price Sensitivity Meter (Van Westendorp)';
+    svg.appendChild(title);
+
+    const sub = svgEl('text', {x: padL, y: 38, fill:'rgba(174,183,214,.95)', 'font-size':'11'});
+    sub.textContent = `${n} respondent(s) · y-axis = % of respondents`;
+    svg.appendChild(sub);
+
+    // Update KPIs
+    $('pmcVal').textContent = pmc ? fmtPrice(pmc.x) + (pmc.kind==='closest' ? ' (closest point; no crossing)' : '') : '—';
+    $('pmeVal').textContent = pme ? fmtPrice(pme.x) + (pme.kind==='closest' ? ' (closest point; no crossing)' : '') : '—';
+    $('ippVal').textContent = ipp ? fmtPrice(ipp.x) + (ipp.kind==='closest' ? ' (closest point; no crossing)' : '') : '—';
+
+    if (pmc && pme){
+      const lo = Math.min(pmc.x, pme.x);
+      const hi = Math.max(pmc.x, pme.x);
+      $('rangeVal').textContent = `${fmtPrice(lo)} to ${fmtPrice(hi)}`;
+    } else {
+      $('rangeVal').textContent = '—';
+    }
+
+    // Guidance warnings
+    const msgs = [];
+    if (n < 6) msgs.push('Small sample size: curves and intersections will be noisy.');
+
+    // consistency check per respondent (FIX: use state.responses, not undefined `responses`)
+    let inconsistent = 0;
+    for (const r of state.responses){
+      if (!(r.tc <= r.gv && r.gv <= r.ex && r.ex <= r.te)) inconsistent++;
+    }
+    if (inconsistent > 0) msgs.push(`${inconsistent} respondent(s) have inconsistent ordering (expected: tooCheap ≤ greatValue ≤ expensive ≤ tooExpensive). The method still plots, but discuss outliers.`);
+    showWarn(msgs.join(' '));
+  }
+
+  // ---------- Table rendering ----------
+  function renderTable(){
+    const tb = $('tbody');
+    tb.innerHTML = '';
+    const cur = (state.currency || '$').trim() || '$';
+
+    state.responses.forEach((r, idx) => {
+      const tr = document.createElement('tr');
+      const cells = [
+        String(idx+1),
+        cur + r.tc,
+        cur + r.gv,
+        cur + r.ex,
+        cur + r.te,
+      ];
+      for (let i=0; i<5; i++){
+        const td = document.createElement('td');
+        td.textContent = cells[i];
+        tr.appendChild(td);
+      }
+      const tdBtn = document.createElement('td');
+      const btn = document.createElement('button');
+      btn.className = 'secondary';
+      btn.textContent = 'Remove';
+      btn.onclick = () => { state.responses.splice(idx,1); update(); };
+      tdBtn.appendChild(btn);
+      tr.appendChild(tdBtn);
+      tb.appendChild(tr);
+    });
+
+    $('countInfo').textContent = `${state.responses.length} respondent${state.responses.length===1?'':'s'}`;
+  }
+
+  function update(){
+    state.currency = ($('currency').value || '$').trim() || '$';
+    state.resolution = parseInt($('resolution').value, 10) || 60;
+
+    renderTable();
+    const cur = computeCurves(state.responses, state.resolution);
+    renderChart(cur);
+  }
+
+  // ---------- Minimal self-tests (run once) ----------
+  function runSelfTests(){
+    try {
+      // Test 1: empty dataset -> null
+      console.assert(computeCurves([], 60) === null, 'SelfTest: computeCurves([]) should be null');
+
+      // Test 2: demo dataset should produce curves with n=2 and arrays length >= 20
+      const demo = [
+        {tc: 5, gv: 10, ex: 15, te: 20},
+        {tc: 6, gv: 11, ex: 16, te: 21},
+      ];
+      const cur = computeCurves(demo, 40);
+      console.assert(cur && cur.n === 2, 'SelfTest: n should be 2');
+      console.assert(cur && cur.prices.length >= 20, 'SelfTest: prices length should be >= 20');
+
+      // Test 3: intersection should return something (cross or closest)
+      const x = findIntersection(cur.prices, cur.C, cur.E);
+      console.assert(x && typeof x.x === 'number', 'SelfTest: intersection should produce numeric x');
+    } catch (e) {
+      console.warn('Self-tests failed:', e);
+    }
+  }
+
+  // ---------- Events ----------
+  $('addBtn').addEventListener('click', () => {
+    if (!validateDraft({showMessage:true})) return;
+
+    const tc = parseNum($('tc').value);
+    const gv = parseNum($('gv').value);
+    const ex = parseNum($('ex').value);
+    const te = parseNum($('te').value);
+
+    const r = {
+      tc: Number(tc.toFixed(2)),
+      gv: Number(gv.toFixed(2)),
+      ex: Number(ex.toFixed(2)),
+      te: Number(te.toFixed(2)),
+    };
+    state.responses.push(r);
+
+    $('tc').value = '';
+    $('gv').value = '';
+    $('ex').value = '';
+    $('te').value = '';
+
+    clearInvalid();
+    showInput('');
+
+    update();
+    validateDraft();
+  });
+
+  $('clearBtn').addEventListener('click', () => {
+    state.responses = [];
+    showWarn('');
+    showInput('');
+    clearInvalid();
+    update();
+    validateDraft();
+  });
+
+  $('addDemo').addEventListener('click', () => {
+    const demo = [
+      {tc: 6, gv: 10, ex: 16, te: 22},
+      {tc: 7, gv: 11, ex: 18, te: 25},
+      {tc: 8, gv: 12, ex: 17, te: 24},
+      {tc: 7, gv: 13, ex: 19, te: 27},
+      {tc: 6, gv: 12, ex: 18, te: 26},
+      {tc: 9, gv: 14, ex: 20, te: 29},
+      {tc: 8, gv: 13, ex: 21, te: 30},
+      {tc: 7, gv: 12, ex: 17, te: 23},
+      {tc: 6, gv: 11, ex: 18, te: 24},
+      {tc: 8, gv: 12, ex: 19, te: 28},
+    ];
+    state.responses = state.responses.concat(demo);
+    showInput('');
+    clearInvalid();
+    update();
+    validateDraft();
+  });
+
+  $('currency').addEventListener('input', update);
+  ['tc','gv','ex','te'].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('input', () => validateDraft());
+  });
+  $('resolution').addEventListener('change', update);
+  $('note').addEventListener('input', update);
+
+  $('downloadSvg').addEventListener('click', () => {
+    const svg = $('chart');
+    const clone = svg.cloneNode(true);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    const serializer = new XMLSerializer();
+    const svgText = serializer.serializeToString(clone);
+    const blob = new Blob([svgText], {type:'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'van-westendorp-psm.svg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  // initial
+  runSelfTests();
+  update();
+  validateDraft();
+})();
+</script>
+</body>
+</html>
