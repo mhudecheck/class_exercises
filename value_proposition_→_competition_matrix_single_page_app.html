@@ -1,0 +1,1065 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Revenue Model Generator</title>
+  <style>
+    :root{
+      --page:#f5f7fb;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:#e5e7eb;
+      --shadow:0 10px 30px rgba(15,23,42,.08);
+      --radius:16px;
+      --primary:#2563eb;
+      --primary2:#1d4ed8;
+      --danger:#dc2626;
+      --danger2:#b91c1c;
+      --ok:#16a34a;
+      --ring:rgba(37,99,235,.22);
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{ height:auto; min-height:100%; }
+
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: var(--page);
+      color: var(--text);
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      padding: 18px 14px 96px;
+      overflow-x:hidden;
+      overflow-y:auto;
+    }
+
+    .app{
+      width: 100%;
+      max-width: 1400px;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-bottom: 36px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 2px;
+    }
+
+    .title{
+      font-weight: 850;
+      letter-spacing: .2px;
+      font-size: 16px;
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: visible;
+    }
+
+    .hd{
+      padding: 12px 12px 10px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .hd b{ font-size: 13px; }
+    .bd{ padding: 12px; }
+
+    label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 6px;
+    }
+
+    textarea, input[type="text"], input[type="password"], select{
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+
+    textarea{ min-height: 180px; resize: vertical; }
+
+    textarea:focus, input:focus, select:focus{
+      border-color: rgba(37,99,235,.45);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+    .btn{
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor:pointer;
+      font-weight: 650;
+      font-size: 13px;
+      background: var(--primary);
+      color: #fff;
+      user-select:none;
+    }
+    .btn:hover{ background: var(--primary2); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .btn.secondary{
+      background: #fff;
+      color: var(--text);
+      border-color: var(--border);
+      font-weight: 650;
+    }
+    .btn.secondary:hover{ background: #f8fafc; }
+
+    .btn.danger{ background: var(--danger); }
+    .btn.danger:hover{ background: var(--danger2); }
+
+    .iconBtn{
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--muted);
+      padding: 8px 10px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .iconBtn:hover{ background:#f8fafc; color: var(--text); }
+
+    .muted{ color: var(--muted); font-size: 12px; }
+
+    .msg{
+      display:none;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+    .msg.err{
+      display:block;
+      border-color: rgba(220,38,38,.25);
+      background: rgba(220,38,38,.06);
+      color: #7f1d1d;
+    }
+    .msg.ok{
+      display:block;
+      border-color: rgba(22,163,74,.22);
+      background: rgba(22,163,74,.06);
+      color: #14532d;
+    }
+    .msg.info{ display:block; }
+
+    .drop{
+      border: 1px dashed var(--border);
+      background: #fafafa;
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .drop.dragover{
+      border-color: rgba(37,99,235,.5);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+    .thumbRow{ display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; margin-top:10px; }
+    .thumb{ width: 160px; height: 105px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); background:#fff; }
+
+    .list{ display:flex; flex-direction: column; gap:10px; }
+
+    .modelCard{
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 14px;
+      padding: 12px;
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 760px){ .grid2{ grid-template-columns: 1fr; } }
+
+    .mini{
+      min-height: 64px;
+      resize: vertical;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .fadeIn{ animation: fade .18s ease-out; }
+    @keyframes fade{ from{ opacity:0; transform: translateY(6px); } to{ opacity:1; transform: translateY(0); } }
+
+    /* Modal */
+    .modalBackdrop{
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,.40);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      z-index: 50;
+    }
+
+    .modal{
+      width: min(720px, 100%);
+      background: #fff;
+      color: var(--text);
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 60px rgba(15,23,42,.22);
+      overflow:hidden;
+    }
+
+    .note{
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="title">Revenue Model Generator</div>
+      <button id="openSettings" class="iconBtn" aria-label="Open settings">Settings</button>
+    </div>
+
+    <!-- Step 1: Business input -->
+    <div class="card" id="ideaCard">
+      <div class="hd">
+        <b>Business input</b>
+        <div class="row" style="gap:8px;">
+          <button id="toggleShot" class="btn secondary" type="button">Add screenshot</button>
+        </div>
+      </div>
+      <div class="bd">
+        <label for="idea">Enter either (a) your business idea OR (b) your value proposition + related info</label>
+        <textarea id="idea" placeholder="Example: ‘We help mid-size clinics reduce no-shows by 30% using SMS reminders + scheduling automation. Target: US Northeast. Differentiator: integrates with Epic. Customers: admin staff.’"></textarea>
+
+        <div id="shotBox" class="fadeIn" style="display:none; margin-top:10px;">
+          <div class="drop" id="dropZone">
+            <div class="row" style="justify-content: space-between;">
+              <div class="muted">Drop / paste / choose an image</div>
+              <div>
+                <input id="imgFile" type="file" accept="image/*" style="display:none" />
+                <button id="chooseImg" class="btn secondary" type="button">Choose</button>
+              </div>
+            </div>
+            <div class="thumbRow" id="imgPrev" style="display:none;">
+              <img class="thumb" id="thumb" alt="uploaded screenshot preview" />
+              <div style="flex:1 1 220px; min-width:220px;">
+                <div class="muted" id="imgMeta">—</div>
+                <div class="row" style="margin-top:10px;">
+                  <button id="removeImg" class="btn danger" type="button">Remove</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px; justify-content: space-between;">
+          <div class="muted"></div>
+          <button id="genBtn" class="btn" type="button">Generate revenue model</button>
+        </div>
+
+        <div class="msg" id="status"></div>
+      </div>
+    </div>
+
+    <!-- Step 2: Results -->
+    <div class="card fadeIn" id="resultsCard" style="display:none;">
+      <div class="hd">
+        <b>Revenue model (edit as needed)</b>
+        <div class="row" style="gap:8px;">
+          <button id="regenBtn" class="btn secondary" type="button">Regenerate</button>
+          <button id="exportJson" class="btn secondary" type="button">Export JSON</button>
+          <button id="resetAll" class="btn danger" type="button">Reset</button>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="list" id="models"></div>
+
+        <!-- Add model button (requested at bottom) -->
+        <div class="row" style="margin-top: 10px; justify-content:flex-start;">
+          <button id="addModel" class="btn secondary" type="button">+ Add model</button>
+        </div>
+
+        <div class="msg" id="resultsStatus"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settingsBackdrop" class="modalBackdrop" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="modal">
+      <div class="hd" style="border-bottom:1px solid var(--border);">
+        <b>Settings</b>
+        <button id="closeSettings" class="iconBtn" type="button">Close</button>
+      </div>
+      <div class="bd">
+        <div class="grid2">
+          <div>
+            <label for="model">Model</label>
+            <select id="model">
+              <option value="gpt-5.2" selected>gpt-5.2</option>
+              <option value="gpt-5-mini">gpt-5-mini</option>
+            </select>
+          </div>
+          <div>
+            <label for="endpoint">Endpoint</label>
+            <input id="endpoint" type="text" value="https://api.openai.com/v1/responses" />
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label for="apiKey">OpenAI API key</label>
+          <input id="apiKey" type="password" placeholder="sk-…" autocomplete="off" />
+          <div class="row" style="margin-top:8px; justify-content: space-between;">
+            <label style="display:flex; gap:8px; align-items:center; margin:0;">
+              <input id="rememberKey" type="checkbox" />
+              <span class="muted">Remember in this browser</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:12px;">
+          If you host on GitHub Pages, do <b>not</b> call OpenAI directly from the browser with a real API key.
+          Use a small proxy endpoint (Cloudflare Worker / Netlify / Vercel) that injects the key server-side.
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  // -------------------- State --------------------
+  const state = {
+    imageDataUrl: null,
+    primary: null,
+    subs: [],
+    refreshing: new Set(), // model ids currently being revised
+  };
+
+  // -------------------- Storage --------------------
+  const LS_KEY = 'revenue_model_generator_v2';
+  const LS_KEY_API = 'revenue_model_generator_apiKey_v2';
+
+  function uid(prefix='id'){
+    return prefix + '_' + Math.random().toString(16).slice(2) + '_' + Date.now().toString(16);
+  }
+
+  function blankModel(){
+    return {
+      id: uid('m'),
+      // NOTE: category is the broad type (e.g., Direct-to-consumer retail)
+      category: '',
+      // name is the specific mechanism (e.g., Per-cup retail sales)
+      name: '',
+      revenue_stream: '',
+      value_offering: '',
+      pricing_strategy: '',
+    };
+  }
+
+  function normalizeModel(m){
+    return {
+      id: String(m?.id || uid('m')),
+      // keep semantics: category = broad model type, name = specific mechanism
+      category: String(m?.category || '').trim(),
+      name: String(m?.name || '').trim(),
+      revenue_stream: String(m?.revenue_stream || '').trim(),
+      value_offering: String(m?.value_offering || '').trim(),
+      pricing_strategy: String(m?.pricing_strategy || '').trim(),
+    };
+  }
+
+  function saveState(){
+    const payload = {
+      inputText: $('idea').value || '',
+      imageDataUrl: state.imageDataUrl,
+      primary: state.primary,
+      subs: state.subs,
+      endpoint: $('endpoint').value || '',
+      model: $('model').value || 'gpt-5.2',
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(payload));
+
+    if ($('rememberKey').checked){
+      localStorage.setItem(LS_KEY_API, $('apiKey').value || '');
+    } else {
+      localStorage.removeItem(LS_KEY_API);
+    }
+  }
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw){
+        const p = JSON.parse(raw);
+        $('idea').value = p.inputText || '';
+        state.imageDataUrl = p.imageDataUrl || null;
+        state.primary = p.primary ? normalizeModel(p.primary) : null;
+        state.subs = Array.isArray(p.subs) ? p.subs.map(normalizeModel) : [];
+        if (p.endpoint) $('endpoint').value = p.endpoint;
+        if (p.model) $('model').value = p.model;
+      }
+      const api = localStorage.getItem(LS_KEY_API);
+      if (api){
+        $('apiKey').value = api;
+        $('rememberKey').checked = true;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // -------------------- UI helpers --------------------
+  function setMsg(targetId, text, kind='info'){
+    const box = $(targetId);
+    box.className = 'msg ' + kind;
+    box.textContent = text || '';
+    box.style.display = text ? 'block' : 'none';
+  }
+
+  function hasInput(){
+    return (String($('idea').value || '').trim().length > 0) || !!state.imageDataUrl;
+  }
+
+  function ensureOpenAIReady(){
+    const endpoint = ($('endpoint').value || '').trim();
+    const apiKey = ($('apiKey').value || '').trim();
+    if (!endpoint) throw new Error('Missing endpoint URL.');
+    if (endpoint.includes('api.openai.com') && !apiKey) throw new Error('Missing API key (or use a proxy endpoint).');
+    return { endpoint, apiKey, model: ($('model').value || 'gpt-5.2').trim() };
+  }
+
+  // -------------------- OpenAI (Responses API) --------------------
+  function extractOutputText(resp){
+    const out = resp && Array.isArray(resp.output) ? resp.output : [];
+    let s = '';
+    for (const item of out){
+      if (item && item.type === 'message' && item.role === 'assistant' && Array.isArray(item.content)){
+        for (const c of item.content){
+          if (c && c.type === 'output_text' && typeof c.text === 'string') s += c.text;
+        }
+      }
+    }
+    return s.trim();
+  }
+
+  async function callOpenAIStructured({schemaName, schema, instructions, content}){
+    const { endpoint, apiKey, model } = ensureOpenAIReady();
+
+    const body = {
+      model,
+      input: [{ role: 'user', content }],
+      instructions,
+      store: false,
+      text: {
+        format: {
+          type: 'json_schema',
+          name: schemaName,
+          strict: true,
+          schema,
+        }
+      }
+    };
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (endpoint.includes('api.openai.com')) headers['Authorization'] = `Bearer ${apiKey}`;
+
+    const res = await fetch(endpoint, { method:'POST', headers, body: JSON.stringify(body) });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok){
+      const msg = (json && json.error && (json.error.message || json.error))
+        ? (json.error.message || String(json.error))
+        : JSON.stringify(json);
+      throw new Error(`OpenAI API error (${res.status}): ${msg}`);
+    }
+
+    const outText = extractOutputText(json);
+    if (!outText) throw new Error('No output text found in response.');
+
+    let parsed;
+    try { parsed = JSON.parse(outText); }
+    catch {
+      throw new Error('Failed to parse model output as JSON. Raw output:\n' + outText);
+    }
+
+    return parsed;
+  }
+
+  async function generateRevenueModels({text, imageDataUrl}){
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        primary_model: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            category: { type: 'string', minLength: 2, description: 'Broad model type (e.g., Direct-to-consumer retail, B2B SaaS subscription).' },
+            name: { type: 'string', minLength: 2, description: 'Specific mechanism within the category (e.g., Per-cup retail sales, Per-seat subscription).' },
+            revenue_stream: { type: 'string', minLength: 10 },
+            value_offering: { type: 'string', minLength: 10 },
+            pricing_strategy: { type: 'string', minLength: 10 }
+          },
+          required: ['category','name','revenue_stream','value_offering','pricing_strategy']
+        },
+        sub_models: {
+          type: 'array',
+          minItems: 3,
+          maxItems: 3,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              category: { type: 'string', minLength: 2 },
+              name: { type: 'string', minLength: 2 },
+              revenue_stream: { type: 'string', minLength: 10 },
+              value_offering: { type: 'string', minLength: 10 },
+              pricing_strategy: { type: 'string', minLength: 10 }
+            },
+            required: ['category','name','revenue_stream','value_offering','pricing_strategy']
+          }
+        }
+      },
+      required: ['primary_model','sub_models']
+    };
+
+    const instructions =
+`You are a venture studio operator.
+
+Input:
+The user provides either (a) a business idea OR (b) a value proposition plus related context (customer, market, geography, differentiator, constraints).
+
+Task:
+Propose ONE recommended revenue model plus THREE associated/sub-model variations.
+
+Important field semantics:
+- category: the BROAD revenue model type (e.g., Direct-to-consumer retail, B2B SaaS subscription, Marketplace, Licensing, Services).
+- name: the SPECIFIC revenue mechanism within that category (e.g., Per-cup retail sales, Per-seat subscription, % take-rate, Implementation fee + support retainer).
+
+For EACH model, provide exactly one sentence for each field:
+- revenue_stream: what money comes from (who pays for what, how it is measured).
+- value_offering: what value the customer receives in exchange (customer-facing benefit).
+- pricing_strategy: how to price it (include plausible price anchors or ranges when possible).
+
+Constraints:
+- Tailor the models to the provided industry, customer, and any geography mentioned.
+- The primary model should be the best first choice for go-to-market.
+- Sub-models should be viable alternatives (e.g., tiered vs usage-based, services add-on, marketplace take-rate, licensing, outcome-based, etc.).
+- Avoid hand-wavy pricing; add at least one numeric anchor where possible.
+
+Return ONLY JSON matching the provided schema.`;
+
+    const content = [
+      { type: 'input_text', text: `User input:\n${text || '(no text provided)'}` }
+    ];
+    if (imageDataUrl){
+      content.push({ type: 'input_image', image_url: imageDataUrl });
+    }
+
+    return await callOpenAIStructured({
+      schemaName: 'revenue_models',
+      schema,
+      instructions,
+      content,
+    });
+  }
+
+  async function reviseSingleModel({inputText, imageDataUrl, model}){
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        category: { type: 'string', minLength: 2 },
+        name: { type: 'string', minLength: 2 },
+        revenue_stream: { type: 'string', minLength: 10 },
+        value_offering: { type: 'string', minLength: 10 },
+        pricing_strategy: { type: 'string', minLength: 10 }
+      },
+      required: ['category','name','revenue_stream','value_offering','pricing_strategy']
+    };
+
+    const instructions =
+`You are revising a single revenue model for clarity, feasibility, and specificity.
+
+You will be given:
+- The user's business input.
+- The current version of ONE model (with user edits).
+
+Task:
+Return a revised version of THAT MODEL ONLY.
+
+Rules:
+- Preserve the model's intent, but improve precision and readability.
+- Ensure each of revenue_stream, value_offering, pricing_strategy is EXACTLY ONE sentence.
+- Make pricing less vague: include at least one numeric anchor (range, unit price, %, or fee) when plausible.
+- category must remain the broad model type; name must remain the specific mechanism.
+
+Return ONLY JSON matching the schema.`;
+
+    const content = [
+      { type: 'input_text', text:
+        `User input:\n${inputText || '(no text provided)'}\n\nCurrent model (revise only this):\n` +
+        `category: ${model.category || ''}\n` +
+        `name: ${model.name || ''}\n` +
+        `revenue_stream: ${model.revenue_stream || ''}\n` +
+        `value_offering: ${model.value_offering || ''}\n` +
+        `pricing_strategy: ${model.pricing_strategy || ''}`
+      }
+    ];
+    if (imageDataUrl){
+      content.push({ type: 'input_image', image_url: imageDataUrl });
+    }
+
+    const parsed = await callOpenAIStructured({
+      schemaName: 'revise_model',
+      schema,
+      instructions,
+      content,
+    });
+
+    return normalizeModel({ id: model.id, ...parsed });
+  }
+
+  // -------------------- Rendering --------------------
+  function modelTitleFor(kind, index){
+    if (kind === 'primary') return 'Primary revenue model';
+    // first 3 are the generated sub-models; beyond that are user-added
+    if (index < 3) return `Sub-model ${index+1}`;
+    return `Custom model ${index-2}`;
+  }
+
+  function renderModels(){
+    const host = $('models');
+    host.innerHTML = '';
+
+    const blocks = [];
+    if (state.primary) blocks.push({ model: state.primary, kind:'primary' });
+    state.subs.forEach((m, i) => blocks.push({ model: m, kind:'sub', index:i }));
+
+    for (const b of blocks){
+      const card = document.createElement('div');
+      card.className = 'modelCard';
+
+      const top = document.createElement('div');
+      top.className = 'row';
+      top.style.justifyContent = 'space-between';
+
+      const left = document.createElement('div');
+      left.style.display = 'flex';
+      left.style.flexDirection = 'column';
+      left.style.gap = '2px';
+
+      const ttl = document.createElement('div');
+      ttl.style.fontWeight = '850';
+      ttl.style.fontSize = '13px';
+      ttl.textContent = modelTitleFor(b.kind, b.index ?? 0);
+
+      const hint = document.createElement('div');
+      hint.className = 'muted';
+      hint.textContent = 'Keep each field to one sentence.';
+
+      left.appendChild(ttl);
+      left.appendChild(hint);
+
+      const right = document.createElement('div');
+      right.className = 'row';
+      right.style.gap = '8px';
+
+      const refresh = document.createElement('button');
+      refresh.className = 'iconBtn';
+      refresh.textContent = '↻';
+      refresh.title = 'Revise this model (ChatGPT)';
+      refresh.disabled = state.refreshing.has(b.model.id);
+      refresh.onclick = async () => {
+        // revise THIS model only
+        const inputText = String($('idea').value || '').trim();
+        if (!inputText && !state.imageDataUrl){
+          setMsg('resultsStatus', 'Add business input text (or screenshot) before revising.', 'err');
+          return;
+        }
+
+        try{
+          state.refreshing.add(b.model.id);
+          renderModels();
+          setMsg('resultsStatus', 'Revising selected model…', 'info');
+
+          const revised = await reviseSingleModel({
+            inputText,
+            imageDataUrl: state.imageDataUrl,
+            model: b.model,
+          });
+
+          // apply back into state (by id)
+          if (state.primary && state.primary.id === revised.id){
+            state.primary = revised;
+          } else {
+            const idx = state.subs.findIndex(x => x.id === revised.id);
+            if (idx >= 0) state.subs[idx] = revised;
+          }
+
+          saveState();
+          setMsg('resultsStatus', 'Model revised. Review and adjust.', 'ok');
+        } catch (e){
+          setMsg('resultsStatus', String(e && e.message ? e.message : e), 'err');
+          console.error(e);
+        } finally {
+          state.refreshing.delete(b.model.id);
+          renderModels();
+        }
+      };
+
+      right.appendChild(refresh);
+
+      if (b.kind === 'sub'){
+        const rm = document.createElement('button');
+        rm.className = 'iconBtn';
+        rm.textContent = '✕';
+        rm.title = 'Remove this model';
+        rm.onclick = () => {
+          state.subs.splice(b.index, 1);
+          saveState();
+          updateVisibility();
+          renderModels();
+        };
+        right.appendChild(rm);
+      }
+
+      top.appendChild(left);
+      top.appendChild(right);
+
+      const grid = document.createElement('div');
+      grid.className = 'grid2';
+
+      // Requested: show broad category FIRST (e.g., Direct-to-consumer retail)
+      const catWrap = document.createElement('div');
+      const catLbl = document.createElement('label');
+      catLbl.textContent = 'Revenue model category (broad)';
+      const cat = document.createElement('input');
+      cat.type = 'text';
+      cat.placeholder = 'e.g., Direct-to-consumer retail, B2B SaaS subscription…';
+      cat.value = b.model.category;
+      cat.oninput = () => {
+        b.model.category = cat.value;
+        saveState();
+      };
+      catWrap.appendChild(catLbl);
+      catWrap.appendChild(cat);
+
+      const nameWrap = document.createElement('div');
+      const nameLbl = document.createElement('label');
+      nameLbl.textContent = 'Specific model name (mechanism)';
+      const name = document.createElement('input');
+      name.type = 'text';
+      name.placeholder = 'e.g., Per-cup retail sales, Per-seat subscription…';
+      name.value = b.model.name;
+      name.oninput = () => {
+        b.model.name = name.value;
+        saveState();
+      };
+      nameWrap.appendChild(nameLbl);
+      nameWrap.appendChild(name);
+
+      grid.appendChild(catWrap);
+      grid.appendChild(nameWrap);
+
+      const rsLbl = document.createElement('label');
+      rsLbl.textContent = 'Revenue stream (one sentence)';
+      const rs = document.createElement('textarea');
+      rs.className = 'mini';
+      rs.value = b.model.revenue_stream;
+      rs.oninput = () => {
+        b.model.revenue_stream = rs.value;
+        saveState();
+      };
+
+      const voLbl = document.createElement('label');
+      voLbl.textContent = 'Value offering (one sentence)';
+      const vo = document.createElement('textarea');
+      vo.className = 'mini';
+      vo.value = b.model.value_offering;
+      vo.oninput = () => {
+        b.model.value_offering = vo.value;
+        saveState();
+      };
+
+      const psLbl = document.createElement('label');
+      psLbl.textContent = 'Suggested pricing strategy (one sentence)';
+      const ps = document.createElement('textarea');
+      ps.className = 'mini';
+      ps.value = b.model.pricing_strategy;
+      ps.oninput = () => {
+        b.model.pricing_strategy = ps.value;
+        saveState();
+      };
+
+      card.appendChild(top);
+      card.appendChild(grid);
+
+      card.appendChild(rsLbl);
+      card.appendChild(rs);
+      card.appendChild(voLbl);
+      card.appendChild(vo);
+      card.appendChild(psLbl);
+      card.appendChild(ps);
+
+      host.appendChild(card);
+    }
+
+    // guidance message only if generated primary exists but fewer than 3 generated subs
+    if (state.primary && state.subs.length < 3){
+      setMsg('resultsStatus', 'Some sub-models are missing. Click Regenerate (or add manually).', 'err');
+    }
+  }
+
+  function updateVisibility(){
+    const showResults = !!state.primary || state.subs.length > 0;
+    $('resultsCard').style.display = showResults ? 'block' : 'none';
+  }
+
+  function updateAll(){
+    updateVisibility();
+    if ($('resultsCard').style.display !== 'none') renderModels();
+    saveState();
+  }
+
+  // -------------------- Actions --------------------
+  async function generate(){
+    const text = String($('idea').value || '').trim();
+    const img = state.imageDataUrl;
+
+    if (!text && !img){
+      setMsg('status', 'Add business input text (or attach a screenshot).', 'err');
+      return;
+    }
+
+    setMsg('status', 'Generating…', 'info');
+    setMsg('resultsStatus', '', 'info');
+    $('genBtn').disabled = true;
+    $('regenBtn').disabled = true;
+
+    try{
+      const parsed = await generateRevenueModels({ text, imageDataUrl: img });
+      state.primary = normalizeModel({ id: uid('m'), ...parsed.primary_model });
+      state.subs = (Array.isArray(parsed.sub_models) ? parsed.sub_models : []).map((m) => normalizeModel({ id: uid('m'), ...m }));
+
+      setMsg('status', 'Generated. Review and edit below.', 'ok');
+      updateAll();
+
+    } catch (e){
+      setMsg('status', String(e && e.message ? e.message : e), 'err');
+      console.error(e);
+    } finally {
+      $('genBtn').disabled = false;
+      $('regenBtn').disabled = false;
+    }
+  }
+
+  function addModel(){
+    if (!state.primary){
+      // if user wants to start without generation, create a blank primary and one blank model
+      state.primary = normalizeModel(blankModel());
+      state.primary.category = 'Custom';
+      state.primary.name = 'Custom model';
+    }
+    state.subs.push(normalizeModel(blankModel()));
+    setMsg('resultsStatus', '', 'info');
+    updateAll();
+  }
+
+  function resetAll(){
+    state.primary = null;
+    state.subs = [];
+    setMsg('status', '', 'info');
+    setMsg('resultsStatus', '', 'info');
+    updateAll();
+  }
+
+  function exportJson(){
+    const payload = {
+      primary_model: state.primary,
+      sub_models: state.subs,
+      input_text: String($('idea').value || '').trim(),
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'revenue-models.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // -------------------- Screenshot handling --------------------
+  function setImage(dataUrl, metaText=''){
+    state.imageDataUrl = dataUrl;
+    const prev = $('imgPrev');
+    const thumb = $('thumb');
+    const meta = $('imgMeta');
+
+    if (dataUrl){
+      prev.style.display = 'flex';
+      thumb.src = dataUrl;
+      meta.textContent = metaText || 'Image attached.';
+    } else {
+      prev.style.display = 'none';
+      thumb.removeAttribute('src');
+      meta.textContent = '—';
+    }
+
+    saveState();
+  }
+
+  async function fileToDataUrl(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error || new Error('File read failed'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // -------------------- Modal --------------------
+  function openSettings(){ $('settingsBackdrop').style.display = 'flex'; }
+  function closeSettings(){ $('settingsBackdrop').style.display = 'none'; saveState(); }
+
+  // -------------------- Events --------------------
+  function wire(){
+    $('openSettings').addEventListener('click', openSettings);
+    $('closeSettings').addEventListener('click', closeSettings);
+    $('settingsBackdrop').addEventListener('click', (e) => {
+      if (e.target === $('settingsBackdrop')) closeSettings();
+    });
+
+    $('model').addEventListener('change', saveState);
+    $('endpoint').addEventListener('input', saveState);
+    $('apiKey').addEventListener('input', saveState);
+    $('rememberKey').addEventListener('change', saveState);
+
+    $('idea').addEventListener('input', saveState);
+
+    $('genBtn').addEventListener('click', generate);
+    $('regenBtn').addEventListener('click', generate);
+    $('addModel').addEventListener('click', addModel);
+    $('resetAll').addEventListener('click', resetAll);
+    $('exportJson').addEventListener('click', exportJson);
+
+    // Screenshot toggle
+    $('toggleShot').addEventListener('click', () => {
+      const box = $('shotBox');
+      const on = box.style.display !== 'none';
+      box.style.display = on ? 'none' : 'block';
+    });
+
+    // Upload / drop / paste
+    const dz = $('dropZone');
+    const fileInput = $('imgFile');
+
+    $('chooseImg').addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', async () => {
+      const f = fileInput.files && fileInput.files[0];
+      if (!f) return;
+      const dataUrl = await fileToDataUrl(f);
+      setImage(dataUrl, `${f.name} · ${(f.size/1024).toFixed(1)} KB`);
+    });
+
+    $('removeImg').addEventListener('click', () => {
+      fileInput.value = '';
+      setImage(null);
+    });
+
+    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+    dz.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dz.classList.remove('dragover');
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) return;
+      if (!f.type.startsWith('image/')){ setMsg('status', 'Please drop an image file.', 'err'); return; }
+      const dataUrl = await fileToDataUrl(f);
+      setImage(dataUrl, `${f.name} · ${(f.size/1024).toFixed(1)} KB`);
+    });
+
+    window.addEventListener('paste', async (e) => {
+      try{
+        const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : [];
+        const imgItem = items.find(i => i.type && i.type.startsWith('image/'));
+        if (!imgItem) return;
+        const blob = imgItem.getAsFile();
+        if (!blob) return;
+        const dataUrl = await fileToDataUrl(blob);
+        $('shotBox').style.display = 'block';
+        setImage(dataUrl, `Pasted image · ${(blob.size/1024).toFixed(1)} KB`);
+      } catch (err){
+        console.warn('Paste image failed:', err);
+      }
+    });
+  }
+
+  // -------------------- Self-tests --------------------
+  function runSelfTests(){
+    try{
+      const fake = { output: [{ type:'message', role:'assistant', content:[{type:'output_text', text:'{"primary_model":{"category":"B2B SaaS subscription","name":"Per-seat monthly subscription","revenue_stream":"Customers pay monthly per seat for access.","value_offering":"Users get predictable access to the core product and updates.","pricing_strategy":"Charge $49–$199 per seat per month based on tier."},"sub_models":[{"category":"Usage-based","name":"Per-transaction billing","revenue_stream":"Customers pay per unit of usage measured in credits.","value_offering":"Customers only pay when they use the product at scale.","pricing_strategy":"Price at $0.10–$0.50 per credit with volume discounts."},{"category":"Services + Subscription","name":"Onboarding fee + support retainer","revenue_stream":"Customers pay an onboarding fee plus a monthly subscription.","value_offering":"Customers get a faster, higher-success deployment.","pricing_strategy":"Charge $1,500–$10,000 onboarding plus $99–$499/month."},{"category":"Freemium","name":"Free tier + feature upsell","revenue_stream":"Free users convert to paid for premium features.","value_offering":"Users try the product risk-free then upgrade for advanced value.","pricing_strategy":"Offer free basic tier and upsell $19–$99/month."}]}' }]}] };
+      const txt = extractOutputText(fake);
+      console.assert(txt.startsWith('{') && txt.endsWith('}'), 'SelfTest: extractOutputText returns JSON string');
+      const parsed = JSON.parse(txt);
+      console.assert(parsed.primary_model && Array.isArray(parsed.sub_models) && parsed.sub_models.length === 3, 'SelfTest: sample payload shape');
+      const nm = normalizeModel({category:'X', name:'Y', revenue_stream:'a', value_offering:'b', pricing_strategy:'c'});
+      console.assert(typeof nm.id === 'string' && nm.id.length > 5, 'SelfTest: normalizeModel adds id');
+      console.assert('category' in nm && 'name' in nm, 'SelfTest: model fields include category and name');
+    } catch (e){
+      console.warn('Self-tests failed:', e);
+    }
+  }
+
+  // -------------------- Init --------------------
+  loadState();
+
+  if (state.imageDataUrl){
+    $('shotBox').style.display = 'block';
+    $('imgPrev').style.display = 'flex';
+    $('thumb').src = state.imageDataUrl;
+    $('imgMeta').textContent = 'Image attached.';
+  }
+
+  wire();
+  runSelfTests();
+  updateAll();
+})();
+</script>
+</body>
+</html>
