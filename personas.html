@@ -1,0 +1,1863 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Persona Builder</title>
+  <style>
+    :root{
+      --page:#f5f7fb;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:#e5e7eb;
+      --shadow:0 10px 30px rgba(15,23,42,.08);
+      --radius:16px;
+      --primary:#2563eb;
+      --primary2:#1d4ed8;
+      --danger:#dc2626;
+      --danger2:#b91c1c;
+      --ok:#16a34a;
+      --ring:rgba(37,99,235,.22);
+      --warn:#f59e0b;
+      --warn2:#d97706;
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+
+    /* IMPORTANT:
+       Some embedded hosts don't auto-resize iframe height.
+       Use an internal scroll container so the bottom sections are reachable.
+    */
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: var(--page);
+      color: var(--text);
+    }
+    #viewport{
+      height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .app{
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 18px 14px 96px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 2px;
+    }
+
+    .title{
+      font-weight: 850;
+      letter-spacing: .2px;
+      font-size: 16px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+
+    .pill{
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 999px;
+      padding: 4px 8px;
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: visible;
+    }
+
+    .hd{
+      padding: 12px 12px 10px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .hd b{ font-size: 13px; }
+    .bd{ padding: 12px; }
+
+    label{
+      display:block;
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 6px;
+    }
+
+    textarea, input[type="text"], input[type="password"], select{
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+
+    textarea{ min-height: 180px; resize: vertical; }
+
+    textarea:focus, input:focus, select:focus{
+      border-color: rgba(37,99,235,.45);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+    .btn{
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor:pointer;
+      font-weight: 650;
+      font-size: 13px;
+      background: var(--primary);
+      color: #fff;
+      user-select:none;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      justify-content:center;
+    }
+    .btn:hover{ background: var(--primary2); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .btn.secondary{
+      background: #fff;
+      color: var(--text);
+      border-color: var(--border);
+      font-weight: 650;
+    }
+    .btn.secondary:hover{ background: #f8fafc; }
+
+    .btn.danger{ background: var(--danger); }
+    .btn.danger:hover{ background: var(--danger2); }
+
+    .btn.warn{ background: var(--warn); }
+    .btn.warn:hover{ background: var(--warn2); }
+
+    .iconBtn{
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--muted);
+      padding: 8px 10px;
+      border-radius: 12px;
+      cursor:pointer;
+      font-weight: 800;
+      line-height: 1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+    }
+    .iconBtn:hover{ background:#f8fafc; color: var(--text); }
+    .iconBtn:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .muted{ color: var(--muted); font-size: 12px; }
+
+    .msg{
+      display:none;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: pre-wrap;
+      line-height: 1.4;
+    }
+    .msg.err{
+      display:block;
+      border-color: rgba(220,38,38,.25);
+      background: rgba(220,38,38,.06);
+      color: #7f1d1d;
+    }
+    .msg.ok{
+      display:block;
+      border-color: rgba(22,163,74,.22);
+      background: rgba(22,163,74,.06);
+      color: #14532d;
+    }
+    .msg.info{ display:block; }
+
+    .drop{
+      border: 1px dashed var(--border);
+      background: #fafafa;
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .drop.dragover{
+      border-color: rgba(37,99,235,.5);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+    .thumbRow{ display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; margin-top:10px; }
+    .thumb{ width: 160px; height: 105px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); background:#fff; }
+
+    .list{ display:flex; flex-direction: column; gap:10px; }
+
+    .personaCard{
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 14px;
+      padding: 12px;
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 900px){ .grid2{ grid-template-columns: 1fr; } }
+
+    .grid3{
+      display:grid;
+      grid-template-columns: 240px 1fr 1fr;
+      gap: 10px;
+      align-items:start;
+    }
+    @media (max-width: 1050px){ .grid3{ grid-template-columns: 220px 1fr; } }
+    @media (max-width: 760px){ .grid3{ grid-template-columns: 1fr; } }
+
+    .mini{
+      min-height: 88px;
+      resize: vertical;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .tiny{
+      min-height: 64px;
+      resize: vertical;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .fadeIn{ animation: fade .18s ease-out; }
+    @keyframes fade{ from{ opacity:0; transform: translateY(6px); } to{ opacity:1; transform: translateY(0); } }
+
+    .avatarBox{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .avatar{
+      width: 220px;
+      height: 220px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      object-fit: cover;
+      display:block;
+    }
+    @media (max-width: 1050px){
+      .avatar{ width: 180px; height: 180px; }
+    }
+    @media (max-width: 760px){
+      .avatar{ width: 160px; height: 160px; }
+    }
+
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 8px;
+      padding: 2px 6px;
+    }
+
+    .modalBackdrop{
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,42,.40);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      z-index: 50;
+    }
+
+    .modal{
+      width: min(820px, 100%);
+      background: #fff;
+      color: var(--text);
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 60px rgba(15,23,42,.22);
+      overflow:hidden;
+    }
+
+    .note{
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .tagRow{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .chip{
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    .chip input{ transform: translateY(1px); }
+
+    .hr{
+      height:1px;
+      background: var(--border);
+      width: 100%;
+      margin: 6px 0;
+    }
+
+    /* ---------- Loading spinners ---------- */
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .spinner{
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      animation: spin .8s linear infinite;
+      flex: 0 0 auto;
+    }
+    .spinner.lg{
+      width: 28px;
+      height: 28px;
+      border-width: 3px;
+    }
+
+    .btn .spinner{ display:none; }
+    .btn.loading .spinner{ display:inline-block; }
+    .btn.secondary .spinner{
+      border-color: rgba(15,23,42,.18);
+      border-top-color: var(--text);
+    }
+
+    .avatarWrap{
+      position: relative;
+      display: inline-block;
+      line-height: 0;
+    }
+    .avatarOverlay{
+      position: absolute;
+      inset: 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(248,250,252,.72);
+      border-radius: 18px;
+      pointer-events: none;
+    }
+    .avatarOverlay .spinner{
+      border-color: rgba(15,23,42,.18);
+      border-top-color: var(--primary);
+    }
+
+    /* ---------- Hidden face prompt (disclosure) ---------- */
+    details.faceDetails{
+      width: 100%;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 12px;
+      padding: 8px 10px;
+    }
+    details.faceDetails summary{
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 750;
+      list-style: none;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      outline: none;
+    }
+    details.faceDetails summary::-webkit-details-marker{ display:none; }
+    details.faceDetails summary::before{
+      content: '▸';
+      color: var(--muted);
+      transform: translateY(-1px);
+    }
+    details.faceDetails[open] summary::before{ content: '▾'; }
+    details.faceDetails .inner{ margin-top: 8px; }
+
+    /* -------------------- Printable persona cards (RESTORED) -------------------- */
+    .printGrid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 1200px){ .printGrid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 760px){ .printGrid{ grid-template-columns: 1fr; } }
+
+    .pCard{
+      border: 1px solid #d1d5db;
+      background: #f8fafc;
+      border-radius: 14px;
+      padding: 14px 14px 12px;
+      min-height: 560px;
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .pTop{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      text-align:center;
+      gap: 8px;
+      padding-top: 4px;
+    }
+
+    .pAvatar{
+      width: 120px;
+      height: 120px;
+      border-radius: 999px;
+      background:#fff;
+      object-fit: cover;
+      outline: 1px solid var(--border);
+      border: 2px solid #fff;
+    }
+
+    .pName{
+      font-weight: 900;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .pSub{
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.25;
+    }
+
+    .pRule{
+      height: 2px;
+      width: 74%;
+      background: rgba(100,116,139,.45);
+      border-radius: 999px;
+      margin-top: 2px;
+    }
+
+    .pCols{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .pSec{
+      background:#fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .pSec b{
+      display:block;
+      font-size: 11px;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .pSec ul{
+      margin: 0;
+      padding-left: 16px;
+    }
+
+    .pSec li{
+      font-size: 12px;
+      line-height: 1.35;
+      margin: 0 0 6px;
+      color: var(--text);
+    }
+
+    .pFooter{
+      margin-top: auto;
+      display:flex;
+      gap: 8px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+
+    .badge{
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    @media print{
+      body{ background:#fff !important; }
+      #viewport{ height:auto !important; overflow:visible !important; }
+      .app{ padding: 0 !important; max-width: none !important; }
+
+      .noPrint{ display:none !important; }
+      .card{ box-shadow:none !important; }
+
+      #printCard{ border:none !important; }
+      #printCard .hd{ border-bottom:none !important; padding:0 0 10px 0 !important; }
+      #printCard .bd{ padding:0 !important; }
+
+      .printGrid{
+        grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+        gap: 10mm !important;
+      }
+      .pCard{ box-shadow:none !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="viewport">
+    <div class="app">
+      <div class="topbar noPrint">
+        <div class="title">
+          Persona Builder
+          <span class="pill">Users + Buying Committee</span>
+        </div>
+        <button id="openSettings" class="iconBtn" aria-label="Open settings">Settings</button>
+      </div>
+
+      <!-- Step 1: Business input -->
+      <div class="card noPrint" id="ideaCard">
+        <div class="hd">
+          <b>Business input</b>
+          <div class="row" style="gap:8px;">
+            <button id="toggleShot" class="btn secondary" type="button">Add screenshot</button>
+          </div>
+        </div>
+        <div class="bd">
+          <label for="idea">Enter your business idea or value proposition + context (customer, market, geography, differentiator, constraints)</label>
+          <textarea id="idea" placeholder="Example: ‘We help mid-size clinics reduce no-shows by 30% using SMS reminders + scheduling automation. Target: US Northeast. Differentiator: integrates with Epic. Buyers: clinic admin + IT/security.’"></textarea>
+
+          <div id="shotBox" class="fadeIn" style="display:none; margin-top:10px;">
+            <div class="drop" id="dropZone">
+              <div class="row" style="justify-content: space-between;">
+                <div class="muted">Drop / paste / choose an image (optional)</div>
+                <div>
+                  <input id="imgFile" type="file" accept="image/*" style="display:none" />
+                  <button id="chooseImg" class="btn secondary" type="button">Choose</button>
+                </div>
+              </div>
+              <div class="thumbRow" id="imgPrev" style="display:none;">
+                <img class="thumb" id="thumb" alt="uploaded screenshot preview" />
+                <div style="flex:1 1 220px; min-width:220px;">
+                  <div class="muted" id="imgMeta">—</div>
+                  <div class="row" style="margin-top:10px;">
+                    <button id="removeImg" class="btn danger" type="button">Remove</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px; justify-content: space-between;">
+            <div class="tagRow">
+              <span class="chip" title="If enabled, the app will ask AI to generate faces for each persona.">
+                <input id="genFaces" type="checkbox" />
+                <span>Generate AI faces</span>
+              </span>
+            </div>
+
+            <button id="genBtn" class="btn" type="button">
+              <span class="spinner" aria-hidden="true"></span>
+              <span class="btnText">Generate personas</span>
+            </button>
+          </div>
+
+          <div class="msg" id="status"></div>
+        </div>
+      </div>
+
+      <!-- Step 2: Editor (persona cards) -->
+      <div class="card fadeIn noPrint" id="resultsCard">
+        <div class="hd">
+          <b>Personas (edit as needed)</b>
+          <div class="row" style="gap:8px;">
+            <button id="regenBtn" class="btn secondary" type="button">
+              <span class="spinner" aria-hidden="true"></span>
+              <span class="btnText">Regenerate</span>
+            </button>
+            <button id="exportJson" class="btn secondary" type="button">Export JSON</button>
+            <button id="resetAll" class="btn danger" type="button">Reset</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="row" style="justify-content: space-between; margin-bottom:10px;">
+            <div class="muted">
+              Select your <b>Buying Committee</b> members via the checkbox on each card.
+              Use <span class="kbd">↻</span> to “Complete with AI” and <span class="kbd">🎨</span> to generate/regenerate a fictional face.
+            </div>
+          </div>
+
+          <div class="list" id="personas"></div>
+
+          <div class="row" style="margin-top: 10px; justify-content:flex-start;">
+            <button id="addPersona" class="btn secondary" type="button">+ Add persona</button>
+          </div>
+
+          <div class="msg" id="resultsStatus"></div>
+        </div>
+      </div>
+
+      <!-- Step 3: Printable cards (RESTORED) -->
+      <div class="card fadeIn" id="printCard" style="display:none;">
+        <div class="hd">
+          <b>Printable customer persona cards</b>
+          <div class="row noPrint" style="gap:8px;">
+            <button id="printBtn" class="btn secondary" type="button">Print</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="note noPrint" style="margin-bottom:10px;">
+            Tip: For a layout like the example, choose <b>Landscape</b> in the print dialog and enable <b>Background graphics</b>.
+          </div>
+          <div id="printGrid" class="printGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settingsBackdrop" class="modalBackdrop noPrint" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="modal">
+      <div class="hd" style="border-bottom:1px solid var(--border);">
+        <b>Settings</b>
+        <button id="closeSettings" class="iconBtn" type="button">Close</button>
+      </div>
+      <div class="bd">
+        <div class="grid2">
+          <div>
+            <label for="model">Text model</label>
+            <select id="model">
+              <option value="gpt-5.2" selected>gpt-5.2</option>
+              <option value="gpt-5-mini">gpt-5-mini</option>
+            </select>
+          </div>
+          <div>
+            <label for="endpoint">Responses endpoint</label>
+            <input id="endpoint" type="text" value="https://YOUR-WORKER.your-subdomain.workers.dev/v1/responses" />
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:10px;">
+          <div>
+            <label for="imageModel">Image model</label>
+            <input id="imageModel" type="text" value="gpt-image-1-mini" />
+          </div>
+          <div>
+            <label for="imageEndpoint">Images endpoint</label>
+            <input id="imageEndpoint" type="text" value="https://YOUR-WORKER.your-subdomain.workers.dev/v1/images/generations" />
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label for="apiKey">OpenAI API key</label>
+          <input id="apiKey" type="password" value="" autocomplete="off" />
+          <div class="row" style="margin-top:8px; justify-content: space-between;">
+            <label style="display:flex; gap:8px; align-items:center; margin:0;">
+              <input id="rememberKey" type="checkbox" />
+              <span class="muted">Remember in this browser</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:12px;">
+          This app uses <b>Responses</b> for structured persona JSON and <b>Images</b> for fictional headshots.
+          If you use a proxy Worker, you can leave the API key blank.
+          <div class="hr"></div>
+          <span class="muted">Note:</span> Faces are generated as <b>fictional</b> portraits (no real people).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  // -------------------- State --------------------
+  const state = {
+    imageDataUrl: null,
+    personas: [],
+    busy: false,
+    completing: new Set(),     // persona ids being AI-completed
+    faceBusy: new Set(),       // persona ids being face-generated
+    generatingPersonas: false, // for gen-btn spinner
+    faceBatchRunning: false,   // show spinners in blank avatar slots during batch
+  };
+
+  // -------------------- Storage --------------------
+  const LS_KEY = 'persona_builder_v1';
+  const LS_KEY_API = 'persona_builder_apiKey_v1';
+
+  function uid(prefix='id'){
+    return prefix + '_' + Math.random().toString(16).slice(2) + '_' + Date.now().toString(16);
+  }
+
+  function blankPersona(){
+    return {
+      id: uid('p'),
+      persona_name: '',
+      persona_label: '',
+      demographics_background: '',
+      motivations_goals: '',
+      pain_points_fears: '',
+      behaviors_needs: '',
+      buying_role: 'End User',
+      decision_team: false,
+      face_prompt: '',
+      face_image_data_url: null,
+    };
+  }
+
+  function normalizePersona(p){
+    return {
+      id: String(p?.id || uid('p')),
+      persona_name: String(p?.persona_name || '').trim(),
+      persona_label: String(p?.persona_label || '').trim(),
+      demographics_background: String(p?.demographics_background || '').trim(),
+      motivations_goals: String(p?.motivations_goals || '').trim(),
+      pain_points_fears: String(p?.pain_points_fears || '').trim(),
+      behaviors_needs: String(p?.behaviors_needs || '').trim(),
+      buying_role: String(p?.buying_role || 'End User').trim(),
+      decision_team: !!p?.decision_team,
+      face_prompt: String(p?.face_prompt || '').trim(),
+      face_image_data_url: typeof p?.face_image_data_url === 'string' ? p.face_image_data_url : null,
+    };
+  }
+
+  function inferImagesEndpointFromResponsesEndpoint(responsesEndpoint){
+    const s = String(responsesEndpoint || '').trim();
+    if (!s) return '';
+    if (s.includes('/v1/responses')) return s.replace('/v1/responses', '/v1/images/generations');
+    if (s.endsWith('/responses')) return s.replace(/\/responses$/, '/images/generations');
+    return s;
+  }
+
+  function saveState(){
+    const payload = {
+      inputText: $('idea').value || '',
+      imageDataUrl: state.imageDataUrl,
+      personas: state.personas,
+      endpoint: $('endpoint').value || '',
+      model: $('model').value || 'gpt-5.2',
+      imageEndpoint: $('imageEndpoint').value || '',
+      imageModel: $('imageModel').value || 'gpt-image-1-mini',
+      genFaces: $('genFaces').checked ? 1 : 0,
+    };
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(payload)); } catch {}
+
+    if ($('rememberKey').checked){
+      try{ localStorage.setItem(LS_KEY_API, $('apiKey').value || ''); } catch {}
+    } else {
+      try{ localStorage.removeItem(LS_KEY_API); } catch {}
+    }
+  }
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if (raw){
+        const p = JSON.parse(raw);
+        $('idea').value = p.inputText || '';
+        state.imageDataUrl = p.imageDataUrl || null;
+        state.personas = Array.isArray(p.personas) ? p.personas.map(normalizePersona) : [];
+        if (p.endpoint) $('endpoint').value = p.endpoint;
+        if (p.model) $('model').value = p.model;
+        if (p.imageEndpoint) $('imageEndpoint').value = p.imageEndpoint;
+        if (p.imageModel) $('imageModel').value = p.imageModel;
+        $('genFaces').checked = !!p.genFaces;
+      } else {
+        $('imageEndpoint').value = inferImagesEndpointFromResponsesEndpoint($('endpoint').value);
+      }
+
+      const api = localStorage.getItem(LS_KEY_API);
+      if (api){
+        $('apiKey').value = api;
+        $('rememberKey').checked = true;
+      }
+    } catch {}
+  }
+
+  // -------------------- UI helpers --------------------
+  function setMsg(targetId, text, kind='info'){
+    const box = $(targetId);
+    box.className = 'msg ' + kind;
+    box.textContent = text || '';
+    box.style.display = text ? 'block' : 'none';
+  }
+
+  function setBtnLoading(btnId, on){
+    const btn = $(btnId);
+    if (!btn) return;
+    btn.classList.toggle('loading', !!on);
+    btn.setAttribute('aria-busy', on ? 'true' : 'false');
+  }
+
+  function setGenerateLoading(on){
+    setBtnLoading('genBtn', on);
+    setBtnLoading('regenBtn', on);
+  }
+
+  function scrollToResults(){
+    const el = $('resultsCard');
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // -------------------- Printable helpers (RESTORED) --------------------
+  function escapeHtml(s){
+    return String(s || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function toBullets(text, max=5){
+    const t = String(text || '').replace(/\r/g, '').trim();
+    if (!t) return [];
+    let parts = t
+      .split('\n')
+      .map(x => x.trim())
+      .filter(Boolean)
+      .flatMap(line => {
+        if (line.includes('•')) return line.split('•').map(x => x.trim()).filter(Boolean);
+        if (line.includes(' - ')) return line.split(' - ').map(x => x.trim()).filter(Boolean);
+        return [line];
+      })
+      .map(x => x.replace(/^[-*•]\s*/, '').trim())
+      .filter(Boolean);
+
+    if (parts.length <= 1 && t.length > 140){
+      parts = t.split(/(?<=[.!?])\s+/).map(x => x.trim()).filter(Boolean);
+    }
+    return parts.slice(0, max);
+  }
+
+  // -------------------- Readiness --------------------
+  function ensureReadyText(){
+    const endpoint = ($('endpoint').value || '').trim();
+    const apiKey = ($('apiKey').value || '').trim();
+    const model = ($('model').value || 'gpt-5.2').trim();
+    if (!endpoint) throw new Error('Missing Responses endpoint URL.');
+    if (endpoint.includes('api.openai.com') && !apiKey) throw new Error('Missing API key (or use a proxy endpoint).');
+    return { endpoint, apiKey, model };
+  }
+
+  function ensureReadyImages(){
+    const imageEndpoint = ($('imageEndpoint').value || '').trim();
+    const apiKey = ($('apiKey').value || '').trim();
+    const imageModel = ($('imageModel').value || 'gpt-image-1').trim();
+    if (!imageEndpoint) throw new Error('Missing Images endpoint URL.');
+    if (imageEndpoint.includes('api.openai.com') && !apiKey) throw new Error('Missing API key (or use a proxy endpoint).');
+    return { imageEndpoint, apiKey, imageModel };
+  }
+
+  // -------------------- OpenAI (Responses API) --------------------
+  function extractOutputText(resp){
+    const out = resp && Array.isArray(resp.output) ? resp.output : [];
+    let s = '';
+    for (const item of out){
+      if (item && item.type === 'message' && item.role === 'assistant' && Array.isArray(item.content)){
+        for (const c of item.content){
+          if (c && c.type === 'output_text' && typeof c.text === 'string') s += c.text;
+        }
+      }
+    }
+    return s.trim();
+  }
+
+  async function callOpenAIStructured({schemaName, schema, instructions, content}){
+    const { endpoint, apiKey, model } = ensureReadyText();
+
+    const body = {
+      model,
+      input: [{ role: 'user', content }],
+      instructions,
+      store: false,
+      text: {
+        format: {
+          type: 'json_schema',
+          name: schemaName,
+          strict: true,
+          schema,
+        }
+      }
+    };
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (endpoint.includes('api.openai.com')) headers['Authorization'] = `Bearer ${apiKey}`;
+
+    const res = await fetch(endpoint, { method:'POST', headers, body: JSON.stringify(body) });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok){
+      const msg = (json && json.error && (json.error.message || json.error))
+        ? (json.error.message || String(json.error))
+        : JSON.stringify(json);
+      throw new Error(`OpenAI API error (${res.status}): ${msg}`);
+    }
+
+    const outText = extractOutputText(json);
+    if (!outText) throw new Error('No output text found in response.');
+
+    let parsed;
+    try { parsed = JSON.parse(outText); }
+    catch {
+      throw new Error('Failed to parse model output as JSON. Raw output:\n' + outText);
+    }
+
+    return parsed;
+  }
+
+  // -------------------- OpenAI (Images API) --------------------
+  function b64ToDataUrl(b64, mime='image/png'){
+    return `data:${mime};base64,${b64}`;
+  }
+
+  function normalizeImagesUrl(imageEndpoint){
+    const e = String(imageEndpoint || '').trim();
+    if (!e) return e;
+    if (e.endsWith('/v1/images')) return e + '/generations';
+    if (e.endsWith('/generations')) return e;
+    if (e.includes('/v1/images/generations')) return e;
+    return e;
+  }
+
+  async function callOpenAIImage({prompt, size='1024x1024'}){
+    const { imageEndpoint, apiKey, imageModel } = ensureReadyImages();
+    const url = normalizeImagesUrl(imageEndpoint);
+
+    const allowedGptSizes = new Set(['1024x1024','1024x1536','1536x1024','auto']);
+    const allowedDalleSizes = new Set(['1024x1024','1024x1792','1792x1024']);
+    const isDalle = /^dall-e-/.test(imageModel);
+
+    let finalSize = String(size || '').trim() || '1024x1024';
+    if (isDalle){
+      if (!allowedDalleSizes.has(finalSize)) finalSize = '1024x1024';
+    } else {
+      if (!allowedGptSizes.has(finalSize)) finalSize = 'auto';
+    }
+
+    const body = { model: imageModel, prompt, size: finalSize };
+    if (isDalle) body.response_format = 'b64_json';
+    else body.output_format = 'png';
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (url.includes('api.openai.com')) headers['Authorization'] = `Bearer ${apiKey}`;
+
+    const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok){
+      const msg = (json && json.error && (json.error.message || json.error))
+        ? (json.error.message || String(json.error))
+        : JSON.stringify(json);
+      throw new Error(`Image API error (${res.status}): ${msg}`);
+    }
+
+    const b64 =
+      json?.data?.[0]?.b64_json ||
+      json?.data?.[0]?.b64 ||
+      json?.data?.[0]?.image_base64 ||
+      json?.data?.[0]?.base64;
+
+    if (!b64) throw new Error('No base64 image found in Image API response.');
+
+    return b64ToDataUrl(String(b64), 'image/png');
+  }
+
+  // -------------------- AI tasks --------------------
+  async function generatePersonas({text, imageDataUrl}){
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        personas: {
+          type: 'array',
+          minItems: 3,
+          maxItems: 5,
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              persona_name: { type: 'string', minLength: 2 },
+              persona_label: { type: 'string', minLength: 0 },
+              demographics_background: { type: 'string', minLength: 20 },
+              motivations_goals: { type: 'string', minLength: 20 },
+              pain_points_fears: { type: 'string', minLength: 20 },
+              behaviors_needs: { type: 'string', minLength: 20 },
+              buying_role: { type: 'string', enum: ['End User','Champion','Economic Buyer','Technical Gatekeeper','Procurement/Legal','Other'] },
+              decision_team: { type: 'boolean' },
+              face_prompt: { type: 'string', minLength: 30 }
+            },
+            required: [
+              'persona_name','persona_label','demographics_background','motivations_goals',
+              'pain_points_fears','behaviors_needs','buying_role','decision_team','face_prompt'
+            ]
+          }
+        }
+      },
+      required: ['personas']
+    };
+
+    const instructions =
+`You are a GTM strategist and product marketer.
+
+Input:
+The user provides a business idea or value proposition plus context (customer, market, geography, differentiator, constraints). They may also provide a screenshot.
+
+Task:
+Develop 3 to 5 UNIQUE customer personas that together represent:
+1) the intended user base and
+2) the typical buying committee (decision-making team) for the product.
+
+Each persona must include:
+- Demographics & Background
+- Motivations & Goals
+- Pain Points & Fears
+- Behaviors & Needs
+- Persona Name/Face (face_prompt for a fictional photorealistic headshot)
+
+Guidelines:
+- Make the set diverse across roles (End User, Champion, Economic Buyer, Technical Gatekeeper, Procurement/Legal).
+- Keep each field concise but specific (2–4 short sentences or bullet-like lines).
+- Face prompts must describe a fictional person (no real people), professional headshot, neutral background, realistic lighting, 1:1.
+
+Return ONLY JSON matching the provided schema.`;
+
+    const content = [{ type: 'input_text', text: `User input:\n${text || '(no text provided)'}` }];
+    if (imageDataUrl) content.push({ type: 'input_image', image_url: imageDataUrl });
+
+    return await callOpenAIStructured({ schemaName: 'personas', schema, instructions, content });
+  }
+
+  async function completePersona({inputText, imageDataUrl, persona}){
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        persona_name: { type: 'string', minLength: 2 },
+        persona_label: { type: 'string', minLength: 0 },
+        demographics_background: { type: 'string', minLength: 20 },
+        motivations_goals: { type: 'string', minLength: 20 },
+        pain_points_fears: { type: 'string', minLength: 20 },
+        behaviors_needs: { type: 'string', minLength: 20 },
+        buying_role: { type: 'string', enum: ['End User','Champion','Economic Buyer','Technical Gatekeeper','Procurement/Legal','Other'] },
+        decision_team: { type: 'boolean' },
+        face_prompt: { type: 'string', minLength: 30 }
+      },
+      required: [
+        'persona_name','persona_label','demographics_background','motivations_goals',
+        'pain_points_fears','behaviors_needs','buying_role','decision_team','face_prompt'
+      ]
+    };
+
+    const instructions =
+`You are refining ONE persona card for clarity, specificity, and usefulness.
+
+You will be given:
+- The user's business input (and optionally screenshot).
+- The current, partially filled persona fields.
+
+Task:
+Return a completed, improved version of THIS persona ONLY.
+
+Rules:
+- Preserve any user-provided specifics; fill missing details and tighten vague areas.
+- Keep each field concise but specific (2–4 short sentences or bullet-like lines).
+- Ensure buying_role is coherent and decision_team reflects whether they typically participate in a buying committee.
+- Provide/refresh face_prompt for a fictional photorealistic headshot consistent with demographics.
+
+Return ONLY JSON matching the schema.`;
+
+    const content = [{
+      type: 'input_text',
+      text:
+`User input:
+${inputText || '(no text provided)'}
+
+Current persona (complete/refine this one):
+persona_name: ${persona.persona_name || ''}
+persona_label: ${persona.persona_label || ''}
+buying_role: ${persona.buying_role || ''}
+decision_team: ${persona.decision_team ? 'true' : 'false'}
+demographics_background: ${persona.demographics_background || ''}
+motivations_goals: ${persona.motivations_goals || ''}
+pain_points_fears: ${persona.pain_points_fears || ''}
+behaviors_needs: ${persona.behaviors_needs || ''}
+face_prompt: ${persona.face_prompt || ''}`
+    }];
+    if (imageDataUrl) content.push({ type: 'input_image', image_url: imageDataUrl });
+
+    const parsed = await callOpenAIStructured({ schemaName: 'complete_persona', schema, instructions, content });
+    return normalizePersona({ id: persona.id, face_image_data_url: persona.face_image_data_url, ...parsed });
+  }
+
+  // -------------------- Rendering --------------------
+  const BUYING_ROLES = ['End User','Champion','Economic Buyer','Technical Gatekeeper','Procurement/Legal','Other'];
+
+  function personaTitle(p, idx){
+    const name = p.persona_name || `Persona ${idx+1}`;
+    const role = p.buying_role ? ` · ${p.buying_role}` : '';
+    return name + role;
+  }
+
+  function makePlaceholderSvg(text){
+    const safe = String(text || 'Persona').slice(0, 22).replace(/[<>&"]/g, '');
+    const svg =
+`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e2e8f0"/>
+      <stop offset="1" stop-color="#f8fafc"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="36" fill="url(#g)"/>
+  <circle cx="256" cy="214" r="92" fill="#cbd5e1"/>
+  <rect x="118" y="332" width="276" height="130" rx="65" fill="#cbd5e1"/>
+  <text x="256" y="470" text-anchor="middle" font-size="28" font-family="ui-sans-serif, system-ui" fill="#64748b">${safe}</text>
+</svg>`;
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+
+  function renderPrintCards(){
+    const host = $('printGrid');
+    if (!host) return;
+    host.innerHTML = '';
+
+    for (let i = 0; i < state.personas.length; i++){
+      const p = state.personas[i];
+      const name = p.persona_name || p.persona_label || `Persona ${i+1}`;
+
+      const subBits = [];
+      if (p.persona_label) subBits.push(p.persona_label);
+      if (p.buying_role) subBits.push(p.buying_role);
+      if (p.decision_team) subBits.push('Buying Committee');
+      const sub = subBits.join(' · ');
+
+      const imgSrc = p.face_image_data_url || makePlaceholderSvg(name);
+
+      const dem = toBullets(p.demographics_background, 5);
+      const goals = toBullets(p.motivations_goals, 5);
+      const pains = toBullets(p.pain_points_fears, 5);
+      const beh = toBullets(p.behaviors_needs, 5);
+
+      const card = document.createElement('div');
+      card.className = 'pCard';
+      card.innerHTML = `
+        <div class="pTop">
+          <img class="pAvatar" alt="persona face" src="${escapeHtml(imgSrc)}" />
+          <div class="pName">${escapeHtml(name)}</div>
+          <div class="pSub">${escapeHtml(sub || '—')}</div>
+          <div class="pRule"></div>
+        </div>
+
+        <div class="pCols">
+          <div class="pSec">
+            <b>Demographics & Background</b>
+            ${dem.length ? `<ul>${dem.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>` : `<div class="muted">—</div>`}
+          </div>
+          <div class="pSec">
+            <b>Motivations & Goals</b>
+            ${goals.length ? `<ul>${goals.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>` : `<div class="muted">—</div>`}
+          </div>
+
+          <div class="pSec">
+            <b>Pain Points & Fears</b>
+            ${pains.length ? `<ul>${pains.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>` : `<div class="muted">—</div>`}
+          </div>
+          <div class="pSec">
+            <b>Behaviors & Needs</b>
+            ${beh.length ? `<ul>${beh.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul>` : `<div class="muted">—</div>`}
+          </div>
+        </div>
+
+        <div class="pFooter">
+          <span class="badge">${escapeHtml(p.buying_role || 'Role: —')}</span>
+          <span class="badge">${p.decision_team ? 'Decision team: Yes' : 'Decision team: No'}</span>
+        </div>
+      `;
+      host.appendChild(card);
+    }
+
+    if (state.personas.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'note';
+      empty.textContent = 'No personas yet. Generate personas to see printable cards here.';
+      host.appendChild(empty);
+    }
+  }
+
+  function renderPersonas(){
+    const host = $('personas');
+    host.innerHTML = '';
+
+    for (let i = 0; i < state.personas.length; i++){
+      const p = state.personas[i];
+
+      const card = document.createElement('div');
+      card.className = 'personaCard';
+
+      const top = document.createElement('div');
+      top.className = 'row';
+      top.style.justifyContent = 'space-between';
+
+      const left = document.createElement('div');
+      left.style.display = 'flex';
+      left.style.flexDirection = 'column';
+      left.style.gap = '2px';
+
+      const ttl = document.createElement('div');
+      ttl.style.fontWeight = '850';
+      ttl.style.fontSize = '13px';
+      ttl.textContent = personaTitle(p, i);
+
+      const hint = document.createElement('div');
+      hint.className = 'muted';
+      hint.textContent = 'Editable. Use ↻ to complete. Use 🎨 to generate/regenerate a fictional face.';
+
+      left.appendChild(ttl);
+      left.appendChild(hint);
+
+      const right = document.createElement('div');
+      right.className = 'row';
+      right.style.gap = '8px';
+
+      const completeBtn = document.createElement('button');
+      completeBtn.className = 'iconBtn';
+      completeBtn.title = 'Complete this persona with AI';
+      completeBtn.textContent = '↻';
+      completeBtn.disabled = state.completing.has(p.id) || state.busy;
+      completeBtn.onclick = async () => {
+        const inputText = String($('idea').value || '').trim();
+        if (!inputText && !state.imageDataUrl){
+          setMsg('resultsStatus', 'Add business input text (or screenshot) before completing personas.', 'err');
+          scrollToResults();
+          return;
+        }
+        try{
+          state.completing.add(p.id);
+          renderPersonas();
+          setMsg('resultsStatus', 'Completing selected persona…', 'info');
+          scrollToResults();
+
+          const completed = await completePersona({ inputText, imageDataUrl: state.imageDataUrl, persona: p });
+          state.personas[i] = completed;
+          saveState();
+          setMsg('resultsStatus', 'Persona completed. Review and adjust.', 'ok');
+
+          renderPrintCards();
+
+          if ($('genFaces').checked){
+            await maybeGenerateFaceForPersona(state.personas[i], {force: !state.personas[i].face_image_data_url, silent:false});
+          }
+        } catch (e){
+          setMsg('resultsStatus', String(e && e.message ? e.message : e), 'err');
+          console.error(e);
+        } finally {
+          state.completing.delete(p.id);
+          renderPersonas();
+          renderPrintCards();
+        }
+      };
+
+      const faceBtn = document.createElement('button');
+      faceBtn.className = 'iconBtn';
+      faceBtn.title = 'Generate/regenerate fictional face';
+      faceBtn.textContent = '🎨';
+      faceBtn.disabled = state.faceBusy.has(p.id) || state.busy;
+      faceBtn.onclick = async () => {
+        try{
+          await maybeGenerateFaceForPersona(p, {force:true, silent:false});
+          setMsg('resultsStatus', 'Face updated.', 'ok');
+        } catch (e){
+          setMsg('resultsStatus', String(e && e.message ? e.message : e), 'err');
+          console.error(e);
+        } finally {
+          renderPersonas();
+          renderPrintCards();
+        }
+      };
+
+      const rmBtn = document.createElement('button');
+      rmBtn.className = 'iconBtn';
+      rmBtn.title = 'Remove this persona';
+      rmBtn.textContent = '✕';
+      rmBtn.disabled = state.busy;
+      rmBtn.onclick = () => {
+        state.personas.splice(i, 1);
+        saveState();
+        updateAll();
+      };
+
+      right.appendChild(completeBtn);
+      right.appendChild(faceBtn);
+      right.appendChild(rmBtn);
+
+      top.appendChild(left);
+      top.appendChild(right);
+
+      const grid = document.createElement('div');
+      grid.className = 'grid3';
+
+      const avatarCol = document.createElement('div');
+      avatarCol.className = 'avatarBox';
+
+      const isFaceLoading =
+        state.faceBusy.has(p.id) ||
+        (state.faceBatchRunning && !p.face_image_data_url);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'avatarWrap';
+
+      const img = document.createElement('img');
+      img.className = 'avatar';
+      img.alt = 'persona face';
+      img.src = p.face_image_data_url || makePlaceholderSvg(p.persona_name || p.persona_label || 'Persona');
+      wrap.appendChild(img);
+
+      if (isFaceLoading){
+        const ov = document.createElement('div');
+        ov.className = 'avatarOverlay';
+        ov.innerHTML = `<span class="spinner lg" aria-hidden="true"></span>`;
+        wrap.appendChild(ov);
+      }
+
+      const meta = document.createElement('div');
+      meta.className = 'muted';
+      if (isFaceLoading){
+        meta.textContent = p.face_image_data_url ? 'Regenerating face…' : 'Generating face…';
+      } else {
+        meta.textContent = p.face_image_data_url ? 'AI-generated face (fictional)' : 'No face yet (click 🎨 or enable “Generate AI faces”)';
+      }
+
+      const decisionChip = document.createElement('label');
+      decisionChip.className = 'chip';
+      decisionChip.style.cursor = 'pointer';
+      decisionChip.title = 'Select whether this persona is part of the buying committee.';
+      decisionChip.innerHTML = `<input type="checkbox" ${p.decision_team ? 'checked':''} /> <span>Buying Committee</span>`;
+      decisionChip.querySelector('input').onchange = (e) => {
+        p.decision_team = !!e.target.checked;
+        saveState();
+        renderPersonas();
+        renderPrintCards();
+      };
+
+      avatarCol.appendChild(wrap);
+      avatarCol.appendChild(meta);
+      avatarCol.appendChild(decisionChip);
+
+      const col1 = document.createElement('div');
+      const col2 = document.createElement('div');
+
+      const nameWrap = document.createElement('div');
+      const nameLbl = document.createElement('label');
+      nameLbl.textContent = 'Persona name / shorthand';
+      const name = document.createElement('input');
+      name.type = 'text';
+      name.placeholder = 'e.g., "Ops Olivia"';
+      name.value = p.persona_name;
+      name.oninput = () => {
+        p.persona_name = name.value;
+        saveState();
+        ttl.textContent = personaTitle(p, i);
+        renderPrintCards();
+      };
+      nameWrap.appendChild(nameLbl);
+      nameWrap.appendChild(name);
+
+      const roleWrap = document.createElement('div');
+      const roleLbl = document.createElement('label');
+      roleLbl.textContent = 'Buying role';
+      const roleSel = document.createElement('select');
+      for (const r of BUYING_ROLES){
+        const opt = document.createElement('option');
+        opt.value = r;
+        opt.textContent = r;
+        if (p.buying_role === r) opt.selected = true;
+        roleSel.appendChild(opt);
+      }
+      roleSel.onchange = () => {
+        p.buying_role = roleSel.value;
+        saveState();
+        ttl.textContent = personaTitle(p, i);
+        renderPrintCards();
+      };
+      roleWrap.appendChild(roleLbl);
+      roleWrap.appendChild(roleSel);
+
+      const labelWrap = document.createElement('div');
+      const labelLbl = document.createElement('label');
+      labelLbl.textContent = 'Archetype label (optional)';
+      const label = document.createElement('input');
+      label.type = 'text';
+      label.placeholder = 'e.g., "Process-driven operator"';
+      label.value = p.persona_label;
+      label.oninput = () => { p.persona_label = label.value; saveState(); renderPrintCards(); };
+      labelWrap.appendChild(labelLbl);
+      labelWrap.appendChild(label);
+
+      // Hidden face prompt (advanced)
+      const fpLbl = document.createElement('label');
+      fpLbl.textContent = 'Face prompt (fictional headshot)';
+      const fp = document.createElement('textarea');
+      fp.className = 'tiny';
+      fp.placeholder = 'Describe a fictional professional headshot…';
+      fp.value = p.face_prompt;
+      fp.oninput = () => { p.face_prompt = fp.value; saveState(); };
+
+      const faceDetails = document.createElement('details');
+      faceDetails.className = 'faceDetails';
+
+      const sum = document.createElement('summary');
+      const missing = !String(p.face_prompt || '').trim();
+      sum.textContent = missing ? 'Advanced: Face prompt (missing)' : 'Advanced: Face prompt';
+      faceDetails.appendChild(sum);
+
+      const inner = document.createElement('div');
+      inner.className = 'inner';
+      inner.appendChild(fpLbl);
+      inner.appendChild(fp);
+      faceDetails.appendChild(inner);
+
+      const dLbl = document.createElement('label'); dLbl.textContent = 'Demographics & Background';
+      const d = document.createElement('textarea'); d.className = 'mini'; d.value = p.demographics_background;
+      d.oninput = () => { p.demographics_background = d.value; saveState(); renderPrintCards(); };
+
+      const mLbl = document.createElement('label'); mLbl.textContent = 'Motivations & Goals';
+      const m = document.createElement('textarea'); m.className = 'mini'; m.value = p.motivations_goals;
+      m.oninput = () => { p.motivations_goals = m.value; saveState(); renderPrintCards(); };
+
+      const ppLbl = document.createElement('label'); ppLbl.textContent = 'Pain Points & Fears';
+      const pp = document.createElement('textarea'); pp.className = 'mini'; pp.value = p.pain_points_fears;
+      pp.oninput = () => { p.pain_points_fears = pp.value; saveState(); renderPrintCards(); };
+
+      const bLbl = document.createElement('label'); bLbl.textContent = 'Behaviors & Needs';
+      const b = document.createElement('textarea'); b.className = 'mini'; b.value = p.behaviors_needs;
+      b.oninput = () => { p.behaviors_needs = b.value; saveState(); renderPrintCards(); };
+
+      col1.appendChild(nameWrap);
+      col1.appendChild(roleWrap);
+      col1.appendChild(labelWrap);
+      col1.appendChild(faceDetails);
+
+      col2.appendChild(dLbl); col2.appendChild(d);
+      col2.appendChild(mLbl); col2.appendChild(m);
+      col2.appendChild(ppLbl); col2.appendChild(pp);
+      col2.appendChild(bLbl); col2.appendChild(b);
+
+      grid.appendChild(avatarCol);
+      grid.appendChild(col1);
+      grid.appendChild(col2);
+
+      card.appendChild(top);
+      card.appendChild(grid);
+
+      host.appendChild(card);
+    }
+
+    if (state.personas.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'note';
+      empty.textContent = 'No personas yet. Enter business input above, then click “Generate personas” (or click “+ Add persona”).';
+      host.appendChild(empty);
+    }
+  }
+
+  function updatePrintVisibility(){
+    $('printCard').style.display = (state.personas.length > 0) ? 'block' : 'none';
+  }
+
+  function updateAll(){
+    updatePrintVisibility();
+    renderPersonas();
+    renderPrintCards();
+    saveState();
+  }
+
+  // -------------------- Actions --------------------
+  async function runPool(items, concurrency, workerFn){
+    const executing = new Set();
+    const results = [];
+
+    for (const item of items){
+      const p = (async () => workerFn(item))();
+      results.push(p);
+      executing.add(p);
+
+      const cleanup = () => executing.delete(p);
+      p.then(cleanup, cleanup);
+
+      if (executing.size >= concurrency){
+        await Promise.race(executing);
+      }
+    }
+
+    return Promise.allSettled(results);
+  }
+
+  async function maybeGenerateFaceForPersona(persona, {force=false, silent=false} = {}){
+    const fp = String(persona.face_prompt || '').trim();
+    if (!fp){
+      throw new Error('Missing face_prompt. Click ↻ Complete with AI, or open “Advanced: Face prompt” to enter one, then click 🎨.');
+    }
+    if (!force && persona.face_image_data_url) return;
+
+    try{
+      state.faceBusy.add(persona.id);
+      renderPersonas(); // show overlay spinner immediately
+
+      if (!silent){
+        setMsg('resultsStatus', 'Generating fictional face…', 'info');
+      }
+
+      const finalPrompt =
+`${fp}
+
+Style constraints:
+- clean flat vector illustration
+- modern SaaS avatar style
+- minimal shading
+- soft solid background
+- simplified facial features
+- no texture realism
+- no text, no watermark, no logos`;
+
+      const dataUrl = await callOpenAIImage({ prompt: finalPrompt, size: '1024x1024' });
+      persona.face_image_data_url = dataUrl;
+
+      saveState();
+      renderPrintCards();
+      if (!silent) setMsg('resultsStatus', 'Face generated.', 'ok');
+    } finally {
+      state.faceBusy.delete(persona.id);
+      renderPersonas();
+      renderPrintCards();
+    }
+  }
+
+  async function generateFacesBatch({force=true, concurrency=5} = {}){
+    const conc = Math.max(1, Math.min(5, Number(concurrency) || 5));
+
+    const targets = state.personas.filter(p => {
+      const hasPrompt = String(p.face_prompt || '').trim().length > 0;
+      const needs = force || !p.face_image_data_url;
+      return hasPrompt && needs;
+    });
+
+    if (targets.length === 0){
+      setMsg('resultsStatus', 'No personas need face generation (or missing face_prompt).', 'info');
+      return;
+    }
+
+    state.faceBatchRunning = true;
+    setMsg('resultsStatus', `Generating ${targets.length} faces (up to ${conc} at once)…`, 'info');
+    renderPersonas();
+
+    try{
+      const settled = await runPool(targets, conc, async (p) => {
+        await maybeGenerateFaceForPersona(p, { force, silent: true });
+      });
+
+      const ok = settled.filter(r => r.status === 'fulfilled').length;
+      const fail = settled.length - ok;
+
+      renderPrintCards();
+      if (fail === 0) setMsg('resultsStatus', `Done. Generated ${ok}/${settled.length} faces.`, 'ok');
+      else setMsg('resultsStatus', `Generated ${ok}/${settled.length} faces; ${fail} failed (often rate limits). Try again.`, 'err');
+
+      saveState();
+    } finally {
+      state.faceBatchRunning = false;
+      renderPersonas();
+      renderPrintCards();
+    }
+  }
+
+  async function generate(){
+    const text = String($('idea').value || '').trim();
+    const img = state.imageDataUrl;
+
+    if (!text && !img){
+      setMsg('status', 'Add business input text (or attach a screenshot).', 'err');
+      return;
+    }
+
+    setMsg('status', 'Generating personas…', 'info');
+    setMsg('resultsStatus', '', 'info');
+
+    $('genBtn').disabled = true;
+    $('regenBtn').disabled = true;
+
+    state.busy = true;
+    state.generatingPersonas = true;
+    setGenerateLoading(true);
+
+    try{
+      const parsed = await generatePersonas({ text, imageDataUrl: img });
+      const persons = Array.isArray(parsed.personas) ? parsed.personas : [];
+      state.personas = persons.map((p) => normalizePersona({ id: uid('p'), ...p }));
+
+      state.generatingPersonas = false;
+      setGenerateLoading(false);
+
+      setMsg('status', 'Generated. Review and edit below.', 'ok');
+      updateAll();
+      scrollToResults();
+
+      if ($('genFaces').checked){
+        await generateFacesBatch({ force: true, concurrency: 5 });
+      }
+    } catch (e){
+      setMsg('status', String(e && e.message ? e.message : e), 'err');
+      console.error(e);
+    } finally {
+      state.busy = false;
+      state.generatingPersonas = false;
+      state.faceBatchRunning = false;
+
+      setGenerateLoading(false);
+
+      $('genBtn').disabled = false;
+      $('regenBtn').disabled = false;
+      renderPersonas();
+      renderPrintCards();
+    }
+  }
+
+  function addPersona(){
+    state.personas.push(normalizePersona(blankPersona()));
+    setMsg('resultsStatus', '', 'info');
+    updateAll();
+    scrollToResults();
+  }
+
+  function resetAll(){
+    state.personas = [];
+    setMsg('status', '', 'info');
+    setMsg('resultsStatus', '', 'info');
+    updateAll();
+    scrollToResults();
+  }
+
+  function exportJson(){
+    const payload = {
+      input_text: String($('idea').value || '').trim(),
+      personas: state.personas,
+      buying_committee: state.personas.filter(p => p.decision_team).map(p => ({
+        id: p.id,
+        persona_name: p.persona_name,
+        buying_role: p.buying_role
+      }))
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'personas.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // -------------------- Screenshot handling --------------------
+  function setImage(dataUrl, metaText=''){
+    state.imageDataUrl = dataUrl;
+    const prev = $('imgPrev');
+    const thumb = $('thumb');
+    const meta = $('imgMeta');
+
+    if (dataUrl){
+      prev.style.display = 'flex';
+      thumb.src = dataUrl;
+      meta.textContent = metaText || 'Image attached.';
+    } else {
+      prev.style.display = 'none';
+      thumb.removeAttribute('src');
+      meta.textContent = '—';
+    }
+    saveState();
+  }
+
+  async function fileToDataUrl(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error || new Error('File read failed'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // -------------------- Modal --------------------
+  function openSettings(){ $('settingsBackdrop').style.display = 'flex'; }
+  function closeSettings(){
+    if (!String($('imageEndpoint').value || '').trim()){
+      $('imageEndpoint').value = inferImagesEndpointFromResponsesEndpoint($('endpoint').value);
+    }
+    $('settingsBackdrop').style.display = 'none';
+    saveState();
+  }
+
+  // -------------------- Events (NO duplicates) --------------------
+  function wire(){
+    const on = (id, ev, fn) => {
+      const el = $(id);
+      if (el) el.addEventListener(ev, fn);
+    };
+
+    on('openSettings', 'click', openSettings);
+    on('closeSettings', 'click', closeSettings);
+    on('settingsBackdrop', 'click', (e) => {
+      if (e.target === $('settingsBackdrop')) closeSettings();
+    });
+
+    on('model', 'change', saveState);
+    on('endpoint', 'input', saveState);
+
+    on('imageModel', 'input', saveState);
+    on('imageEndpoint', 'input', saveState);
+
+    on('apiKey', 'input', saveState);
+    on('rememberKey', 'change', saveState);
+
+    on('idea', 'input', saveState);
+    on('genFaces', 'change', saveState);
+
+    on('genBtn', 'click', generate);
+    on('regenBtn', 'click', generate);
+    on('addPersona', 'click', addPersona);
+    on('resetAll', 'click', resetAll);
+    on('exportJson', 'click', exportJson);
+
+    on('printBtn', 'click', () => {
+      if (state.personas.length === 0) return;
+      window.print();
+    });
+
+    on('toggleShot', 'click', () => {
+      const box = $('shotBox');
+      const isOn = box.style.display !== 'none';
+      box.style.display = isOn ? 'none' : 'block';
+    });
+
+    const dz = $('dropZone');
+    const fileInput = $('imgFile');
+
+    on('chooseImg', 'click', () => fileInput.click());
+
+    on('imgFile', 'change', async () => {
+      const f = fileInput.files && fileInput.files[0];
+      if (!f) return;
+      const dataUrl = await fileToDataUrl(f);
+      setImage(dataUrl, `${f.name} · ${(f.size/1024).toFixed(1)} KB`);
+    });
+
+    on('removeImg', 'click', () => {
+      fileInput.value = '';
+      setImage(null);
+    });
+
+    dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+    dz.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dz.classList.remove('dragover');
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) return;
+      if (!f.type.startsWith('image/')){ setMsg('status', 'Please drop an image file.', 'err'); return; }
+      const dataUrl = await fileToDataUrl(f);
+      setImage(dataUrl, `${f.name} · ${(f.size/1024).toFixed(1)} KB`);
+    });
+
+    window.addEventListener('paste', async (e) => {
+      try{
+        const items = e.clipboardData && e.clipboardData.items ? Array.from(e.clipboardData.items) : [];
+        const imgItem = items.find(i => i.type && i.type.startsWith('image/'));
+        if (!imgItem) return;
+        const blob = imgItem.getAsFile();
+        if (!blob) return;
+        const dataUrl = await fileToDataUrl(blob);
+        $('shotBox').style.display = 'block';
+        setImage(dataUrl, `Pasted image · ${(blob.size/1024).toFixed(1)} KB`);
+      } catch (err){
+        console.warn('Paste image failed:', err);
+      }
+    });
+
+    // ESC to close settings
+    window.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if ($('settingsBackdrop').style.display === 'flex') closeSettings();
+    });
+  }
+
+  // -------------------- Init --------------------
+  loadState();
+
+  if (state.imageDataUrl){
+    $('shotBox').style.display = 'block';
+    $('imgPrev').style.display = 'flex';
+    $('thumb').src = state.imageDataUrl;
+    $('imgMeta').textContent = 'Image attached.';
+  }
+
+  wire();
+  updateAll();
+})();
+  </script>
+</body>
+</html>
