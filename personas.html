@@ -563,7 +563,7 @@
       <div class="topbar noPrint">
         <div class="title">
           Persona Builder
-          <span class="pill">Users + Buying Committee</span>
+          <span class="pill">Users + Decision Team</span>
         </div>
         <!--<button id="openSettings" class="iconBtn" aria-label="Open settings">Settings</button>-->
       </div>
@@ -635,7 +635,7 @@
         <div class="bd">
           <div class="row" style="justify-content: space-between; margin-bottom:10px;">
             <div class="muted">
-              Select your <b>Buying Committee</b> members via the checkbox on each card.
+              Select your <b>Decision Team</b> members via the checkbox on each card.
               Use <span class="kbd">↻</span> to “Complete with AI” and <span class="kbd">🎨</span> to generate/regenerate a fictional face.
             </div>
           </div>
@@ -1386,8 +1386,8 @@ face_prompt: ${persona.face_prompt || ''}`
       const decisionChip = document.createElement('label');
       decisionChip.className = 'chip';
       decisionChip.style.cursor = 'pointer';
-      decisionChip.title = 'Select whether this persona is part of the buying committee.';
-      decisionChip.innerHTML = `<input type="checkbox" ${p.decision_team ? 'checked':''} /> <span>Buying Committee</span>`;
+      decisionChip.title = 'Select whether this persona is part of the decision team.';
+      decisionChip.innerHTML = `<input type="checkbox" ${p.decision_team ? 'checked':''} /> <span>Decision Team</span>`;
       decisionChip.querySelector('input').onchange = (e) => {
         p.decision_team = !!e.target.checked;
         saveState();
