@@ -697,7 +697,7 @@ Return ONLY JSON matching the schema.`;
       const refresh = document.createElement('button');
       refresh.className = 'iconBtn';
       refresh.textContent = '↻';
-      refresh.title = 'Revise this model (ChatGPT)';
+      refresh.title = 'Revise this model (AI)';
       refresh.disabled = state.refreshing.has(b.model.id);
       refresh.onclick = async () => {
         // revise THIS model only
