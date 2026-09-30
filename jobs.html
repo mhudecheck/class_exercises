@@ -598,7 +598,7 @@
           Persona Builder
           <span class="pill">Users + Buying Committee + JTBD</span>
         </div>
-        <!-- <button id="openSettings" class="iconBtn" aria-label="Open settings">Settings</button> -->
+        <button id="openSettings" class="iconBtn" aria-label="Open settings">Settings</button>
       </div>
 
       <!-- Step 1: Business input -->
@@ -785,8 +785,7 @@
           <div>
             <label for="model">Text model</label>
             <select id="model">
-              <option value="gpt-5.2" selected>gpt-5.2</option>
-              <option value="gpt-5-mini">gpt-5-mini</option>
+              <option value="gpt-6-luna" selected>gpt-6-luna</option>
             </select>
           </div>
           <div>
@@ -798,7 +797,7 @@
         <div class="grid2" style="margin-top:10px;">
           <div>
             <label for="imageModel">Image model</label>
-            <input id="imageModel" type="text" value="gpt-image-1-mini" />
+            <input id="imageModel" type="text" value="gpt-image-2.5-flare" />
           </div>
           <div>
             <label for="imageEndpoint">Images endpoint</label>
@@ -932,9 +931,9 @@
       jobStories: state.jobStories,
       importedRawJson: state.importedRawJson || ($('personaJson')?.value || ''),
       endpoint: $('endpoint').value || '',
-      model: $('model').value || 'gpt-5.2',
+      model: $('model').value || 'gpt-6-luna',
       imageEndpoint: $('imageEndpoint').value || '',
-      imageModel: $('imageModel').value || 'gpt-image-1-mini',
+      imageModel: $('imageModel').value || 'gpt-image-2.5-flare',
       genFaces: $('genFaces').checked ? 1 : 0,
       jobPersonaFilter: $('jobPersonaFilter')?.value || 'ALL',
     };
@@ -959,10 +958,14 @@
         state.importedRawJson = String(p.importedRawJson || '');
         if ($('personaJson')) $('personaJson').value = state.importedRawJson;
 
-        if (p.endpoint) $('endpoint').value = p.endpoint;
-        if (p.model) $('model').value = p.model;
-        if (p.imageEndpoint) $('imageEndpoint').value = p.imageEndpoint;
-        if (p.imageModel) $('imageModel').value = p.imageModel;
+        if (p.endpoint && !/YOUR-WORKER|your-subdomain/i.test(p.endpoint)) $('endpoint').value = p.endpoint;
+        $('model').value = 'gpt-6-luna';
+        if (p.imageEndpoint && !/YOUR-WORKER|your-subdomain/i.test(p.imageEndpoint)) $('imageEndpoint').value = p.imageEndpoint;
+        if (p.imageModel && !['gpt-image-1-mini', 'gpt-image-1'].includes(p.imageModel)) {
+          $('imageModel').value = p.imageModel;
+        } else {
+          $('imageModel').value = 'gpt-image-2.5-flare';
+        }
         $('genFaces').checked = !!p.genFaces;
       } else {
         $('imageEndpoint').value = inferImagesEndpointFromResponsesEndpoint($('endpoint').value);
@@ -1041,7 +1044,7 @@
   function ensureReadyText(){
     const endpoint = ($('endpoint').value || '').trim();
     const apiKey = ($('apiKey').value || '').trim();
-    const model = ($('model').value || 'gpt-5.2').trim();
+    const model = ($('model').value || 'gpt-6-luna').trim();
     if (!endpoint) throw new Error('Missing Responses endpoint URL.');
     if (endpoint.includes('api.openai.com') && !apiKey) throw new Error('Missing API key (or use a proxy endpoint).');
     return { endpoint, apiKey, model };
@@ -1050,7 +1053,7 @@
   function ensureReadyImages(){
     const imageEndpoint = ($('imageEndpoint').value || '').trim();
     const apiKey = ($('apiKey').value || '').trim();
-    const imageModel = ($('imageModel').value || 'gpt-image-1').trim();
+    const imageModel = ($('imageModel').value || 'gpt-image-2.5-flare').trim();
     if (!imageEndpoint) throw new Error('Missing Images endpoint URL.');
     if (imageEndpoint.includes('api.openai.com') && !apiKey) throw new Error('Missing API key (or use a proxy endpoint).');
     return { imageEndpoint, apiKey, imageModel };
@@ -1075,6 +1078,7 @@
 
     const body = {
       model,
+      reasoning: { effort: 'none' },
       input: [{ role: 'user', content }],
       instructions,
       store: false,
@@ -1143,13 +1147,27 @@
 
     const body = { model: imageModel, prompt, size: finalSize };
     if (isDalle) body.response_format = 'b64_json';
-    else body.output_format = 'png';
+    else {
+      body.output_format = 'png';
+      body.quality = 'low';
+    }
 
     const headers = { 'Content-Type': 'application/json' };
     if (url.includes('api.openai.com')) headers['Authorization'] = `Bearer ${apiKey}`;
 
-    const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
-    const json = await res.json().catch(() => ({}));
+    let res;
+    let json;
+    for (let attempt = 0; attempt < 3; attempt++){
+      res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+      json = await res.json().catch(() => ({}));
+      if (res.status !== 429 || attempt === 2) break;
+
+      const retryAfterSeconds = Number(res.headers.get('Retry-After'));
+      const waitMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+        ? retryAfterSeconds * 1000
+        : 12000 * (attempt + 1);
+      await new Promise(resolve => setTimeout(resolve, waitMs));
+    }
     if (!res.ok){
       const msg = (json && json.error && (json.error.message || json.error))
         ? (json.error.message || String(json.error))
@@ -2051,8 +2069,8 @@ Style constraints:
     }
   }
 
-  async function generateFacesBatch({force=true, concurrency=5} = {}){
-    const conc = Math.max(1, Math.min(5, Number(concurrency) || 5));
+  async function generateFacesBatch({force=true, concurrency=1} = {}){
+    const conc = Math.max(1, Math.min(2, Number(concurrency) || 1));
 
     const targets = state.personas.filter(p => {
       const hasPrompt = String(p.face_prompt || '').trim().length > 0;
@@ -2078,8 +2096,13 @@ Style constraints:
       const fail = settled.length - ok;
 
       renderPrintCards();
-      if (fail === 0) setMsg('resultsStatus', `Done. Generated ${ok}/${settled.length} faces.`, 'ok');
-      else setMsg('resultsStatus', `Generated ${ok}/${settled.length} faces; ${fail} failed (often rate limits). Try again.`, 'err');
+      if (fail === 0) {
+        setMsg('resultsStatus', `Done. Generated ${ok}/${settled.length} faces.`, 'ok');
+      } else {
+        const firstFailure = settled.find(r => r.status === 'rejected');
+        const detail = firstFailure?.reason?.message || String(firstFailure?.reason || 'Unknown image-generation error.');
+        setMsg('resultsStatus', `Generated ${ok}/${settled.length} faces; ${fail} failed. First error: ${detail}`, 'err');
+      }
 
       saveState();
     } finally {
@@ -2121,7 +2144,7 @@ Style constraints:
       scrollTo('resultsCard');
 
       if ($('genFaces').checked){
-        await generateFacesBatch({ force: true, concurrency: 5 });
+        await generateFacesBatch({ force: true, concurrency: 1 });
       }
     } catch (e){
       setMsg('status', String(e && e.message ? e.message : e), 'err');
