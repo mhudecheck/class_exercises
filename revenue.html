@@ -246,7 +246,7 @@
   <div class="app">
     <div class="topbar">
       <div class="title">Revenue Model Generator</div>
-      <!--<button id="openSettings" class="iconBtn" aria-label="Open settings">Settings</button>-->
+      <button id="openSettings" class="iconBtn" aria-label="Open settings">Settings</button>
     </div>
 
     <!-- Step 1: Business input -->
@@ -326,8 +326,7 @@
           <div>
             <label for="model">Model</label>
             <select id="model">
-              <option value="gpt-5.2" selected>gpt-5.2</option>
-              <option value="gpt-5-mini">gpt-5-mini</option>
+              <option value="gpt-6-luna" selected>gpt-6-luna</option>
             </select>
           </div>
           <div>
@@ -405,7 +404,7 @@
       primary: state.primary,
       subs: state.subs,
       endpoint: $('endpoint').value || '',
-      model: $('model').value || 'gpt-5.2',
+      model: $('model').value || 'gpt-6-luna',
     };
     localStorage.setItem(LS_KEY, JSON.stringify(payload));
 
@@ -426,7 +425,7 @@
         state.primary = p.primary ? normalizeModel(p.primary) : null;
         state.subs = Array.isArray(p.subs) ? p.subs.map(normalizeModel) : [];
         if (p.endpoint) $('endpoint').value = p.endpoint;
-        if (p.model) $('model').value = p.model;
+        $('model').value = 'gpt-6-luna';
       }
       const api = localStorage.getItem(LS_KEY_API);
       if (api){
@@ -455,7 +454,7 @@
     const apiKey = ($('apiKey').value || '').trim();
     if (!endpoint) throw new Error('Missing endpoint URL.');
     if (endpoint.includes('api.openai.com') && !apiKey) throw new Error('Missing API key (or use a proxy endpoint).');
-    return { endpoint, apiKey, model: ($('model').value || 'gpt-5.2').trim() };
+    return { endpoint, apiKey, model: ($('model').value || 'gpt-6-luna').trim() };
   }
 
   // -------------------- OpenAI (Responses API) --------------------
@@ -477,6 +476,7 @@
 
     const body = {
       model,
+      reasoning: { effort: 'none' },
       input: [{ role: 'user', content }],
       instructions,
       store: false,
