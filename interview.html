@@ -23,8 +23,12 @@
     .interviewLayout{display:grid;grid-template-columns:minmax(0,7fr) minmax(300px,3fr);gap:16px;align-items:start}.chatCard{overflow:hidden}.chatWindow{height:clamp(340px,54vh,680px);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px;scroll-behavior:smooth}.empty{margin:auto;text-align:center;color:var(--muted);max-width:380px;padding:32px 8px}.empty h3{color:var(--text);font-size:17px}.message{max-width:88%;border:1px solid var(--border);border-radius:14px;padding:12px 15px;background:#f8fafc;scroll-margin:16px;white-space:pre-wrap;overflow-wrap:anywhere}.message.student{align-self:flex-end;background:#eff6ff;border-color:#dbeafe}.message.customer{align-self:flex-start;background:#fff}.message:target{outline:3px solid var(--ring)}.messageMeta{display:flex;gap:10px;align-items:center;margin-bottom:6px;font-size:11px;color:var(--muted);white-space:normal}.messageText{font-size:14px;line-height:1.65}.composer{padding:16px 18px;border-top:1px solid var(--border);background:#fbfcfe}.composer textarea{min-height:85px;max-height:220px}.composer .row{margin-top:9px}.phase{font-size:12px;color:var(--primary);min-height:19px;margin-top:10px}.phase:not(:empty)::before{content:'';display:inline-block;width:8px;height:8px;background:var(--primary);border-radius:50%;margin-right:7px;animation:pulse 1s ease-in-out infinite}@keyframes pulse{50%{opacity:.25}}
     .scorePanel .hd{background:#fbfcfe;border-radius:16px 16px 0 0}.overall{font-size:34px;font-weight:800;letter-spacing:-1px;margin:10px 0 2px}.overall small{font-size:13px;font-weight:500;letter-spacing:0;color:var(--muted)}.criterion{padding:14px 0;border-bottom:1px solid var(--border)}.criterion:last-child{border-bottom:0}.criterion .row{gap:8px;flex-wrap:nowrap}.criterion b{font-size:12px}.criterion span{font-size:11px;color:var(--muted);white-space:nowrap}progress{width:100%;height:7px;margin-top:8px;accent-color:var(--primary)}.feedbackItem{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.6}.feedbackItem:last-child{border:0}.refs{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}.refs a{font-size:11px;color:var(--primary)}.tip{padding:12px;border-radius:10px;background:#eff6ff;margin-top:12px;font-size:12px;line-height:1.6}.tip b{display:block;color:#1d4ed8;margin-bottom:3px}.flagGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.flag{background:#f8fafc;border:1px solid var(--border);padding:9px;border-radius:9px;font-size:11px}.flag b{display:block;font-size:18px;margin-top:2px}.discovery{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.6}.discovery .pill{font-size:10px;padding:3px 6px}.details{font-size:12px;margin-top:12px}summary{cursor:pointer;font-weight:650}.details p{font-size:12px}.debriefGrid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.debriefGrid ul{padding-left:20px;font-size:13px;line-height:1.7}.rewrite{border-left:3px solid #bfdbfe;padding:10px 13px;margin:12px 0;font-size:13px;line-height:1.6}.rewrite p{margin:4px 0}
     dialog{border:1px solid var(--border);border-radius:16px;width:min(680px,calc(100% - 32px));padding:0;color:var(--text);box-shadow:0 24px 80px rgba(15,23,42,.25);max-height:90vh;overflow-y:auto}dialog::backdrop{background:rgba(15,23,42,.45)}dialog .row label{margin:0}.checkLabel{display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:400}.sourceLinks a{color:var(--primary);font-size:12px}
+    .customerStage{border-bottom:1px solid var(--border);background:#f8fafc}.stageView{position:relative;overflow:hidden;background:#e8eef4}.stageView svg{display:block;width:100%;height:240px}.stageCaption{position:absolute;left:14px;top:12px;max-width:calc(100% - 28px);background:rgba(255,255,255,.92);border-radius:9px;padding:7px 10px;font-size:11px;color:#475569}.stageControls{padding:10px 18px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.stageControls label{margin:0;font-size:12px}.stageControls .checkLabel{margin:0}.stageControls button,.messageMeta button{min-height:30px;padding:5px 9px;font-size:11px}.voiceActions{margin-top:9px}.voiceActions button[aria-pressed=true]{background:#b91c1c;color:#fff;border-color:#b91c1c}.voiceStatus{font-size:12px;line-height:1.5;margin-top:8px;color:var(--primary);overflow-wrap:anywhere}.voiceStatus.error{color:#b91c1c}.voiceSettings{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}.avatarEyes{transform-box:fill-box;transform-origin:center;animation:blink 6s infinite}.avatarHead{transform-origin:360px 150px}.stageView[data-state=speaking] .avatarHead{animation:talkSway 3s ease-in-out infinite}.stageView[data-state=thinking] .avatarHead{transform:rotate(-3deg)}.avatarBrow{transition:transform .2s}.stageView[data-expression=concerned] .leftBrow,.stageView[data-expression=skeptical] .leftBrow{transform:rotate(-10deg);transform-origin:335px 109px}.stageView[data-expression=concerned] .rightBrow{transform:rotate(10deg);transform-origin:385px 109px}.stageView[data-expression=surprised] .avatarBrows{transform:translateY(-8px)}
+    @keyframes blink{0%,42%,46%,100%{transform:scaleY(1)}44%{transform:scaleY(.08)}}@keyframes talkSway{50%{transform:rotate(1.5deg)}}
+    .stageView[data-expression=thoughtful] .rightBrow{transform:translateY(-5px)}.stageView[data-expression=warm] .avatarBrows{transform:translateY(-2px)}
     @media(max-width:850px){.interviewLayout,.grid2,.debriefGrid{grid-template-columns:1fr}.chatWindow{height:50vh;min-height:300px}.app{padding:16px 10px 40px}.topbar{align-items:flex-start}h1{font-size:21px}.message{max-width:96%}.scorePanel{order:2}}
-    @media(prefers-reduced-motion:reduce){.phase::before{animation:none}.chatWindow{scroll-behavior:auto}}
+    @media(max-width:850px){.stageView svg{height:200px}.stageControls{padding:10px 12px}}
+    @media(prefers-reduced-motion:reduce){.phase::before,.avatarEyes,.stageView[data-state=speaking] .avatarHead{animation:none}.avatarBrow{transition:none}.chatWindow{scroll-behavior:auto}}
     @media print{#viewport{height:auto;overflow:visible}.noPrint{display:none!important}.app{max-width:none;padding:0}.interviewLayout{display:block}.chatWindow{height:auto;overflow:visible}.card{box-shadow:none}.scorePanel{margin-top:20px}.message{break-inside:avoid}}
   </style>
 </head>
@@ -68,9 +72,15 @@
       <div class="interviewLayout">
         <section class="card chatCard" aria-label="Interview conversation">
           <div class="hd row"><h2>2. Interview</h2><span id="turnCount" class="pill">0 questions</span></div>
+          <div id="customerStage" class="customerStage noPrint" hidden>
+            <div id="stageView" class="stageView" data-state="ready" data-expression="neutral" role="img" aria-label="Fictional customer avatar"><div id="avatarArt" aria-hidden="true"></div><div id="stageCaption" class="stageCaption"></div></div>
+            <div class="stageControls"><label class="checkLabel"><input id="showAvatar" type="checkbox" checked />Show avatar</label><label class="checkLabel"><input id="autoSpeak" type="checkbox" />Read customer replies aloud</label><div class="actions"><button id="replayReply" class="secondary" type="button">Read latest reply</button><button id="stopSpeech" class="secondary" type="button" hidden>Stop audio</button></div></div>
+          </div>
           <div id="transcript" class="chatWindow" role="log" aria-label="Interview transcript" aria-live="polite" aria-relevant="additions"><div class="empty"><h3>Let the customer do the talking</h3><p>Import personas and choose who to interview. Ask about their life, a specific past experience, and what they did next.</p></div></div>
           <form id="chatForm" class="composer noPrint">
             <label for="chatInput">Your question or follow-up</label><textarea id="chatInput" maxlength="4000" placeholder="Ask your customer a question…" disabled></textarea>
+            <div class="actions voiceActions"><button id="dictateQuestion" class="secondary" type="button" aria-pressed="false" disabled>Dictate question</button><span id="voiceSupport" class="help"></span></div>
+            <div id="voiceStatus" class="voiceStatus" role="status"></div>
             <div class="row"><span class="help">Enter to send · Shift+Enter for a new line</span><button id="sendMessage" type="submit" disabled>Send question</button></div>
             <div id="customerProgress" class="phase" role="status"></div><div id="coachProgress" class="phase" role="status"></div>
             <div class="actions"><button id="retryRequest" class="secondary" type="button" hidden>Retry</button><button id="reviseQuestion" class="secondary" type="button" hidden>Revise question</button><button id="cancelRequest" class="secondary" type="button" hidden>Cancel request</button></div>
@@ -96,7 +106,9 @@
 
   <dialog id="settingsDialog" aria-labelledby="settingsTitle">
     <div class="hd row"><h2 id="settingsTitle">Settings</h2><button id="closeSettings" class="secondary" type="button">Close</button></div>
-    <div class="bd"><div class="grid2"><div><label for="model">Text model</label><select id="model"><option value="gpt-6-luna">gpt-6-luna</option></select></div><div><label for="endpoint">Responses endpoint</label><input id="endpoint" type="url" value="https://patient-bush-7366.mhudecheck.workers.dev/v1/responses" /></div></div><div style="margin-top:14px"><label for="apiKey">OpenAI API key (optional for the class Worker)</label><input id="apiKey" type="password" autocomplete="off" /><label class="checkLabel"><input id="rememberKey" type="checkbox" />Remember in this browser</label></div><p class="help">Leave the key blank when using the class Worker. A direct api.openai.com endpoint requires a key. The customer and coach both use this text model.</p><div id="settingsNotice" class="notice warning" hidden></div></div>
+    <div class="bd"><div class="grid2"><div><label for="model">Text model</label><select id="model"><option value="gpt-6.1-sol">gpt-6.1-sol</option></select></div><div><label for="endpoint">Responses endpoint</label><input id="endpoint" type="url" value="https://patient-bush-7366.mhudecheck.workers.dev/v1/responses" /></div></div><div style="margin-top:14px"><label for="apiKey">OpenAI API key (optional for the class Worker)</label><input id="apiKey" type="password" autocomplete="off" /><label class="checkLabel"><input id="rememberKey" type="checkbox" />Remember in this browser</label></div><p class="help">Leave the key blank when using the class Worker. A direct api.openai.com endpoint requires a key. The customer and coach both use this text model.</p>
+      <div class="voiceSettings"><h3>Voice and scene</h3><div class="grid2"><div><label for="speechLanguage">Speech language</label><select id="speechLanguage"><option value="en-US">English (US)</option><option value="en-GB">English (UK)</option><option value="de-DE">German</option><option value="fr-FR">French</option><option value="es-ES">Spanish</option><option value="it-IT">Italian</option><option value="pt-BR">Portuguese (Brazil)</option><option value="ja-JP">Japanese</option><option value="zh-CN">Chinese (Mandarin)</option></select></div><div><label for="speechVoice">Customer voice</label><select id="speechVoice"><option value="">Browser default</option></select></div><div><label for="speechRate">Speaking speed</label><select id="speechRate"><option value="0.8">Slower</option><option value="1" selected>Normal</option><option value="1.2">Faster</option></select></div><div><label for="sceneBackground">Background</label><select id="sceneBackground"><option value="auto">From customer profile</option><option value="office">Office</option><option value="home">Home</option><option value="cafe">Café</option><option value="clinic">Clinic</option><option value="workshop">Workshop</option></select></div></div><p class="help">Dictation needs microphone permission and a supported browser on HTTPS or localhost. Stop dictation, review the text, then send. Your browser may send audio to its speech service; this page stores only the confirmed text. Voices depend on your device. The illustrated avatar is fictional, with approximate speech-linked lip sync; it does not recreate the imported portrait.</p><p class="help">The speech language also sets the customer’s reply language. Coaching follows the interview transcript.</p></div>
+      <div id="settingsNotice" class="notice warning" hidden></div></div>
   </dialog>
 
   <script>
@@ -104,7 +116,7 @@
   'use strict';
 
   // Pure data helpers are also exercised by the dependency-free Node tests.
-  const MODEL = 'gpt-6-luna';
+  const MODEL = 'gpt-6.1-sol';
   const DEFAULT_ENDPOINT = 'https://patient-bush-7366.mhudecheck.workers.dev/v1/responses';
   const CRITERIA = [
     {key:'customer_life', title:'Customer’s life, not your idea'},
@@ -119,12 +131,56 @@
   const stringsSchema = {type:'array', items:stringSchema};
   const referenceSchema = {type:'array', items:stringSchema, minItems:1};
   const scoreSchema = {type:['integer','null'], minimum:0, maximum:5};
+  const choiceSchema = values => ({type:'string',enum:values});
+  const EXPRESSIONS = ['neutral','warm','thoughtful','concerned','skeptical','surprised'];
+  const VISUAL_SCHEMA = objectSchema({
+    hair_style:choiceSchema(['short','long','curly','bald']),hair_color:choiceSchema(['dark','brown','blond','gray']),
+    skin_tone:choiceSchema(['light','medium','tan','brown','dark']),clothing_color:choiceSchema(['blue','teal','plum','slate']),
+    glasses:{type:'boolean'},background:choiceSchema(['office','home','cafe','clinic','workshop'])
+  });
+  const CUSTOMER_SCHEMA = objectSchema({reply:stringSchema,expression:choiceSchema(EXPRESSIONS)});
   const PROFILE_SCHEMA = objectSchema({
     background:stringSchema,
     recent_incidents:{type:'array', minItems:2, maxItems:3, items:objectSchema({situation:stringSchema, actions:stringSchema, outcome:stringSchema})},
     workarounds:stringsSchema, priorities:stringsSchema, purchasing_constraints:stringsSchema,
-    low_priority_problem:stringSchema, opening_reply:stringSchema
+    low_priority_problem:stringSchema, opening_reply:stringSchema,visual:VISUAL_SCHEMA
   });
+  // Restored interviews created before voice support receive a stable illustration.
+  function visualForPersona(persona, visual){
+    try {return validateStructured(visual,VISUAL_SCHEMA);} catch {}
+    const seed = [...(persona.id + persona.persona_name)].reduce((sum,c) => (sum * 31 + c.charCodeAt(0)) >>> 0,0);
+    const role = [persona.buying_role,persona.demographics_background].join(' ').toLowerCase();
+    return {hair_style:['short','long','curly','bald'][seed % 4],hair_color:['dark','brown','blond','gray'][seed % 4],
+      skin_tone:['light','medium','tan','brown','dark'][seed % 5],clothing_color:['blue','teal','plum','slate'][seed % 4],glasses:seed % 3 === 0,
+      background:/clinic|doctor|nurse|medical/.test(role) ? 'clinic' : /mechanic|factory|repair|workshop/.test(role) ? 'workshop' : /cafe|coffee|restaurant/.test(role) ? 'cafe' : /home|parent|remote/.test(role) ? 'home' : 'office'};
+  }
+  function dictationDraft(base, results){
+    const final = Array.from(results).filter(r => r.isFinal).map(r => r[0]?.transcript || '').join(' ');
+    return [base.trim(),final.trim()].filter(Boolean).join(' ').slice(0,4000);
+  }
+  function speechChunks(value){
+    const chunks = [];
+    let remaining = value.trim();
+    while (remaining){
+      let end = remaining.length;
+      if (end > 220){
+        const prefix = remaining.slice(0,220);
+        end = Math.max(prefix.lastIndexOf('. '),prefix.lastIndexOf('? '),prefix.lastIndexOf('! ')) + 1;
+        if (end < 60) end = prefix.lastIndexOf(' ');
+        if (end < 1) end = 220;
+      }
+      chunks.push(remaining.slice(0,end).trim());remaining = remaining.slice(end).trim();
+    }
+    return chunks;
+  }
+  function mouthShape(character){
+    if (!character || /[\s.,!?;:]/.test(character)) return {rx:11,ry:1};
+    if (/[mbp]/i.test(character)) return {rx:10,ry:1};
+    if (/[ou]/i.test(character)) return {rx:7,ry:8};
+    if (/[ae]/i.test(character)) return {rx:14,ry:7};
+    if (/[fv]/i.test(character)) return {rx:12,ry:2};
+    return {rx:11,ry:4};
+  }
   const ASSESSMENT_SCHEMA = objectSchema({
     scores:objectSchema(Object.fromEntries(CRITERIA.map(c => [c.key, scoreSchema]))),
     feedback:{type:'array', items:objectSchema({criterion:{type:'string', enum:CRITERIA.map(c => c.key)}, message_ids:referenceSchema, explanation:stringSchema})},
@@ -281,6 +337,190 @@
   let controller = null;
   let renderedSession = '';
   let renderedMessageCount = 0;
+  const Recognition = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
+  const synthesis = globalThis.speechSynthesis;
+  const canSpeak = !!synthesis && typeof globalThis.SpeechSynthesisUtterance === 'function';
+  const reducedMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');
+  let recognition = null;
+  let recognitionStopping = false;
+  let recognitionWatchdog = 0;
+  let speech = null;
+  let speechEpoch = 0;
+  let mouthFrame = 0;
+  let speechWatchdog = 0;
+  let sceneSession = '';
+  let sceneBackground = '';
+  let preferredVoice = '';
+
+  function voiceStatus(message, error = false){
+    $('voiceStatus').textContent = message;$('voiceStatus').className = 'voiceStatus' + (error ? ' error' : '');
+  }
+
+  function refreshVoices(){
+    const voices = canSpeak ? synthesis.getVoices() : [];
+    const select = $('speechVoice');select.replaceChildren(node('option','Browser default'));
+    select.firstChild.value = '';
+    for (const voice of voices){const option = node('option',voice.name + ' · ' + voice.lang);option.value = voice.voiceURI;select.append(option);}
+    select.value = voices.some(v => v.voiceURI === preferredVoice) ? preferredVoice : '';
+    select.disabled = !canSpeak;
+  }
+
+  function updateMediaControls(){
+    const session = workspace.session;
+    const canAsk = session?.status === 'active' && !session.pending && !busy;
+    $('dictateQuestion').disabled = recognitionStopping || !Recognition || !globalThis.isSecureContext || !canAsk;
+    $('dictateQuestion').textContent = recognitionStopping ? 'Finishing dictation…' : recognition ? 'Stop dictation' : 'Dictate question';
+    $('dictateQuestion').setAttribute('aria-pressed',String(!!recognition));
+    $('voiceSupport').textContent = !Recognition ? 'Dictation unavailable in this browser; type your question.' : !globalThis.isSecureContext ? 'Dictation requires HTTPS or localhost.' : 'Stop dictation to review and send.';
+    $('autoSpeak').disabled = !canSpeak;
+    $('replayReply').disabled = !canSpeak || !!recognition || !session?.transcript.some(m => m.role === 'customer');
+    $('stopSpeech').hidden = !speech;
+    $('customerStage').hidden = !session;
+    $('stageView').hidden = !$('showAvatar').checked;
+    for (const id of ['speechLanguage','speechVoice','speechRate']) $(id).disabled = !!recognition || !canSpeak && id !== 'speechLanguage';
+    renderScene();
+  }
+
+  // All SVG markup is built from fixed shapes and validated palette keys, never imported HTML.
+  function drawAvatar(visual, background){
+    const skin = {light:'#f4d2b9',medium:'#e2b493',tan:'#c68e66',brown:'#956644',dark:'#684731'}[visual.skin_tone];
+    const hair = {dark:'#292a32',brown:'#664637',blond:'#bb9152',gray:'#92969e'}[visual.hair_color];
+    const shirt = {blue:'#3c69a8',teal:'#277d78',plum:'#835d91',slate:'#596879'}[visual.clothing_color];
+    const backgrounds = {
+      office:'<rect width="720" height="280" fill="#e6edf5"/><rect x="60" y="35" width="170" height="148" rx="12" fill="#b7d8e8"/><path d="M145 35V183M60 109H230" stroke="#fff" stroke-width="8"/><rect x="480" y="175" width="200" height="16" rx="5" fill="#aa8d72"/><rect x="532" y="83" width="99" height="70" rx="7" fill="#698393"/><path d="M580 153V175" stroke="#698393" stroke-width="8"/>',
+      home:'<rect width="720" height="280" fill="#f1e9df"/><rect x="70" y="38" width="150" height="174" rx="9" fill="#bb9a7d"/><path d="M70 102H220M70 159H220" stroke="#8a6c53" stroke-width="7"/><path d="M90 93V57M105 93V51M126 93V60M143 93V46M164 93V58" stroke="#7d8e9c" stroke-width="12"/><path d="M571 78V209" stroke="#8a6c53" stroke-width="7"/><path d="M532 79L549 30H593L611 79Z" fill="#d4b27d"/>',
+      cafe:'<rect width="720" height="280" fill="#eee0d1"/><path d="M75 184V90A76 76 0 0 1 227 90V184Z" fill="#afc7ba"/><path d="M151 20V184M75 111H227" stroke="#fff5e9" stroke-width="7"/><rect x="500" y="186" width="172" height="13" rx="5" fill="#967156"/><path d="M556 141H603V177Q579 189 556 177Z" fill="#fffaf1"/><path d="M603 149H619V168H603" fill="none" stroke="#fffaf1" stroke-width="6"/><path d="M568 127Q556 113 570 99M589 127Q577 113 591 99" fill="none" stroke="#c3aa91" stroke-width="3"/>',
+      clinic:'<rect width="720" height="280" fill="#e3f1ef"/><rect x="77" y="40" width="129" height="157" rx="10" fill="#fff"/><path d="M77 118H206" stroke="#bfd6d1" stroke-width="5"/><rect x="115" y="61" width="55" height="39" rx="5" fill="#afcac3"/><path d="M142 69V93M130 81H154" stroke="#fff" stroke-width="7"/><rect x="515" y="50" width="94" height="78" rx="6" fill="#fff"/><path d="M562 67V111M540 89H584" stroke="#74aaa3" stroke-width="12"/>',
+      workshop:'<rect width="720" height="280" fill="#e7e8e6"/><rect x="63" y="38" width="181" height="144" rx="8" fill="#baa38c"/><path d="M92 61V153M131 76V160M172 57V143M211 75V162" stroke="#6b777c" stroke-width="10"/><rect x="496" y="170" width="187" height="17" rx="4" fill="#967b60"/><rect x="526" y="125" width="94" height="45" rx="7" fill="#b66e53"/><path d="M555 125V113H591V125" fill="none" stroke="#755445" stroke-width="6"/>'
+    };
+    const hairstyles = {
+      short:'<path d="M305 115V83Q308 40 360 42Q414 40 417 95L410 117L400 82Q359 103 320 79L319 115Z"/>',
+      long:'<path d="M294 195V98Q293 40 360 40Q426 40 426 98V195L402 178V99Q360 103 321 77L318 181Z"/>',
+      curly:'<path d="M303 117Q287 102 299 87Q284 65 309 58Q311 34 336 45Q354 26 370 42Q395 28 407 49Q434 49 424 76Q443 96 416 117L400 84Q355 103 321 84L321 116Z"/>',
+      bald:'<path d="M307 100L307 120L319 125L319 98ZM403 98L403 125L415 120V100Z"/>'
+    };
+    $('avatarArt').innerHTML = `<svg viewBox="0 0 720 280" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">${backgrounds[background]}<path d="M0 234H720V280H0Z" fill="#c5b6a6" opacity=".25"/><path d="M261 280Q261 214 325 204H395Q459 214 459 280Z" fill="${shirt}"/><path d="M339 178V214Q360 240 381 214V178" fill="${skin}"/><path d="M338 209L360 230L324 244L310 210M382 209L360 230L396 244L410 210" fill="#fff" opacity=".8"/><g class="avatarHead"><ellipse cx="310" cy="131" rx="12" ry="20" fill="${skin}"/><ellipse cx="410" cy="131" rx="12" ry="20" fill="${skin}"/><rect x="309" y="56" width="102" height="143" rx="48" fill="${skin}"/><g fill="${hair}">${hairstyles[visual.hair_style]}</g><g class="avatarBrows" fill="none" stroke="${hair}" stroke-width="4" stroke-linecap="round"><path class="avatarBrow leftBrow" d="M326 109Q336 104 346 109"/><path class="avatarBrow rightBrow" d="M374 109Q384 104 394 109"/></g><g class="avatarEyes" fill="#27343a"><ellipse cx="336" cy="123" rx="4" ry="5"/><ellipse cx="384" cy="123" rx="4" ry="5"/></g><path d="M359 125L354 145Q360 150 368 145" fill="none" stroke="#97694f" stroke-width="2.5" opacity=".6"/>${visual.glasses ? '<g fill="none" stroke="#475569" stroke-width="3"><rect x="321" y="113" width="29" height="23" rx="7"/><rect x="370" y="113" width="29" height="23" rx="7"/><path d="M350 120Q360 115 370 120M311 117H321M399 117H409"/></g>' : ''}<path id="avatarSmile" d="M347 165Q360 170 373 165" fill="none" stroke="#794d44" stroke-width="3" stroke-linecap="round"/><ellipse id="avatarMouth" cx="360" cy="165" rx="11" ry="1" fill="#683e3c" hidden/></g><path d="M35 242V188H78V242" fill="#9cac97"/><path d="M55 190Q14 154 40 123Q64 144 55 190M56 190Q98 154 82 128Q57 143 56 190" fill="#678e78"/></svg>`;
+  }
+
+  function setMouth(character = ''){
+    const mouth = $('avatarMouth');const smile = $('avatarSmile');
+    if (!mouth || !smile) return;
+    const shape = mouthShape(character);
+    const open = !!character && shape.ry > 1 && !reducedMotion?.matches;
+    mouth.toggleAttribute('hidden',!open);smile.toggleAttribute('hidden',open);
+    mouth.setAttribute('rx',shape.rx);mouth.setAttribute('ry',shape.ry);
+  }
+
+  function renderScene(){
+    const session = workspace.session;
+    if (!session){sceneSession = '';return;}
+    const visual = visualForPersona(session.persona,session.profile.visual);
+    const background = $('sceneBackground').value === 'auto' ? visual.background : $('sceneBackground').value;
+    if (sceneSession !== session.id || sceneBackground !== background){drawAvatar(visual,background);sceneSession = session.id;sceneBackground = background;}
+    const message = speech?.message || session.transcript.filter(m => m.role === 'customer').at(-1);
+    const expression = EXPRESSIONS.includes(message?.expression) ? message.expression : 'neutral';
+    const state = recognition ? 'listening' : speech?.started ? 'speaking' : phase === 'customer' ? 'thinking' : 'ready';
+    $('stageView').dataset.state = state;$('stageView').dataset.expression = expression;
+    $('stageView').setAttribute('aria-label',`${session.persona.persona_name}, fictional illustrated customer, ${expression} expression, ${state}`);
+    $('stageCaption').textContent = `${session.persona.persona_name} · ${state === 'listening' ? 'Listening to your question' : state === 'speaking' ? 'Speaking' : state === 'thinking' ? 'Thinking…' : 'Fictional customer'} · ${background}`;
+    const smile = $('avatarSmile');
+    smile?.setAttribute('d',expression === 'warm' ? 'M346 163Q360 179 374 163' : expression === 'concerned' ? 'M347 171Q360 159 373 171' : expression === 'skeptical' ? 'M347 168Q360 169 373 164' : expression === 'surprised' ? 'M353 165a7 8 0 1 0 14 0a7 8 0 1 0-14 0' : expression === 'thoughtful' ? 'M347 167Q360 164 373 166' : 'M347 165Q360 170 373 165');
+    if (!speech?.started) setMouth();
+  }
+
+  function stopSpeaking(){
+    speechEpoch++;speech = null;clearTimeout(speechWatchdog);cancelAnimationFrame(mouthFrame);mouthFrame = 0;
+    if (canSpeak) synthesis.cancel();
+    setMouth();updateMediaControls();
+  }
+
+  function speakMessage(message){
+    if (!canSpeak || !message || recognition || document.hidden) return;
+    stopSpeaking();
+    const id = speechEpoch;
+    const chunks = speechChunks(message.text);
+    const voice = synthesis.getVoices().find(v => v.voiceURI === $('speechVoice').value) || synthesis.getVoices().find(v => v.lang === $('speechLanguage').value);
+    const rate = Number($('speechRate').value) || 1;
+    speech = {message,started:false};updateMediaControls();
+    function next(){
+      if (id !== speechEpoch) return;
+      const chunk = chunks.shift();
+      if (!chunk){stopSpeaking();voiceStatus('Customer reply finished.');return;}
+      const utterance = new SpeechSynthesisUtterance(chunk);
+      utterance.lang = $('speechLanguage').value;utterance.rate = rate;if (voice) utterance.voice = voice;
+      // Hold a strong reference while native speech is active.
+      speech.utterance = utterance;
+      let anchorTime = 0;let anchorIndex = 0;
+      const animate = now => {
+        if (id !== speechEpoch || !speech?.started) return;
+        const index = Math.min(chunk.length-1,anchorIndex + Math.floor((now-anchorTime) / (75/rate)));
+        if (!$('stageView').hidden) setMouth(chunk[index]);
+        mouthFrame = requestAnimationFrame(animate);
+      };
+      utterance.onstart = () => {
+        if (id !== speechEpoch) return;
+        speech.started = true;anchorTime = performance.now();renderScene();voiceStatus('Customer is speaking. Use Stop audio to interrupt.');
+        clearTimeout(speechWatchdog);
+        speechWatchdog = setTimeout(() => {if (id === speechEpoch){stopSpeaking();voiceStatus('Audio stopped responding. Try Read latest reply or another voice.',true);}},Math.max(20000,chunk.length * 180 / rate));
+        mouthFrame = requestAnimationFrame(animate);
+      };
+      utterance.onboundary = event => {if (id === speechEpoch){anchorIndex = event.charIndex;anchorTime = performance.now();}};
+      utterance.onend = () => {if (id === speechEpoch){clearTimeout(speechWatchdog);cancelAnimationFrame(mouthFrame);speech.started = false;setMouth();next();}};
+      utterance.onerror = () => {if (id === speechEpoch){stopSpeaking();voiceStatus('Audio could not play. Try Read latest reply or select another voice in Settings.',true);}};
+      speechWatchdog = setTimeout(() => {if (id === speechEpoch){stopSpeaking();voiceStatus('Audio did not start. Try Read latest reply or another voice.',true);}},8000);
+      try {synthesis.speak(utterance);} catch {stopSpeaking();voiceStatus('Audio is unavailable. You can read the reply in the transcript.',true);}
+    }
+    next();
+  }
+
+  function maybeSpeak(message){if ($('autoSpeak').checked) speakMessage(message);}
+
+  function abortDictation(){
+    clearTimeout(recognitionWatchdog);
+    const previous = recognition;recognition = null;recognitionStopping = false;
+    try {previous?.abort();} catch {}
+    updateControls();
+  }
+
+  function toggleDictation(){
+    if (recognition){
+      recognitionStopping = true;updateControls();
+      recognitionWatchdog = setTimeout(() => {abortDictation();voiceStatus('Dictation stopped. Review the confirmed text, then send.');},8000);
+      try {recognition.stop();} catch {abortDictation();}
+      return;
+    }
+    if (!Recognition || !globalThis.isSecureContext || $('chatInput').disabled) return;
+    stopSpeaking();
+    const sessionId = workspace.session.id;const base = workspace.draft;
+    let current;
+    try {current = new Recognition();} catch {voiceStatus('Dictation is unavailable. Type your question instead.',true);return;}
+    recognition = current;current.lang = $('speechLanguage').value;current.continuous = true;current.interimResults = true;
+    let failed = false;
+    const valid = () => recognition === current && workspace.session?.id === sessionId && !busy && !workspace.session.pending && workspace.session.status === 'active';
+    current.onstart = () => {if (valid()) voiceStatus('Listening… Stop dictation when you have finished.');};
+    current.onresult = event => {
+      if (!valid()) return;
+      workspace.draft = dictationDraft(base,event.results);$('chatInput').value = workspace.draft;persist();
+      const interim = Array.from(event.results).filter(r => !r.isFinal).map(r => r[0]?.transcript || '').join(' ');
+      voiceStatus(interim ? 'Hearing: ' + interim : 'Listening… Your confirmed words are in the draft.');
+    };
+    current.onerror = event => {
+      if (recognition !== current) return;
+      failed = true;
+      const errors = {'not-allowed':'Microphone permission was denied. Allow it in browser settings, or type your question.','service-not-allowed':'The browser’s speech service is unavailable. Type your question.','audio-capture':'No microphone is available. Check your device or type your question.','no-speech':'No speech was detected. Try dictating again.','network':'The speech service could not connect. Try again or type your question.','language-not-supported':'This speech language is unavailable. Select another in Settings.'};
+      voiceStatus(errors[event.error] || 'Dictation stopped. Review any confirmed text or type your question.',true);
+      abortDictation();
+    };
+    current.onend = () => {
+      if (recognition !== current) return;
+      clearTimeout(recognitionWatchdog);
+      recognition = null;recognitionStopping = false;updateControls();
+      if (!failed) voiceStatus('Dictation stopped. Review your question, then send it.');
+      $('chatInput').focus();
+    };
+    voiceStatus('Starting microphone…');updateControls();
+    try {current.start();} catch {abortDictation();voiceStatus('Microphone could not start. Check permission or type your question.',true);}
+  }
 
   function notice(id, message, kind = ''){
     $(id).textContent = message;
@@ -333,6 +573,10 @@
     try {
       const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
       if (text(settings.endpoint) && !/YOUR-WORKER|your-subdomain/i.test(settings.endpoint)) $('endpoint').value = settings.endpoint;
+      for (const id of ['speechLanguage','speechRate','sceneBackground']) if (Array.from($(id).options).some(o => o.value === settings[id])) $(id).value = settings[id];
+      $('autoSpeak').checked = settings.autoSpeak === true;
+      $('showAvatar').checked = settings.showAvatar !== false;
+      preferredVoice = text(settings.speechVoice);
       $('apiKey').value = localStorage.getItem(API_KEY) || '';
       $('rememberKey').checked = !!$('apiKey').value;
     } catch { notice('settingsNotice','Settings cannot be saved in this browser. They will apply for this page visit.','warning'); }
@@ -341,7 +585,9 @@
 
   function saveSettings(){
     try {
-      localStorage.setItem(SETTINGS_KEY,JSON.stringify({endpoint:$('endpoint').value.trim(),model:MODEL}));
+      localStorage.setItem(SETTINGS_KEY,JSON.stringify({endpoint:$('endpoint').value.trim(),model:MODEL,
+        speechLanguage:$('speechLanguage').value,speechRate:$('speechRate').value,speechVoice:preferredVoice,
+        sceneBackground:$('sceneBackground').value,autoSpeak:$('autoSpeak').checked,showAvatar:$('showAvatar').checked}));
       if ($('rememberKey').checked) localStorage.setItem(API_KEY,$('apiKey').value);
       else localStorage.removeItem(API_KEY);
     } catch { notice('settingsNotice','Settings cannot be saved in this browser. They will apply for this page visit.','warning'); }
@@ -422,6 +668,10 @@
       article.id = 'message-' + message.id; article.tabIndex = -1;
       const meta = node('div',undefined,'messageMeta');
       meta.append(node('b',message.role === 'student' ? 'You' : session.persona.persona_name),node('span',message.id));
+      if (message.role === 'customer' && canSpeak){
+        const play = node('button','Read aloud','secondary noPrint');play.type = 'button';play.setAttribute('aria-label','Read customer reply ' + message.id + ' aloud');
+        play.addEventListener('click',() => speakMessage(message));meta.append(play);
+      }
       article.append(meta,node('div',message.text,'messageText')); $('transcript').append(article); added = true;
     }
     renderedMessageCount = session.transcript.length;
@@ -499,9 +749,9 @@
     $('jobContext').textContent = selected ? `${matchedJobs(selected,workspace.jobStories).length} matching job stories will inform this customer.` : '';
     const pending = session?.pending;
     const canSend = session?.status === 'active' && !pending && !busy;
-    $('chatInput').disabled = !canSend;
-    $('sendMessage').disabled = !canSend || !workspace.draft.trim();
-    $('endInterview').disabled = busy || !!pending || session?.status !== 'active' || !session?.transcript.some(m => m.role === 'student');
+    $('chatInput').disabled = !canSend || !!recognition;
+    $('sendMessage').disabled = !canSend || !!recognition || !workspace.draft.trim();
+    $('endInterview').disabled = busy || !!recognition || !!pending || session?.status !== 'active' || !session?.transcript.some(m => m.role === 'student');
     $('newInterview').disabled = busy;
     $('retryRequest').hidden = busy || !pending;
     $('reviseQuestion').hidden = busy || pending?.kind !== 'customer';
@@ -512,6 +762,7 @@
     $('turnCount').textContent = `${session?.transcript.filter(m => m.role === 'student').length || 0} questions`;
     $('exportJson').disabled = !session; $('exportMarkdown').disabled = !session;
     for (const id of ['endpoint','apiKey','rememberKey']) $(id).disabled = busy;
+    updateMediaControls();
   }
 
   function render(){
@@ -564,7 +815,7 @@
   }
 
   async function requestModel({instructions,input,schema,name}, op){
-    const body = {model:MODEL,reasoning:{effort:'none'},store:false,instructions,input};
+    const body = {model:MODEL,reasoning:{effort:'low'},store:false,instructions,input};
     if (schema) body.text = {format:{type:'json_schema',name,strict:true,schema}};
     for (let attempt=0;attempt<3;attempt++){
       activeOperation(op);
@@ -627,12 +878,12 @@ Track commitments separately. A concrete request or agreement to spend time, rep
     await operation(async op => {
       phase = 'setup';updateControls();
       const profile = await requestModel({name:'interview_simulation',schema:PROFILE_SCHEMA,
-        instructions:`Create a fictional, realistic customer for interview practice. ${DATA_RULE} Stay faithful to the imported persona and job stories. Fill gaps plausibly without assuming the proposed idea solves a serious problem. Build 2-3 stable past incidents with actions and outcomes, actual workarounds, competing priorities, purchasing constraints and one low-priority presumed problem. The customer may be polite, indifferent or skeptical. Do not make all pains urgent, reveal every useful detail in the greeting, or coach the interviewer. opening_reply is a brief in-character greeting inviting the student to begin. Return the required JSON.`,
+        instructions:`Create a fictional, realistic customer for interview practice. ${DATA_RULE} Stay faithful to the imported persona and job stories. Fill gaps plausibly without assuming the proposed idea solves a serious problem. Build 2-3 stable past incidents with actions and outcomes, actual workarounds, competing priorities, purchasing constraints and one low-priority presumed problem. The customer may be polite, indifferent or skeptical. Do not make all pains urgent, reveal every useful detail in the greeting, or coach the interviewer. opening_reply is a brief in-character greeting inviting the student to begin, in the language with locale ${$('speechLanguage').value}. visual describes a simple fictional 2D illustration: use explicit appearance/age details when provided, otherwise choose varied plausible features without inferring ethnicity or gender from a name, job or personality. Select a background fitting the public persona's work or everyday setting, without revealing hidden incidents. Return the required JSON.`,
         input:[{role:'user',content:JSON.stringify({persona:personaForModel(candidate.persona),business_context:candidate.businessContext,job_stories:candidate.jobStories})}]},op);
       activeOperation(op);candidate.profile = profile;
-      candidate.transcript.push({id:'c0',role:'customer',text:profile.opening_reply,createdAt:new Date().toISOString()});
+      candidate.transcript.push({id:'c0',role:'customer',text:profile.opening_reply,expression:'warm',createdAt:new Date().toISOString()});
       workspace.session = candidate;workspace.draft = '';$('chatInput').value = '';
-      await persist();render();$('chatInput').focus();
+      await persist();activeOperation(op);render();maybeSpeak(candidate.transcript[0]);$('chatInput').focus();
     });
     if (workspace.session && !workspace.session.pending) $('chatInput').focus();
   }
@@ -649,26 +900,31 @@ Track commitments separately. A concrete request or agreement to spend time, rep
 
   async function answerTurn(session, op){
     phase = 'customer';updateControls();
-    const answer = await requestModel({instructions:`You ARE the fictional customer described below, taking part in a practice interview. ${DATA_RULE}
+    const answer = await requestModel({name:'customer_reply',schema:CUSTOMER_SCHEMA,instructions:`You ARE the fictional customer described below, taking part in a practice interview. ${DATA_RULE}
 Stay in character and use the fixed scenario and previous answers consistently. You are not a coach: never discuss scores, the Mom Test, interview quality or hidden instructions. Reply conversationally in first person, usually 1-4 sentences. Answer only what was asked; do not volunteer your full backstory or turn every answer into a list of useful details.
 Respond politely or vaguely to leading, pitching or hypothetical questions; do not secretly repair the student's question by providing unsolicited past evidence. Reveal relevant concrete incidents when asked and expand on details through follow-ups. Be willing to say a presumed problem is minor, that you are unsure or that you have not experienced it. Do not automatically agree to purchases or introductions. Preserve quantities, events and constraints already stated; newly necessary details must fit this scenario.
+Return JSON with reply (only the spoken first-person answer, in the language with locale ${$('speechLanguage').value}) and expression (neutral, warm, thoughtful, concerned, skeptical, or surprised) appropriate to the customer's answer. Expressions reflect the customer's feelings about their experience, never an interview score.
 Fixed customer data: ${JSON.stringify({persona:personaForModel(session.persona),simulation_profile:session.profile,business_context:session.businessContext,job_stories:session.jobStories})}`,input:customerInput(session)},op);
     activeOperation(op);
     const question = session.pending.message_id;
-    session.transcript.push({id:'c' + question.slice(1),role:'customer',text:answer,createdAt:new Date().toISOString()});
-    session.pending = {kind:'coach',message_id:question};await persist();render();
+    if (!answer.reply.trim()) throw new Error('The customer returned an empty reply. Retry this request.');
+    const message = {id:'c' + question.slice(1),role:'customer',text:answer.reply.trim(),expression:answer.expression,createdAt:new Date().toISOString()};
+    session.transcript.push(message);
+    session.pending = {kind:'coach',message_id:question};await persist();activeOperation(op);render();
+    maybeSpeak(message);
     await scoreTurn(session,op);
   }
 
   async function sendMessage(){
     const session = workspace.session;
     const question = workspace.draft.trim();
-    if (!session || session.status !== 'active' || session.pending || !question || busy) return;
+    if (!session || session.status !== 'active' || session.pending || !question || busy || recognition) return;
+    stopSpeaking();
     await operation(async op => {
       const id = 's' + (session.transcript.filter(m => m.role === 'student').length + 1);
       session.transcript.push({id,role:'student',text:question,createdAt:new Date().toISOString()});
       session.pending = {kind:'customer',message_id:id};workspace.draft = '';$('chatInput').value = '';
-      await persist();render();await answerTurn(session,op);
+      await persist();activeOperation(op);render();await answerTurn(session,op);
     });
     if (!busy && session.status === 'active' && !session.pending) $('chatInput').focus();
   }
@@ -688,7 +944,8 @@ Fixed customer data: ${JSON.stringify({persona:personaForModel(session.persona),
 
   async function endInterview(){
     const session = workspace.session;
-    if (!session || busy || session.pending || session.status !== 'active' || !session.transcript.some(m => m.role === 'student')) return;
+    if (!session || busy || recognition || session.pending || session.status !== 'active' || !session.transcript.some(m => m.role === 'student')) return;
+    stopSpeaking();
     await operation(async op => {session.status = 'ending';session.pending = {kind:'debrief'};await persist();await buildDebrief(session,op);});
   }
 
@@ -715,6 +972,7 @@ Fixed customer data: ${JSON.stringify({persona:personaForModel(session.persona),
 
   function cancel(){
     if (!busy) return;
+    stopSpeaking();abortDictation();
     epoch++;controller?.abort();controller = null;busy = false;phase = '';
     notice('appNotice',workspace.session?.pending ? 'Request cancelled. Your transcript is preserved. Retry the pending step to continue.' : 'Customer preparation cancelled. You can start again.','warning');
     render();persist();
@@ -723,6 +981,7 @@ Fixed customer data: ${JSON.stringify({persona:personaForModel(session.persona),
   function newInterview(){
     if (busy || !workspace.session) return;
     if (!confirm('Start a new interview? Download the current practice record first if you want to keep it.')) return;
+    stopSpeaking();abortDictation();voiceStatus('');
     epoch++;workspace.session = null;workspace.draft = '';$('chatInput').value = '';
     notice('appNotice','');renderPersonas();render();persist();$('setupCard').scrollIntoView({block:'start'});
   }
@@ -736,6 +995,19 @@ Fixed customer data: ${JSON.stringify({persona:personaForModel(session.persona),
   }
 
   function wire(){
+    refreshVoices();
+    synthesis?.addEventListener('voiceschanged',refreshVoices);
+    $('dictateQuestion').addEventListener('click',toggleDictation);
+    $('replayReply').addEventListener('click',() => speakMessage(workspace.session?.transcript.filter(m => m.role === 'customer').at(-1)));
+    $('stopSpeech').addEventListener('click',() => {stopSpeaking();voiceStatus('Audio stopped.');});
+    $('autoSpeak').addEventListener('change',() => {if (!$('autoSpeak').checked){stopSpeaking();voiceStatus('Automatic reply audio is off.');}saveSettings();});
+    $('showAvatar').addEventListener('change',() => {updateMediaControls();saveSettings();});
+    $('sceneBackground').addEventListener('change',() => {renderScene();saveSettings();});
+    $('speechVoice').addEventListener('change',() => {preferredVoice = $('speechVoice').value;stopSpeaking();saveSettings();});
+    for (const id of ['speechLanguage','speechRate']) $(id).addEventListener('change',() => {stopSpeaking();saveSettings();});
+    const stopMedia = () => {stopSpeaking();abortDictation();voiceStatus('Audio and microphone stopped.');};
+    document.addEventListener('visibilitychange',() => {if (document.hidden) stopMedia();});
+    globalThis.addEventListener('pagehide',stopMedia);
     $('openSettings').addEventListener('click',() => $('settingsDialog').showModal());
     $('closeSettings').addEventListener('click',() => {$('settingsDialog').close();saveSettings();});
     $('settingsDialog').addEventListener('close',saveSettings);

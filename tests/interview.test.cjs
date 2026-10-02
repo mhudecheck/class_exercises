@@ -7,7 +7,7 @@ const path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname,'../interview.html'),'utf8');
 const helpers = html.slice(html.indexOf('  const MODEL ='),html.indexOf('  // Browser application:'));
 const context = vm.createContext({crypto:require('node:crypto').webcrypto});
-vm.runInContext(helpers + '\n globalThis.helpers = {parsePersonas,matchedJobs,personaForModel,computeScore,validateStructured,validateReferences,responseText,customerInput,exportRecord,markdownRecord,PROFILE_SCHEMA,ASSESSMENT_SCHEMA};',context);
+vm.runInContext(helpers + '\n globalThis.helpers = {parsePersonas,matchedJobs,personaForModel,computeScore,validateStructured,validateReferences,responseText,customerInput,exportRecord,markdownRecord,PROFILE_SCHEMA,ASSESSMENT_SCHEMA,CUSTOMER_SCHEMA,VISUAL_SCHEMA,visualForPersona,dictationDraft,speechChunks,mouthShape};',context);
 const h = context.helpers;
 const plain = value => JSON.parse(JSON.stringify(value));
 const persona = {id:'p1',persona_name:'Jamie',buying_role:'Clinic administrator',demographics_background:'Runs a small clinic',face_image_data_url:'data:image/png;base64,AA==',face_prompt:'Private portrait prompt'};
@@ -80,4 +80,41 @@ test('exports omit settings, portraits and unrevealed scenario details',() => {
   }
   assert.match(markdown,/fictional|Fictional/);
   assert.match(markdown,/What happened last time/);
+});
+
+test('avatar fallback restores older profiles and constrains generated SVG inputs',() => {
+  const visual = h.visualForPersona(persona);
+  h.validateStructured(visual,h.VISUAL_SCHEMA);
+  assert.deepEqual(plain(h.visualForPersona(persona)),plain(visual));
+  assert.equal(visual.background,'clinic');
+  assert.deepEqual(plain(h.visualForPersona(persona,{...visual,hair_color:'<script>alert(1)</script>'})),plain(visual));
+  assert.equal(h.visualForPersona(persona,{...visual,background:'cafe'}).background,'cafe');
+});
+
+test('customer expressions are validated and never sent to the coach or transcript exports',() => {
+  h.validateStructured({reply:'That was frustrating.',expression:'concerned'},h.CUSTOMER_SCHEMA);
+  assert.throws(() => h.validateStructured({reply:'Hello',expression:'<img>'},h.CUSTOMER_SCHEMA));
+  const session = {persona,jobStories:[],learningGoals:[],assessments:[],transcript:[{id:'c0',role:'customer',text:'Hello',expression:'warm'}]};
+  assert.deepEqual(plain(h.customerInput(session)),[{role:'assistant',content:'Hello'}]);
+  assert.equal(JSON.stringify(h.exportRecord(session)).includes('expression'),false);
+});
+
+test('dictation preserves the typed draft, ignores interim results, and avoids duplicate finals',() => {
+  const final = [{transcript:'What happened last time?'}];final.isFinal = true;
+  const interim = [{transcript:'And then'}];interim.isFinal = false;
+  assert.equal(h.dictationDraft('Tell me more.',[final,interim]),'Tell me more. What happened last time?');
+  interim.isFinal = true;
+  assert.equal(h.dictationDraft('Tell me more.',[final,interim]),'Tell me more. What happened last time? And then');
+  assert.equal(h.dictationDraft('x'.repeat(3990),[final]).length,4000);
+});
+
+test('speech chunks preserve reply words and bound long native utterances',() => {
+  for (const value of ['','Hello. How are you?',('A detailed customer reply. ').repeat(50),'x'.repeat(700)]){
+    const chunks = h.speechChunks(value);
+    assert.ok(chunks.every(c => c.length > 0 && c.length <= 220));
+    assert.equal(chunks.join('').replace(/\s/g,''),value.replace(/\s/g,''));
+  }
+  assert.equal(h.mouthShape(' ').ry,1);
+  assert.equal(h.mouthShape('m').ry,1);
+  assert.ok(h.mouthShape('a').ry > h.mouthShape('f').ry);
 });
