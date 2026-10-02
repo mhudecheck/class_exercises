@@ -7,7 +7,7 @@ const path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname,'../interview.html'),'utf8');
 const helpers = html.slice(html.indexOf('  const MODEL ='),html.indexOf('  // Browser application:'));
 const context = vm.createContext({crypto:require('node:crypto').webcrypto,URL});
-vm.runInContext(helpers + '\n globalThis.helpers = {parsePersonas,matchedJobs,personaForModel,computeScore,validateStructured,validateReferences,responseText,customerInput,exportRecord,markdownRecord,PROFILE_SCHEMA,ASSESSMENT_SCHEMA,CUSTOMER_SCHEMA,VISUAL_SCHEMA,visualForPersona,dictationDraft,speechChunks,mouthShape,portraitSource,profileVoiceStyle,naturalVoice,speechEndpoint,naturalSpeechInstructions};',context);
+vm.runInContext(helpers + '\n globalThis.helpers = {parsePersonas,matchedJobs,personaForModel,computeScore,validateStructured,validateReferences,responseText,customerInput,exportRecord,markdownRecord,PROFILE_SCHEMA,ASSESSMENT_SCHEMA,CUSTOMER_SCHEMA,VISUAL_SCHEMA,visualForPersona,dictationDraft,speechChunks,mouthShape,portraitSource,profileVoiceStyle,naturalVoice,speechEndpoint,naturalSpeechInstructions,studioPortraitMask};',context);
 const h = context.helpers;
 const plain = value => JSON.parse(JSON.stringify(value));
 const persona = {id:'p1',persona_name:'Jamie',buying_role:'Clinic administrator',demographics_background:'Runs a small clinic',face_image_data_url:'data:image/png;base64,AA==',face_prompt:'Private portrait prompt'};
@@ -145,4 +145,26 @@ test('natural speech uses the corresponding route and longer coherent text chunk
   assert.ok(chunks.every(c => c.length <= 3500));assert.equal(chunks.join('').replace(/\s/g,''),value.replace(/\s/g,''));
   assert.match(h.naturalSpeechInstructions('de-DE','concerned'),/de-DE/);
   assert.match(h.naturalSpeechInstructions('en-US','concerned'),/Mildly concerned/);
+});
+
+test('studio portrait mask removes edge-connected backdrop and preserves the customer',() => {
+  const width=48,height=64,data=new Uint8ClampedArray(width*height*4);
+  const fill=(x0,y0,x1,y1,color)=>{for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)data.set([...color,255],(y*width+x)*4);};
+  fill(0,0,width,height,[218,218,220]);fill(15,8,33,23,[45,30,24]);fill(17,23,31,43,[235,175,130]);fill(9,43,39,64,[45,76,130]);
+  fill(23,29,25,31,[245,245,245]);fill(23,52,25,54,[218,218,220]);
+  const original=Buffer.from(data);const mask=h.studioPortraitMask(width,height,data);
+  assert.ok(mask);assert.equal(mask.alpha[0],0);assert.equal(mask.alpha[15*width+24],255);assert.equal(mask.alpha[30*width+24],255);assert.equal(mask.alpha[53*width+24],255);assert.equal(mask.alpha[63*width+24],255);
+  assert.deepEqual(Buffer.from(data),original,'Source pixels are unchanged');
+  assert.ok(mask.coverage>.15 && mask.coverage<.82);
+  fill(9,43,39,64,[218,218,220]);assert.equal(h.studioPortraitMask(width,height,data),null,'Reject ambiguous gray clothing');
+});
+
+test('studio mask retains transparent, complex, and empty backgrounds as supplied',() => {
+  const width=48,height=64,data=new Uint8ClampedArray(width*height*4);
+  assert.equal(h.studioPortraitMask(width,height,data),null);
+  for(let i=0;i<data.length;i+=4)data.set([220,220,220,255],i);
+  assert.equal(h.studioPortraitMask(width,height,data),null,'Empty studio backdrop');
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++)data.set(x<width/2?[20,90,50,255]:[250,240,225,255],(y*width+x)*4);
+  assert.equal(h.studioPortraitMask(width,height,data),null,'Complex scene');
+  assert.equal(h.studioPortraitMask(1,1,new Uint8ClampedArray(4)),null);
 });

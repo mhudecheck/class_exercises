@@ -23,13 +23,13 @@
     .interviewLayout{display:grid;grid-template-columns:minmax(0,7fr) minmax(300px,3fr);gap:16px;align-items:start}.chatCard{overflow:hidden}.chatWindow{height:clamp(340px,54vh,680px);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px;scroll-behavior:smooth}.empty{margin:auto;text-align:center;color:var(--muted);max-width:380px;padding:32px 8px}.empty h3{color:var(--text);font-size:17px}.message{max-width:88%;border:1px solid var(--border);border-radius:14px;padding:12px 15px;background:#f8fafc;scroll-margin:16px;white-space:pre-wrap;overflow-wrap:anywhere}.message.student{align-self:flex-end;background:#eff6ff;border-color:#dbeafe}.message.customer{align-self:flex-start;background:#fff}.message:target{outline:3px solid var(--ring)}.messageMeta{display:flex;gap:10px;align-items:center;margin-bottom:6px;font-size:11px;color:var(--muted);white-space:normal}.messageText{font-size:14px;line-height:1.65}.composer{padding:16px 18px;border-top:1px solid var(--border);background:#fbfcfe}.composer textarea{min-height:85px;max-height:220px}.composer .row{margin-top:9px}.phase{font-size:12px;color:var(--primary);min-height:19px;margin-top:10px}.phase:not(:empty)::before{content:'';display:inline-block;width:8px;height:8px;background:var(--primary);border-radius:50%;margin-right:7px;animation:pulse 1s ease-in-out infinite}@keyframes pulse{50%{opacity:.25}}
     .scorePanel .hd{background:#fbfcfe;border-radius:16px 16px 0 0}.overall{font-size:34px;font-weight:800;letter-spacing:-1px;margin:10px 0 2px}.overall small{font-size:13px;font-weight:500;letter-spacing:0;color:var(--muted)}.criterion{padding:14px 0;border-bottom:1px solid var(--border)}.criterion:last-child{border-bottom:0}.criterion .row{gap:8px;flex-wrap:nowrap}.criterion b{font-size:12px}.criterion span{font-size:11px;color:var(--muted);white-space:nowrap}progress{width:100%;height:7px;margin-top:8px;accent-color:var(--primary)}.feedbackItem{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.6}.feedbackItem:last-child{border:0}.refs{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}.refs a{font-size:11px;color:var(--primary)}.tip{padding:12px;border-radius:10px;background:#eff6ff;margin-top:12px;font-size:12px;line-height:1.6}.tip b{display:block;color:#1d4ed8;margin-bottom:3px}.flagGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.flag{background:#f8fafc;border:1px solid var(--border);padding:9px;border-radius:9px;font-size:11px}.flag b{display:block;font-size:18px;margin-top:2px}.discovery{padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.6}.discovery .pill{font-size:10px;padding:3px 6px}.details{font-size:12px;margin-top:12px}summary{cursor:pointer;font-weight:650}.details p{font-size:12px}.debriefGrid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.debriefGrid ul{padding-left:20px;font-size:13px;line-height:1.7}.rewrite{border-left:3px solid #bfdbfe;padding:10px 13px;margin:12px 0;font-size:13px;line-height:1.6}.rewrite p{margin:4px 0}
     dialog{border:1px solid var(--border);border-radius:16px;width:min(680px,calc(100% - 32px));padding:0;color:var(--text);box-shadow:0 24px 80px rgba(15,23,42,.25);max-height:90vh;overflow-y:auto}dialog::backdrop{background:rgba(15,23,42,.45)}dialog .row label{margin:0}.checkLabel{display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:400}.sourceLinks a{color:var(--primary);font-size:12px}
-    .customerStage{border-bottom:1px solid var(--border);background:#f8fafc}.stageView{position:relative;overflow:hidden;background:#e8eef4}.stageView svg{display:block;width:100%;height:240px}.stageCaption{position:absolute;left:14px;top:12px;max-width:calc(100% - 28px);background:rgba(255,255,255,.92);border-radius:9px;padding:7px 10px;font-size:11px;color:#475569}.stageControls{padding:10px 18px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.stageControls label{margin:0;font-size:12px}.stageControls .checkLabel{margin:0}.stageControls button,.messageMeta button{min-height:30px;padding:5px 9px;font-size:11px}.voiceActions{margin-top:9px}.voiceActions button[aria-pressed=true]{background:#b91c1c;color:#fff;border-color:#b91c1c}.voiceStatus{font-size:12px;line-height:1.5;margin-top:8px;color:var(--primary);overflow-wrap:anywhere}.voiceStatus.error{color:#b91c1c}.voiceSettings{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}.avatarEyes{transform-box:fill-box;transform-origin:center;animation:blink 6s infinite}.avatarHead{transform-origin:360px 150px}.stageView[data-state=speaking] .avatarHead{animation:talkSway 3s ease-in-out infinite}.stageView[data-state=thinking] .avatarHead{transform:rotate(-3deg)}.avatarBrow{transition:transform .2s}.stageView[data-expression=concerned] .leftBrow,.stageView[data-expression=skeptical] .leftBrow{transform:rotate(-10deg);transform-origin:335px 109px}.stageView[data-expression=concerned] .rightBrow{transform:rotate(10deg);transform-origin:385px 109px}.stageView[data-expression=surprised] .avatarBrows{transform:translateY(-8px)}
-    .stageView[data-mode=portrait] .illustratedCustomer{display:none}.portraitFrame{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:186px;height:186px;border:4px solid #fff;border-radius:18px;background:#fff;overflow:hidden;box-shadow:0 0 0 calc(2px + var(--voice-level,0)*7px) rgba(37,99,235,.35),0 8px 25px #0f172a22}.portraitFrame img{width:100%;height:100%;object-fit:contain;display:block}.stageExpression{position:absolute;left:14px;bottom:12px;border-radius:9px;background:#ffffffed;padding:6px 9px;font-size:11px;color:#475569}.stageDisclosure{padding:0 18px 10px;font-size:11px;color:var(--muted)}
-    @media(max-width:850px){.portraitFrame{width:146px;height:146px}.stageCaption{font-size:10px}.stageExpression{font-size:10px;max-width:calc(50% - 88px)}}
+    .customerStage{border-bottom:1px solid var(--border);background:#fff}.stageView{position:relative;height:280px;overflow:hidden;background:var(--scene-color,#e9f0f5);isolation:isolate}.stageView #avatarArt{position:absolute;inset:0;z-index:-2}.stageView svg{display:block;width:100%;height:100%}.stageView[data-mode=portrait] #avatarArt{opacity:.45}.stageView[data-mode=portrait] .illustratedCustomer{display:none}.stageView[data-mode=portrait]::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,var(--scene-color,#e9f0f5) 6%,transparent 42%,var(--scene-color,#e9f0f5) 88%);z-index:-1;pointer-events:none}.stageCaption{position:absolute;left:28px;top:50%;transform:translateY(-50%);max-width:43%;color:#173a3b}.stageEyebrow{font-size:10px;font-weight:750;letter-spacing:.1em;text-transform:uppercase;opacity:.65}.stageName{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:23px;line-height:1.2;letter-spacing:-.5px;margin:8px 0;overflow-wrap:anywhere}.stageRole{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:12px;line-height:1.5;opacity:.8}.stageScene{display:block;font-size:11px;margin-top:6px;opacity:.65;text-transform:capitalize}.stageBadges{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}.stageState,.stageExpression{font-size:11px;border:1px solid #ffffffb3;background:#ffffffad;border-radius:999px;padding:6px 9px;display:inline-flex;gap:7px;align-items:center}.stageState::before{content:'';height:6px;width:6px;border-radius:50%;background:#74958b}.stageView[data-state=speaking] .stageState::before,.stageView[data-state=listening] .stageState::before{background:#2563eb}.voiceMeter{display:flex;gap:3px;align-items:center;height:13px;margin-top:12px;opacity:0}.stageView[data-state=speaking] .voiceMeter{opacity:1}.voiceMeter i{display:block;width:3px;border-radius:2px;background:#2563eb;height:13px;transform:scaleY(calc(.2 + var(--voice-level,0)*.8));transform-origin:center}.voiceMeter i:nth-child(2n){height:9px}.voiceMeter i:nth-child(3){height:17px}.portraitFrame{position:absolute;right:5%;bottom:0;width:260px;height:260px;filter:drop-shadow(0 8px 12px #173a3b14)}.portraitFrame img{width:100%;height:100%;display:block;object-fit:contain;object-position:center bottom;border-radius:24px 24px 0 0;mask-size:contain;mask-position:center bottom;mask-repeat:no-repeat;-webkit-mask-size:contain;-webkit-mask-position:center bottom;-webkit-mask-repeat:no-repeat}.stageView[data-portrait=cutout] .portraitFrame img{border-radius:0}.stageControls{padding:12px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.stageControls label{margin:0;font-size:12px;color:var(--text)}.stageControls .checkLabel{margin:0}.stageControls .voiceToggle{display:flex;align-items:center;gap:8px}.stageControls input{accent-color:var(--primary)}.stageControls button,.messageMeta button{min-height:32px;padding:6px 10px;font-size:11px}.stageDisclosure{font-size:10px;color:var(--muted);margin-top:3px}.voiceActions{margin-top:9px}.voiceActions button[aria-pressed=true]{background:#b91c1c;color:#fff;border-color:#b91c1c}.voiceStatus{font-size:12px;line-height:1.5;margin-top:8px;color:var(--primary);overflow-wrap:anywhere}.voiceStatus.error{color:#b91c1c}.voiceSettings{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}.avatarEyes{transform-box:fill-box;transform-origin:center;animation:blink 6s infinite}.avatarHead{transform-origin:360px 150px}.stageView[data-state=speaking] .avatarHead{animation:talkSway 3s ease-in-out infinite}.stageView[data-state=thinking] .avatarHead{transform:rotate(-3deg)}.avatarBrow{transition:transform .2s}.stageView[data-expression=concerned] .leftBrow,.stageView[data-expression=skeptical] .leftBrow{transform:rotate(-10deg);transform-origin:335px 109px}.stageView[data-expression=concerned] .rightBrow{transform:rotate(10deg);transform-origin:385px 109px}.stageView[data-expression=surprised] .avatarBrows{transform:translateY(-8px)}
+    .stageView[data-mode=illustration] .stageCaption{top:20px;transform:none;max-width:30%}.stageView[data-mode=illustration] .stageName{font-size:18px}.stageView[data-mode=illustration] .stageExpression{display:none}
+    @media(max-width:600px){.stageView{height:240px}.stageCaption{left:18px;max-width:36%}.stageName{font-size:20px}.stageRole{font-size:11px}.stageBadges{gap:5px;margin-top:10px}.stageState,.stageExpression{font-size:10px;padding:5px 7px}.portraitFrame{width:55%;max-width:230px;height:210px;right:0}.stageControls{padding:10px 14px}.stageView[data-mode=illustration] .stageName{font-size:15px}.stageView[data-mode=illustration] .stageRole{font-size:10px}}
+    @media(prefers-reduced-motion:reduce){.voiceMeter i{transform:none;height:6px}}
     @keyframes blink{0%,42%,46%,100%{transform:scaleY(1)}44%{transform:scaleY(.08)}}@keyframes talkSway{50%{transform:rotate(1.5deg)}}
     .stageView[data-expression=thoughtful] .rightBrow{transform:translateY(-5px)}.stageView[data-expression=warm] .avatarBrows{transform:translateY(-2px)}
     @media(max-width:850px){.interviewLayout,.grid2,.debriefGrid{grid-template-columns:1fr}.chatWindow{height:50vh;min-height:300px}.app{padding:16px 10px 40px}.topbar{align-items:flex-start}h1{font-size:21px}.message{max-width:96%}.scorePanel{order:2}}
-    @media(max-width:850px){.stageView svg{height:200px}.stageControls{padding:10px 12px}}
     @media(prefers-reduced-motion:reduce){.phase::before,.avatarEyes,.stageView[data-state=speaking] .avatarHead{animation:none}.avatarBrow{transition:none}.chatWindow{scroll-behavior:auto}}
     @media print{#viewport{height:auto;overflow:visible}.noPrint{display:none!important}.app{max-width:none;padding:0}.interviewLayout{display:block}.chatWindow{height:auto;overflow:visible}.card{box-shadow:none}.scorePanel{margin-top:20px}.message{break-inside:avoid}}
   </style>
@@ -75,9 +75,8 @@
         <section class="card chatCard" aria-label="Interview conversation">
           <div class="hd row"><h2>2. Interview</h2><span id="turnCount" class="pill">0 questions</span></div>
           <div id="customerStage" class="customerStage noPrint" hidden>
-            <div id="stageView" class="stageView" data-state="ready" data-expression="neutral" role="img" aria-label="Fictional customer avatar"><div id="avatarArt" aria-hidden="true"></div><div id="portraitFrame" class="portraitFrame" aria-hidden="true" hidden><img id="customerPortrait" alt="" /></div><div id="stageExpression" class="stageExpression" aria-hidden="true"></div><div id="stageCaption" class="stageCaption"></div></div>
-            <div class="stageControls"><label class="checkLabel"><input id="showAvatar" type="checkbox" checked />Show customer</label><label class="checkLabel"><input id="autoSpeak" type="checkbox" />Read customer replies aloud</label><div class="actions"><button id="replayReply" class="secondary" type="button">Read latest reply</button><button id="stopSpeech" class="secondary" type="button" hidden>Stop audio</button></div></div>
-            <div id="stageDisclosure" class="stageDisclosure">AI-generated customer voice</div>
+            <div id="stageView" class="stageView" data-state="ready" data-expression="neutral" role="img" aria-label="Fictional customer avatar"><div id="avatarArt" aria-hidden="true"></div><div id="portraitFrame" class="portraitFrame" aria-hidden="true" hidden><img id="customerPortrait" alt="" /></div><div id="stageCaption" class="stageCaption"><div class="stageEyebrow">Your customer</div><strong id="stageName" class="stageName"></strong><span id="stageRole" class="stageRole"></span><span id="stageScene" class="stageScene"></span><div class="stageBadges"><span id="stageState" class="stageState"></span><span id="stageExpression" class="stageExpression"></span></div><div class="voiceMeter"><i></i><i></i><i></i><i></i><i></i></div></div></div>
+            <div class="stageControls"><div><label class="voiceToggle"><input id="autoSpeak" type="checkbox" aria-label="Read customer replies aloud" />Auto voice</label><div id="stageDisclosure" class="stageDisclosure">AI-generated voice · Simulated customer</div></div><div class="actions"><button id="replayReply" class="secondary" type="button">Read latest reply</button><button id="stopSpeech" class="secondary" type="button" hidden>Stop audio</button></div></div>
           </div>
           <div id="transcript" class="chatWindow" role="log" aria-label="Interview transcript" aria-live="polite" aria-relevant="additions"><div class="empty"><h3>Let the customer do the talking</h3><p>Import personas and choose who to interview. Ask about their life, a specific past experience, and what they did next.</p></div></div>
           <form id="chatForm" class="composer noPrint">
@@ -110,7 +109,7 @@
   <dialog id="settingsDialog" aria-labelledby="settingsTitle">
     <div class="hd row"><h2 id="settingsTitle">Settings</h2><button id="closeSettings" class="secondary" type="button">Close</button></div>
     <div class="bd"><div class="grid2"><div><label for="model">Text model</label><select id="model"><option value="gpt-6-luna">gpt-6-luna</option></select></div><div><label for="endpoint">Responses endpoint</label><input id="endpoint" type="url" value="https://patient-bush-7366.mhudecheck.workers.dev/v1/responses" /></div></div><div style="margin-top:14px"><label for="apiKey">OpenAI API key (optional for the class Worker)</label><input id="apiKey" type="password" autocomplete="off" /><label class="checkLabel"><input id="rememberKey" type="checkbox" />Remember in this browser</label></div><p class="help">Leave the key blank when using the class Worker. A direct api.openai.com endpoint requires a key. The customer and coach both use this text model.</p>
-      <div class="voiceSettings"><h3>Voice and scene</h3><div class="grid2"><div><label for="speechEngine">Voice playback</label><select id="speechEngine"><option value="natural">Natural AI voice</option><option value="browser">Browser voice</option></select></div><div><label for="voiceStyle">Customer voice style</label><select id="voiceStyle"><option value="auto">Match profile gender / pronouns</option><option value="feminine">Feminine · Marin</option><option value="masculine">Masculine · Cedar</option><option value="neutral">Neutral · Alloy</option></select></div><div><label for="speechLanguage">Speech language</label><select id="speechLanguage"><option value="en-US">English (US)</option><option value="en-GB">English (UK)</option><option value="de-DE">German</option><option value="fr-FR">French</option><option value="es-ES">Spanish</option><option value="it-IT">Italian</option><option value="pt-BR">Portuguese (Brazil)</option><option value="ja-JP">Japanese</option><option value="zh-CN">Chinese (Mandarin)</option></select></div><div><label for="speechVoice">Device voice (browser playback only)</label><select id="speechVoice"><option value="">Browser default</option></select></div><div><label for="speechRate">Speaking speed</label><select id="speechRate"><option value="0.8">Slower</option><option value="1" selected>Normal</option><option value="1.2">Faster</option></select></div><div><label for="sceneBackground">Background</label><select id="sceneBackground"><option value="auto">From customer profile</option><option value="office">Office</option><option value="home">Home</option><option value="cafe">Café</option><option value="clinic">Clinic</option><option value="workshop">Workshop</option></select></div></div><p class="help">Dictation needs microphone permission and a supported browser on HTTPS or localhost. Stop dictation, review the text, then send. Your browser may send audio to its speech service; this page stores only the confirmed text. Natural AI voice uses the class speech service and incurs API usage. Browser voice is an optional device-based alternative. The stage uses the exact imported customer image. Its speaking indicator and expression label accompany the unchanged portrait; the illustrated fallback supports approximate lip sync when no image is available.</p><p id="voiceMatch" class="help"></p><p class="help">The speech language also sets the customer’s reply language. Coaching follows the interview transcript.</p></div>
+      <div class="voiceSettings"><h3>Voice and scene</h3><label class="checkLabel" style="margin:0 0 14px"><input id="showAvatar" type="checkbox" checked />Show customer scene</label><div class="grid2"><div><label for="speechEngine">Voice playback</label><select id="speechEngine"><option value="natural">Natural AI voice</option><option value="browser">Browser voice</option></select></div><div><label for="voiceStyle">Customer voice style</label><select id="voiceStyle"><option value="auto">Match profile gender / pronouns</option><option value="feminine">Feminine · Marin</option><option value="masculine">Masculine · Cedar</option><option value="neutral">Neutral · Alloy</option></select></div><div><label for="speechLanguage">Speech language</label><select id="speechLanguage"><option value="en-US">English (US)</option><option value="en-GB">English (UK)</option><option value="de-DE">German</option><option value="fr-FR">French</option><option value="es-ES">Spanish</option><option value="it-IT">Italian</option><option value="pt-BR">Portuguese (Brazil)</option><option value="ja-JP">Japanese</option><option value="zh-CN">Chinese (Mandarin)</option></select></div><div><label for="speechVoice">Device voice (browser playback only)</label><select id="speechVoice"><option value="">Browser default</option></select></div><div><label for="speechRate">Speaking speed</label><select id="speechRate"><option value="0.8">Slower</option><option value="1" selected>Normal</option><option value="1.2">Faster</option></select></div><div><label for="sceneBackground">Background</label><select id="sceneBackground"><option value="auto">From customer profile</option><option value="office">Office</option><option value="home">Home</option><option value="cafe">Café</option><option value="clinic">Clinic</option><option value="workshop">Workshop</option></select></div></div><p class="help">Dictation needs microphone permission and a supported browser on HTTPS or localhost. Stop dictation, review the text, then send. Your browser may send audio to its speech service; this page stores only the confirmed text. Natural AI voice uses the class speech service and incurs API usage. Browser voice is an optional device-based alternative. The stage uses the exact imported customer image. A plain studio background is blended into the scene locally, with a speaking indicator and expression label; the illustrated fallback supports approximate lip sync when no image is available.</p><p id="voiceMatch" class="help"></p><p class="help">The speech language also sets the customer’s reply language. Coaching follows the interview transcript.</p></div>
       <div id="settingsNotice" class="notice warning" hidden></div></div>
   </dialog>
 
@@ -180,6 +179,43 @@
   function portraitSource(persona){
     const image = persona?.face_image_data_url;
     return typeof image === 'string' && (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(image) || /^https?:\/\//i.test(image)) ? image : '';
+  }
+  // Remove only a plain, edge-connected studio backdrop. The imported image is never changed.
+  function studioPortraitMask(width, height, data){
+    if (width < 24 || height < 24 || data.length !== width * height * 4) return null;
+    const sample = (x,y) => {const i = (Math.floor(y*height)*width + Math.floor(x*width))*4;return [...data.slice(i,i+4)];};
+    const samples = [[.06,.03],[.5,.03],[.94,.03],[.03,.12],[.97,.12],[.03,.24],[.97,.24]].map(([x,y]) => sample(x,y));
+    if (samples.some(p => p[3] < 240)) return null;
+    const color = [0,1,2].map(c => samples.map(p => p[c]).sort((a,b) => a-b)[3]);
+    const brightness = color.reduce((a,b) => a+b,0)/3;
+    const chroma = Math.max(...color)-Math.min(...color);
+    const distance = p => Math.sqrt(color.reduce((sum,c,i) => sum + (c-p[i])**2,0));
+    if (brightness < 145 || samples.reduce((sum,p) => sum+distance(p),0)/samples.length > 26) return null;
+    const matches = i => {
+      if (data[i+3] < 16) return true;
+      const p = [data[i],data[i+1],data[i+2]];
+      return chroma < 22 ? Math.max(...p)-Math.min(...p) < 24 && p.reduce((a,b) => a+b,0)/3 >= brightness-42 : distance(p) < 38;
+    };
+    // The center must contain a contrasting subject, rather than an empty background.
+    if ([.3,.45,.6].filter(y => !matches((Math.floor(y*height)*width + Math.floor(width*.5))*4)).length < 2) return null;
+    // A shirt matching the backdrop cannot be separated safely with this simple mask.
+    if (matches((Math.floor(height*.85)*width + Math.floor(width*.5))*4)) return null;
+    const count = width*height, removed = new Uint8Array(count), queue = new Uint32Array(count);
+    let head = 0, tail = 0;
+    const add = index => {
+      if (removed[index] || !matches(index*4)) return;
+      const x = index % width, y = Math.floor(index/width);
+      // Protect the central face, including light hair and highlights.
+      if (((x/width-.5)/.13)**2 + ((y/height-.45)/.25)**2 < 1) return;
+      removed[index] = 1;queue[tail++] = index;
+    };
+    for (let x=0;x<width;x++){add(x);add((height-1)*width+x);}
+    for (let y=0;y<height;y++){add(y*width);add(y*width+width-1);}
+    while (head < tail){const i = queue[head++], x = i%width;if (x) add(i-1);if (x+1<width) add(i+1);if (i>=width) add(i-width);if (i+width<count) add(i+width);}
+    if (tail/count < .15 || tail/count > .82) return null;
+    const alpha = new Uint8ClampedArray(count);
+    for (let i=0;i<count;i++) alpha[i] = removed[i] ? 0 : data[i*4+3];
+    return {alpha,color,coverage:tail/count};
   }
   function profileVoiceStyle(persona = {}){
     const classify = value => {
@@ -386,6 +422,7 @@
   let sceneBackground = '';
   let preferredVoice = '';
   let portraitFailed = false;
+  let portraitRenderFrame = 0;
   let audioContext = null;
   const speechCache = new Map();
   const canNaturalSpeak = typeof globalThis.Audio === 'function';
@@ -457,13 +494,39 @@
     mouth.setAttribute('rx',shape.rx);mouth.setAttribute('ry',shape.ry);
   }
 
+  function resetPortrait(){
+    cancelAnimationFrame(portraitRenderFrame);portraitRenderFrame = 0;
+    const image = $('customerPortrait');image.style.maskImage = image.style.webkitMaskImage = '';
+    $('stageView').dataset.portrait = 'original';
+  }
+  function integratePortrait(){
+    const image = $('customerPortrait'), sessionId = workspace.session?.id, source = image.getAttribute('src');
+    cancelAnimationFrame(portraitRenderFrame);
+    portraitRenderFrame = requestAnimationFrame(() => {
+      portraitRenderFrame = 0;
+      if (!sessionId || workspace.session?.id !== sessionId || source !== image.getAttribute('src') || !image.naturalWidth) return;
+      try {
+        const scale = Math.min(1,256/Math.max(image.naturalWidth,image.naturalHeight));
+        const canvas = document.createElement('canvas');canvas.width = Math.round(image.naturalWidth*scale);canvas.height = Math.round(image.naturalHeight*scale);
+        const context = canvas.getContext('2d',{willReadFrequently:true});if (!context) return;
+        context.drawImage(image,0,0,canvas.width,canvas.height);
+        const mask = studioPortraitMask(canvas.width,canvas.height,context.getImageData(0,0,canvas.width,canvas.height).data);
+        if (!mask) return;
+        const pixels = context.createImageData(canvas.width,canvas.height);
+        for (let i=0;i<mask.alpha.length;i++){pixels.data[i*4] = pixels.data[i*4+1] = pixels.data[i*4+2] = 255;pixels.data[i*4+3] = mask.alpha[i];}
+        context.putImageData(pixels,0,0);
+        const url = `url("${canvas.toDataURL('image/png')}")`;
+        image.style.maskImage = image.style.webkitMaskImage = url;$('stageView').dataset.portrait = 'cutout';
+      } catch { /* Cross-origin or complex images retain their original presentation. */ }
+    });
+  }
   function renderScene(){
     const session = workspace.session;
-    if (!session){sceneSession = '';portraitFailed = false;$('customerPortrait').removeAttribute('src');return;}
+    if (!session){sceneSession = '';portraitFailed = false;resetPortrait();$('customerPortrait').removeAttribute('src');return;}
     const visual = visualForPersona(session.persona,session.profile.visual);
     const background = $('sceneBackground').value === 'auto' ? visual.background : $('sceneBackground').value;
     if (sceneSession !== session.id){
-      portraitFailed = false;
+      portraitFailed = false;resetPortrait();
       const source = portraitSource(session.persona);
       if (source) $('customerPortrait').src = source;else $('customerPortrait').removeAttribute('src');
     }
@@ -475,9 +538,13 @@
     const state = recognition ? 'listening' : speech?.started ? 'speaking' : phase === 'customer' ? 'thinking' : 'ready';
     $('stageView').dataset.state = state;$('stageView').dataset.expression = expression;
     $('stageView').setAttribute('aria-label',`${session.persona.persona_name}, ${portrait ? 'imported customer portrait' : 'fictional illustrated customer'}, ${expression} response, ${state}`);
-    $('stageCaption').textContent = `${session.persona.persona_name} · ${state === 'listening' ? 'Listening to your question' : state === 'speaking' ? 'Speaking' : state === 'thinking' ? 'Thinking…' : 'Fictional customer'} · ${background}`;
+    $('stageView').style.setProperty('--scene-color',{office:'#e6edf5',home:'#f1e9df',cafe:'#eee0d1',clinic:'#e3f1ef',workshop:'#e7e8e6'}[background]);
+    $('stageName').textContent = $('stageName').title = session.persona.persona_name;
+    $('stageRole').textContent = $('stageRole').title = session.persona.persona_label || session.persona.buying_role;
+    $('stageScene').textContent = background === 'cafe' ? 'Café' : background;
+    $('stageState').textContent = {listening:'Listening',speaking:'Speaking',thinking:'Thinking…',ready:'Ready to talk'}[state];
     $('stageExpression').textContent = expression.charAt(0).toUpperCase() + expression.slice(1);
-    $('stageDisclosure').textContent = portrait ? 'AI-generated customer voice · Original profile image; expressions shown as labels' : `AI-generated customer voice · ${portraitFailed ? 'Portrait unavailable; ' : 'No profile image; '}illustrated fallback with approximate lip sync`;
+    $('stageDisclosure').textContent = portraitFailed ? 'Portrait unavailable · AI-generated voice' : 'AI-generated voice · Simulated customer';
     const smile = $('avatarSmile');
     smile?.setAttribute('d',expression === 'warm' ? 'M346 163Q360 179 374 163' : expression === 'concerned' ? 'M347 171Q360 159 373 171' : expression === 'skeptical' ? 'M347 168Q360 169 373 164' : expression === 'surprised' ? 'M353 165a7 8 0 1 0 14 0a7 8 0 1 0-14 0' : expression === 'thoughtful' ? 'M347 167Q360 164 373 166' : 'M347 165Q360 170 373 165');
     if (!speech?.started) setMouth();
@@ -1148,7 +1215,8 @@ Fixed customer data: ${JSON.stringify({persona:personaForModel(session.persona),
     synthesis?.addEventListener('voiceschanged',refreshVoices);
     $('dictateQuestion').addEventListener('click',toggleDictation);
     $('replayReply').addEventListener('click',() => {if (speech?.ready){void speech.play();return;}speakMessage(workspace.session?.transcript.filter(m => m.role === 'customer').at(-1));});
-    $('customerPortrait').addEventListener('error',() => {portraitFailed = true;renderScene();});
+    $('customerPortrait').addEventListener('load',integratePortrait);
+    $('customerPortrait').addEventListener('error',() => {portraitFailed = true;resetPortrait();renderScene();});
     $('stopSpeech').addEventListener('click',() => {stopSpeaking();voiceStatus('Audio stopped.');});
     $('autoSpeak').addEventListener('change',() => {if (!$('autoSpeak').checked){stopSpeaking();voiceStatus('Automatic reply audio is off.');}saveSettings();});
     $('showAvatar').addEventListener('change',() => {updateMediaControls();saveSettings();});
