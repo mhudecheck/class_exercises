@@ -7,9 +7,18 @@ const waitFor = async predicate => {
   while (!predicate()){if (Date.now()>end) throw new Error('Timed out waiting for UI state');await new Promise(r=>setTimeout(r,20));}
 };
 function mockEnvironment(options){
-  const state = window.testMedia = {utterances:[],requests:[],cancels:0,failCoach:false,holdCustomer:false};
+  const state = window.testMedia = {utterances:[],requests:[],cancels:0,failCoach:false,holdCustomer:false,audios:[],audioRequests:[],revoked:[],blockAudio:false};
   const saved = new Map();
-  if (options.saved) saved.set('interview_practice_settings_v1',JSON.stringify(options.saved));
+  saved.set('interview_practice_settings_v1',JSON.stringify({...(!options.natural ? {speechEngine:'browser'} : {}),...options.saved}));
+  window.AudioContext = window.webkitAudioContext = undefined;
+  window.Audio = options.noAudio ? undefined : class {
+    constructor(){this.currentTime=0;state.audios.push(this);}
+    async play(){if(state.blockAudio){state.blockAudio=false;throw new DOMException('Gesture required','NotAllowedError');}state.audio=this;}
+    pause(){if(state.audio===this)state.audio=null;}
+    removeAttribute(name){if(name==='src')this.src='';}
+    load(){}
+  };
+  const revoke = URL.revokeObjectURL.bind(URL);URL.revokeObjectURL=value=>{state.revoked.push(value);revoke(value);};
   Object.defineProperty(window,'localStorage',{value:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)}});
   Object.defineProperty(window,'indexedDB',{configurable:true,value:{open(){const request={};setTimeout(()=>request.onerror?.(),0);return request;}}});
   Object.defineProperty(window,'speechSynthesis',{value:options.noSpeech ? undefined : {
@@ -35,8 +44,14 @@ function mockEnvironment(options){
       const request={};setTimeout(()=>{request.result={close(){},transaction(){const tx={objectStore(){return {get(){const req={result:options.restore};setTimeout(()=>tx.oncomplete?.(),0);return req;},put(){const req={};if(state.holdWrites) state.releaseWrite=()=>tx.oncomplete?.();else setTimeout(()=>tx.oncomplete?.(),0);return req;}};}};return tx;}};request.onsuccess?.();},0);return request;
     }}});
   }
-  window.fetch = async (_,init) => {
+  window.fetch = async (url,init) => {
     const body = JSON.parse(init.body);state.requests.push(body);
+    if(url.endsWith('/audio/speech')){
+      state.audioRequests.push(body);
+      if(state.holdAudio){state.holdAudio=false;await new Promise(resolve=>state.releaseAudio=resolve);}
+      if(state.failAudio){state.failAudio=false;return {ok:false,status:503,json:async()=>({error:{message:'Voice unavailable'}})};}
+      return {ok:true,status:200,headers:new Headers({'content-type':state.badAudio ? 'application/json' : 'audio/mpeg'}),blob:async()=>new Blob([new Uint8Array(100)],{type:'audio/mpeg'})};
+    }
     const name = body.text?.format?.name;
     if(name==='customer_reply' && state.holdReplyWrite){state.holdReplyWrite=false;state.holdWrites=true;}
     if (name==='customer_reply' && state.holdCustomer){
@@ -58,8 +73,8 @@ async function createFrame(source,options={}){
   return {w,d,el,state:w.testMedia};
 }
 const fixture={input_text:'Clinic scheduling',personas:[{id:'p1',persona_name:'Jamie',buying_role:'Clinic administrator',demographics_background:'Age 54, runs a small clinic'}]};
-async function start(frame){
-  frame.el('personaJson').value=JSON.stringify(fixture);frame.el('importJson').click();frame.el('startInterview').click();
+async function start(frame,data=fixture){
+  frame.el('personaJson').value=JSON.stringify(data);frame.el('importJson').click();frame.el('startInterview').click();
   await waitFor(()=>!frame.el('customerStage').hidden && !frame.el('chatInput').disabled);
 }
 async function ask(frame,text='What happened last Tuesday?'){
@@ -146,6 +161,75 @@ document.getElementById('run').onclick=async()=>{
     for(let i=0;i<10 && !f.el('stopSpeech').hidden;i++){f.state.current.onend();await new Promise(r=>setTimeout(r,20));}
     assert(f.el('stopSpeech').hidden && f.state.utterances.length>1,'Long reply completes across chunks');
     assert(f.state.utterances.every(u=>u.text.length<=220),'Native utterances bounded');
+  });
+  await check('Exact profile portrait and feminine/masculine natural voice matching',async()=>{
+    const image='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a3ioAAAAASUVORK5CYII=';
+    f=await createFrame(source,{natural:true,noSpeech:true});await start(f,{...fixture,personas:[{...fixture.personas[0],gender:'female',face_image_data_url:image}]});
+    assert(f.el('speechEngine').value==='natural','Natural speech is the default');
+    assert(f.el('customerPortrait').getAttribute('src')===image && !f.el('portraitFrame').hidden,'Exact imported image shown');
+    assert(f.el('stageView').dataset.mode==='portrait','Generated customer hidden');
+    assert(!f.el('replayReply').disabled,'Natural speech does not need installed browser voices');
+    f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');
+    assert(f.state.audioRequests[0].voice==='marin','Feminine voice matches profile');
+    assert(f.state.audioRequests[0].input===f.el('transcript').querySelector('.messageText').textContent,'Speaks only visible reply');
+    assert(!JSON.stringify(f.state.audioRequests).includes('Private fictional scenario'),'Private scenario excluded from speech');
+    f.el('stopSpeech').click();assert(f.state.audio===null && f.state.revoked.length===1,'Audio and URL released');
+    f.el('voiceStyle').value='masculine';f.el('voiceStyle').dispatchEvent(new f.w.Event('change'));f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');
+    assert(f.state.audioRequests.at(-1).voice==='cedar','Manual style controls actual voice');
+    f.el('stopSpeech').click();
+    f.el('voiceStyle').value='auto';f.el('voiceStyle').dispatchEvent(new f.w.Event('change'));f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');
+    assert(f.state.audioRequests.length===2,'Replay reuses cached audio');
+    f.state.audio.onended();assert(f.el('stopSpeech').hidden,'Natural completion clears controls');
+    f=await createFrame(source,{natural:true});await start(f,{...fixture,personas:[{...fixture.personas[0],pronouns:'he/him'}]});f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');assert(f.state.audioRequests[0].voice==='cedar','Masculine auto matching');
+  });
+  await check('Cancelled natural audio generation cannot play a late response',async()=>{
+    f.el('stopSpeech').click();f.state.holdAudio=true;
+    f.el('voiceStyle').value='neutral';f.el('voiceStyle').dispatchEvent(new f.w.Event('change'));f.el('replayReply').click();await waitFor(()=>!!f.state.releaseAudio);
+    const count=f.state.audios.length;f.el('stopSpeech').click();f.state.releaseAudio();await new Promise(r=>setTimeout(r,40));
+    assert(f.state.audios.length===count && f.el('stopSpeech').hidden,'Late response ignored even if provider ignores abort');
+    f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');
+    f.w.dispatchEvent(new f.w.Event('pagehide'));assert(f.state.audio===null && f.el('stopSpeech').hidden,'Pagehide releases natural audio');
+  });
+  await check('Autoplay restriction offers a ready play button without a second request',async()=>{
+    f=await createFrame(source,{natural:true});await start(f);f.state.blockAudio=true;f.el('replayReply').click();
+    await waitFor(()=>f.el('replayReply').textContent==='Play ready audio');assert(f.state.audio===undefined,'Blocked audio does not claim to speak');
+    f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');assert(f.state.audioRequests.length===1,'Ready audio plays without another generation');
+    const previous=f.state.audio;f.el('stopSpeech').click();assert(previous.src==='' && f.state.audio===null,'Ready and playing audio both clean up');
+  });
+  await check('Natural service errors are recoverable and never switch silently to browser speech',async()=>{
+    f.state.failAudio=true;f.el('voiceStyle').value='masculine';f.el('voiceStyle').dispatchEvent(new f.w.Event('change'));f.el('replayReply').click();
+    await waitFor(()=>f.el('voiceStatus').textContent.includes('503'));assert(f.state.utterances.length===0 && f.el('stopSpeech').hidden,'No silent device fallback');
+    f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');assert(f.state.audioRequests.at(-1).voice==='cedar','Retry remains selected voice');
+    f.el('stopSpeech').click();f.state.badAudio=true;f.el('voiceStyle').value='feminine';f.el('voiceStyle').dispatchEvent(new f.w.Event('change'));f.el('replayReply').click();
+    await waitFor(()=>f.el('voiceStatus').textContent.includes('did not return audio'));assert(f.state.audio===null,'Rejects non-audio response');
+  });
+  await check('Natural automatic replies speak once across scoring retry and stop on a new interview',async()=>{
+    f=await createFrame(source,{natural:true});await start(f);f.el('autoSpeak').checked=true;f.el('autoSpeak').dispatchEvent(new f.w.Event('change'));f.state.failCoach=true;
+    await ask(f);await waitFor(()=>!f.el('retryRequest').hidden && f.el('stageView').dataset.state==='speaking');
+    const count=f.state.audioRequests.length;assert(count===1 && f.el('stageView').dataset.expression==='concerned','New answer uses natural speech and response expression');
+    f.el('retryRequest').click();await waitFor(()=>!f.el('chatInput').disabled);assert(f.state.audioRequests.length===count,'Scoring retry never regenerates audio');
+    f.el('newInterview').click();assert(f.state.audio===null && f.el('customerStage').hidden,'New interview stops natural speech');
+  });
+  await check('Portrait failure is labelled and natural preferences restore without autoplay',async()=>{
+    f=await createFrame(source,{natural:true});await start(f);
+    f.el('customerPortrait').dispatchEvent(new f.w.Event('error'));assert(f.el('stageView').dataset.mode==='illustration' && f.el('stageDisclosure').textContent.includes('Portrait unavailable'),'Failed portrait clearly labelled');
+    const restore={version:1,personas:fixture.personas,jobStories:[],businessContext:'Clinic',learningGoals:[],selectedId:'p1',draft:'',session:{id:'restored-natural',persona:{...fixture.personas[0],gender:'male'},profile:{background:'Private fictional scenario'},transcript:[{id:'c0',role:'customer',text:'Saved greeting'}],assessments:[],status:'active',pending:null,jobStories:[],businessContext:'Clinic',learningGoals:[],debrief:null}};
+    f=await createFrame(source,{natural:true,restore,saved:{autoSpeak:true,voiceStyle:'feminine'}});
+    assert(f.el('voiceStyle').value==='feminine' && f.state.audioRequests.length===0,'Saved settings do not autoplay restored interview');
+  });
+  await check('Long natural replies use bounded segments and respect reduced motion',async()=>{
+    const reply=Array.from({length:60},(_,i)=>`On day ${i+1}, something different happened at the clinic. `).join('');
+    const restore={version:1,personas:fixture.personas,jobStories:[],businessContext:'Clinic',learningGoals:[],selectedId:'p1',draft:'',session:{id:'natural-long',persona:fixture.personas[0],profile:{background:'Private fictional scenario'},transcript:[{id:'c0',role:'customer',text:reply}],assessments:[],status:'active',pending:null,jobStories:[],businessContext:'Clinic',learningGoals:[],debrief:null}};
+    f=await createFrame(source,{natural:true,restore,reducedMotion:true});f.el('replayReply').click();
+    for(let i=0;i<10;i++){
+      await waitFor(()=>f.el('stageView').dataset.state==='speaking');await new Promise(r=>setTimeout(r,20));
+      assert((Number(f.el('stageView').style.getPropertyValue('--voice-level'))||0)===0 && f.el('avatarMouth').hasAttribute('hidden'),'Reduced motion suppresses indicator and lips');
+      const audio=f.state.audio;audio.onended();await waitFor(()=>f.el('stopSpeech').hidden || f.state.audio!==audio);if(f.el('stopSpeech').hidden)break;
+    }
+    assert(f.el('stopSpeech').hidden && f.state.audioRequests.length>1,'All segments finish');
+    assert(f.state.audioRequests.every(r=>r.input.length<=1000),'Multilingual-safe input bounds');
+    assert(f.state.audioRequests.map(r=>r.input).join('').replace(/\s/g,'')===reply.replace(/\s/g,''),'Complete reply spoken');
+    assert(f.state.revoked.length===f.state.audioRequests.length,'Every audio URL released');
   });
   document.getElementById('status').textContent=passed+' passed, '+failed+' failed';button.disabled=false;window.testResult={passed,failed};
 };
