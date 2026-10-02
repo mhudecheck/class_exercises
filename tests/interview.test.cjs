@@ -6,8 +6,8 @@ const path = require('node:path');
 
 const html = fs.readFileSync(path.join(__dirname,'../interview.html'),'utf8');
 const helpers = html.slice(html.indexOf('  const MODEL ='),html.indexOf('  // Browser application:'));
-const context = vm.createContext({crypto:require('node:crypto').webcrypto});
-vm.runInContext(helpers + '\n globalThis.helpers = {parsePersonas,matchedJobs,personaForModel,computeScore,validateStructured,validateReferences,responseText,customerInput,exportRecord,markdownRecord,PROFILE_SCHEMA,ASSESSMENT_SCHEMA,CUSTOMER_SCHEMA,VISUAL_SCHEMA,visualForPersona,dictationDraft,speechChunks,mouthShape};',context);
+const context = vm.createContext({crypto:require('node:crypto').webcrypto,URL});
+vm.runInContext(helpers + '\n globalThis.helpers = {parsePersonas,matchedJobs,personaForModel,computeScore,validateStructured,validateReferences,responseText,customerInput,exportRecord,markdownRecord,PROFILE_SCHEMA,ASSESSMENT_SCHEMA,CUSTOMER_SCHEMA,VISUAL_SCHEMA,visualForPersona,dictationDraft,speechChunks,mouthShape,portraitSource,profileVoiceStyle,naturalVoice,speechEndpoint,naturalSpeechInstructions};',context);
 const h = context.helpers;
 const plain = value => JSON.parse(JSON.stringify(value));
 const persona = {id:'p1',persona_name:'Jamie',buying_role:'Clinic administrator',demographics_background:'Runs a small clinic',face_image_data_url:'data:image/png;base64,AA==',face_prompt:'Private portrait prompt'};
@@ -117,4 +117,32 @@ test('speech chunks preserve reply words and bound long native utterances',() =>
   assert.equal(h.mouthShape(' ').ry,1);
   assert.equal(h.mouthShape('m').ry,1);
   assert.ok(h.mouthShape('a').ry > h.mouthShape('f').ry);
+});
+
+test('portrait uses the exact imported reference and rejects executable image URLs',() => {
+  for (const source of [persona.face_image_data_url,'https://example.com/customer.png','http://localhost/customer.jpg']) assert.equal(h.portraitSource({face_image_data_url:source}),source);
+  for (const source of ['javascript:alert(1)','data:text/html;base64,AA==','data:image/svg+xml,<svg onload="alert(1)"/>',null]) assert.equal(h.portraitSource({face_image_data_url:source}),'');
+});
+
+test('voice matching uses explicit gender and pronouns, with neutral and manual fallbacks',() => {
+  assert.equal(h.naturalVoice({gender:'female'}).voice,'marin');
+  assert.equal(h.naturalVoice({pronouns:'he/him'}).voice,'cedar');
+  assert.equal(h.naturalVoice({demographics_background:'A 54-year-old woman running a clinic'}).voice,'marin');
+  assert.equal(h.naturalVoice({face_prompt:'Portrait of an older man'}).voice,'cedar');
+  for (const p of [{persona_name:'Jessica',buying_role:'Nurse'},{gender:'nonbinary'},{pronouns:'they/them'},{demographics_background:'Works with men and women'}]) assert.equal(h.naturalVoice(p).voice,'alloy');
+  assert.equal(h.naturalVoice({gender:'male'},'feminine').voice,'marin');
+  const parsed = h.parsePersonas(JSON.stringify({personas:[{...persona,gender:'male',pronouns:'he/him',voice_style:'masculine'}]}));
+  assert.equal(parsed.personas[0].gender,'male');assert.equal(parsed.personas[0].pronouns,'he/him');
+  assert.throws(() => h.parsePersonas(JSON.stringify({personas:[{...persona,gender:{}}]})));
+});
+
+test('natural speech uses the corresponding route and longer coherent text chunks',() => {
+  assert.equal(h.speechEndpoint('https://example.com/v1/responses?debug=1#key'),'https://example.com/v1/audio/speech');
+  assert.equal(h.speechEndpoint('https://api.openai.com/v1/responses/'),'https://api.openai.com/v1/audio/speech');
+  assert.throws(() => h.speechEndpoint('https://example.com/custom'));
+  const value = ('A detailed answer about my work. ').repeat(200);
+  const chunks = h.speechChunks(value,3500);
+  assert.ok(chunks.every(c => c.length <= 3500));assert.equal(chunks.join('').replace(/\s/g,''),value.replace(/\s/g,''));
+  assert.match(h.naturalSpeechInstructions('de-DE','concerned'),/de-DE/);
+  assert.match(h.naturalSpeechInstructions('en-US','concerned'),/Mildly concerned/);
 });
