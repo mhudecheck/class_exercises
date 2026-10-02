@@ -87,10 +87,10 @@ document.getElementById('run').onclick=async()=>{
   const source=await (await fetch('../interview.html')).text();let passed=0,failed=0;
   const check=async(name,fn)=>{const li=document.createElement('li');document.getElementById('results').append(li);try{await fn();li.textContent='PASS: '+name;li.className='pass';passed++;}catch(error){li.textContent='FAIL: '+name+' — '+error.message;li.className='fail';failed++;}};
   let f;
-  await check('Profile avatar, background, Sol requests, and manual reply playback',async()=>{
+  await check('Profile avatar, background, Luna requests, and manual reply playback',async()=>{
     f=await createFrame(source);await start(f);
     assert(f.el('avatarArt').querySelector('svg'),'Avatar rendered');assert(f.el('stageCaption').textContent.includes('clinic'),'Profile background');
-    assert(f.state.requests.every(r=>r.model==='gpt-6.1-sol' && r.reasoning.effort==='low'),'Sol with supported effort');
+    assert(f.state.requests.every(r=>r.model==='gpt-6-luna' && r.reasoning.effort==='low'),'Luna with supported effort');
     assert(f.state.utterances.length===0,'No unsolicited audio');f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');
     f.state.current.onboundary({charIndex:1});await new Promise(r=>setTimeout(r,40));assert(!f.el('avatarMouth').hasAttribute('hidden'),'Lip movement');
     f.el('stopSpeech').click();assert(f.el('stageView').dataset.state==='ready','Stop resets avatar');assert(f.el('avatarMouth').hasAttribute('hidden'),'Mouth closed');
