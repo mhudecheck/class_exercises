@@ -190,6 +190,43 @@ document.getElementById('run').onclick=async()=>{
     f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');
     f.w.dispatchEvent(new f.w.Event('pagehide'));assert(f.state.audio===null && f.el('stopSpeech').hidden,'Pagehide releases natural audio');
   });
+  await check('Studio background blends locally and resets between customer profiles',async()=>{
+    const canvas=document.createElement('canvas');canvas.width=96;canvas.height=128;
+    const c=canvas.getContext('2d');c.fillStyle='#ddd';c.fillRect(0,0,96,128);
+    c.fillStyle='#342724';c.fillRect(30,16,36,60);c.fillStyle='#edb894';c.fillRect(35,30,26,45);
+    c.fillStyle='#315384';c.fillRect(18,76,60,52);const image=canvas.toDataURL();
+    f=await createFrame(source,{natural:true});await start(f,{...fixture,personas:[{...fixture.personas[0],face_image_data_url:image}]});
+    await waitFor(()=>f.el('stageView').dataset.portrait==='cutout');
+    assert(f.el('customerPortrait').getAttribute('src')===image,'Original source preserved');
+    assert(f.el('customerPortrait').style.maskImage.includes('data:image/png'),'Local CSS mask applied');
+    assert(f.state.audioRequests.length===0,'Blending makes no speech request');
+    f.el('sceneBackground').value='home';f.el('sceneBackground').dispatchEvent(new f.w.Event('change'));
+    assert(f.el('stageScene').textContent==='home' && f.el('stageView').dataset.portrait==='cutout','Background changes preserve the customer mask');
+    f.el('newInterview').click();await start(f);
+    assert(f.el('stageView').dataset.mode==='illustration' && !f.el('customerPortrait').style.maskImage,'Next customer cannot inherit the previous mask');
+  });
+  await check('Customer identity and playback controls fit phone and desktop widths',async()=>{
+    const image='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a3ioAAAAASUVORK5CYII=';
+    f=await createFrame(source,{natural:true});await start(f,{...fixture,personas:[{...fixture.personas[0],persona_name:'Jamie Carter-Bradshaw',buying_role:'Clinic operations and scheduling administrator',face_image_data_url:image}]});
+    const iframe=f.d.defaultView.frameElement;
+    const bounds=element=>element.getBoundingClientRect();
+    for(const width of [320,390,1200]){
+      iframe.style.width=width+'px';await new Promise(r=>f.w.requestAnimationFrame(r));
+      assert(f.d.documentElement.scrollWidth<=width,'No page overflow at '+width);
+      const stage=bounds(f.el('stageView')),caption=bounds(f.el('stageCaption'));
+      assert(caption.left>=stage.left && caption.right<=stage.right && caption.bottom<=stage.bottom,'Customer label fits at '+width);
+      const portrait=bounds(f.el('portraitFrame'));
+      assert(portrait.left>=stage.left && portrait.right<=stage.right && portrait.bottom<=stage.bottom,'Portrait fits at '+width);
+      assert(caption.right<=portrait.left,'Identity does not overlap the portrait at '+width);
+      const controls=bounds(f.d.querySelector('.stageControls'));
+      for(const id of ['autoSpeak','replayReply']){const box=bounds(f.el(id));assert(box.left>=controls.left && box.right<=controls.right,'Voice control fits at '+width);}
+    }
+    f.el('showAvatar').checked=false;f.el('showAvatar').dispatchEvent(new f.w.Event('change'));
+    assert(f.el('stageView').hidden && !f.el('replayReply').hidden,'Hide scene keeps voice controls available');
+    f.el('showAvatar').checked=true;f.el('showAvatar').dispatchEvent(new f.w.Event('change'));
+    assert(!f.el('stageView').hidden,'Settings restores the scene');
+    iframe.style.width='100%';
+  });
   await check('Autoplay restriction offers a ready play button without a second request',async()=>{
     f=await createFrame(source,{natural:true});await start(f);f.state.blockAudio=true;f.el('replayReply').click();
     await waitFor(()=>f.el('replayReply').textContent==='Play ready audio');assert(f.state.audio===undefined,'Blocked audio does not claim to speak');
