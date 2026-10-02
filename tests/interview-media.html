@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Interview media checks</title><style>body{font:14px system-ui;margin:20px}iframe{width:100%;height:760px;border:1px solid #ccc}li{margin:8px 0}.pass{color:#166534}.fail{color:#991b1b}</style></head><body>
+<h1>Interview media checks</h1><p>Deterministic browser checks with mocked speech and Responses APIs. No microphone or provider requests are made.</p><button id="run">Run checks</button><p id="status">Ready</p><ol id="results"></ol><div id="frames"></div>
+<script>
+const waitFor = async predicate => {
+  const end = Date.now()+6000;
+  while (!predicate()){if (Date.now()>end) throw new Error('Timed out waiting for UI state');await new Promise(r=>setTimeout(r,20));}
+};
+function mockEnvironment(options){
+  const state = window.testMedia = {utterances:[],requests:[],cancels:0,failCoach:false,holdCustomer:false};
+  const saved = new Map();
+  if (options.saved) saved.set('interview_practice_settings_v1',JSON.stringify(options.saved));
+  Object.defineProperty(window,'localStorage',{value:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)}});
+  Object.defineProperty(window,'indexedDB',{configurable:true,value:{open(){const request={};setTimeout(()=>request.onerror?.(),0);return request;}}});
+  Object.defineProperty(window,'speechSynthesis',{value:options.noSpeech ? undefined : {
+    getVoices:()=>[{voiceURI:'test-en',name:'Test voice',lang:'en-US'}],addEventListener(){},
+    speak(utterance){state.utterances.push(utterance);state.current = utterance;setTimeout(()=>{if(state.current===utterance) utterance.onstart?.();},0);},
+    cancel(){state.cancels++;state.current = null;}
+  }});
+  window.SpeechSynthesisUtterance = class {constructor(text){this.text = text;}};
+  window.SpeechRecognition = options.noRecognition ? undefined : class {
+    constructor(){state.recognition = this;}
+    start(){this.onstart?.();}
+    stop(){this.onend?.();}
+    abort(){this.onend?.();}
+  };
+  window.webkitSpeechRecognition = undefined;
+  if (options.reducedMotion) window.matchMedia=()=>({matches:true});
+  window.confirm = ()=>true;
+  const profile = {background:'Private fictional scenario',recent_incidents:[{situation:'A cancelled slot',actions:'Called the waitlist',outcome:'Filled the slot'},{situation:'A late arrival',actions:'Rescheduled',outcome:'Lost an hour'}],workarounds:['Spreadsheet'],priorities:['Reliable scheduling'],purchasing_constraints:['Budget'],low_priority_problem:'No interest in dashboards',opening_reply:'Hello, I run a small clinic. What would you like to know?',visual:{hair_style:'curly',hair_color:'gray',skin_tone:'brown',clothing_color:'teal',glasses:true,background:'clinic'}};
+  const assessment = {scores:{customer_life:3,past_behavior:4,listening:null},feedback:[{criterion:'past_behavior',message_ids:['s1'],explanation:'Asked about a past incident.'}],suggested_improvement:'Follow up on the outcome.',revised_question:'',flags:[],discoveries:[]};
+  state.restore = options.restore;
+  if (options.restore){
+    Object.defineProperty(window,'indexedDB',{configurable:true,value:{open(){
+      const request={};setTimeout(()=>{request.result={close(){},transaction(){const tx={objectStore(){return {get(){const req={result:options.restore};setTimeout(()=>tx.oncomplete?.(),0);return req;},put(){const req={};if(state.holdWrites) state.releaseWrite=()=>tx.oncomplete?.();else setTimeout(()=>tx.oncomplete?.(),0);return req;}};}};return tx;}};request.onsuccess?.();},0);return request;
+    }}});
+  }
+  window.fetch = async (_,init) => {
+    const body = JSON.parse(init.body);state.requests.push(body);
+    const name = body.text?.format?.name;
+    if(name==='customer_reply' && state.holdReplyWrite){state.holdReplyWrite=false;state.holdWrites=true;}
+    if (name==='customer_reply' && state.holdCustomer){
+      state.holdCustomer=false;
+      await new Promise((resolve,reject)=>{init.signal.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError')),{once:true});state.release=resolve;});
+    }
+    if (name==='interview_coaching' && state.failCoach){state.failCoach=false;return {ok:false,status:503,json:async()=>({error:{message:'Test coach interruption'}})};}
+    const output = name==='interview_simulation' ? profile : name==='customer_reply' ? {reply:'Last Tuesday a cancellation cost us an hour. It was frustrating.',expression:'concerned'} : name==='interview_debrief' ? {assessment,strengths:['Specific examples'],improvements:['Follow up'],rewrites:[],missed_followups:[],unsupported_conclusions:[],real_interview_plan:['Interview real clinic staff']} : assessment;
+    return {ok:true,status:200,json:async()=>({output:[{type:'message',role:'assistant',content:[{type:'output_text',text:JSON.stringify(output)}]}]})};
+  };
+}
+async function createFrame(source,options={}){
+  const iframe=document.createElement('iframe');iframe.title='Exercise under test';document.getElementById('frames').replaceChildren(iframe);
+  const inject='('+mockEnvironment.toString()+')('+JSON.stringify(options)+');';
+  iframe.srcdoc=source.replace("(() => {",inject+'\n(() => {');
+  await new Promise(resolve=>iframe.onload=resolve);
+  const w=iframe.contentWindow;const d=iframe.contentDocument;const el=id=>d.getElementById(id);
+  await waitFor(()=>!el('setupFields').disabled || !el('customerHeader').hidden);
+  return {w,d,el,state:w.testMedia};
+}
+const fixture={input_text:'Clinic scheduling',personas:[{id:'p1',persona_name:'Jamie',buying_role:'Clinic administrator',demographics_background:'Age 54, runs a small clinic'}]};
+async function start(frame){
+  frame.el('personaJson').value=JSON.stringify(fixture);frame.el('importJson').click();frame.el('startInterview').click();
+  await waitFor(()=>!frame.el('customerStage').hidden && !frame.el('chatInput').disabled);
+}
+async function ask(frame,text='What happened last Tuesday?'){
+  frame.el('chatInput').value=text;frame.el('chatInput').dispatchEvent(new frame.w.Event('input'));
+  frame.el('sendMessage').click();await waitFor(()=>!frame.el('cancelRequest').hidden || !frame.el('chatInput').disabled);
+}
+function assert(value,message){if(!value)throw new Error(message);}
+document.getElementById('run').onclick=async()=>{
+  const button=document.getElementById('run');button.disabled=true;document.getElementById('results').replaceChildren();document.getElementById('status').textContent='Running';
+  const source=await (await fetch('../interview.html')).text();let passed=0,failed=0;
+  const check=async(name,fn)=>{const li=document.createElement('li');document.getElementById('results').append(li);try{await fn();li.textContent='PASS: '+name;li.className='pass';passed++;}catch(error){li.textContent='FAIL: '+name+' — '+error.message;li.className='fail';failed++;}};
+  let f;
+  await check('Profile avatar, background, Sol requests, and manual reply playback',async()=>{
+    f=await createFrame(source);await start(f);
+    assert(f.el('avatarArt').querySelector('svg'),'Avatar rendered');assert(f.el('stageCaption').textContent.includes('clinic'),'Profile background');
+    assert(f.state.requests.every(r=>r.model==='gpt-6.1-sol' && r.reasoning.effort==='low'),'Sol with supported effort');
+    assert(f.state.utterances.length===0,'No unsolicited audio');f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');
+    f.state.current.onboundary({charIndex:1});await new Promise(r=>setTimeout(r,40));assert(!f.el('avatarMouth').hasAttribute('hidden'),'Lip movement');
+    f.el('stopSpeech').click();assert(f.el('stageView').dataset.state==='ready','Stop resets avatar');assert(f.el('avatarMouth').hasAttribute('hidden'),'Mouth closed');
+  });
+  await check('Dictation final/interim handling, stop/review, and permission failure',async()=>{
+    f.el('chatInput').value='Tell me more.';f.el('chatInput').dispatchEvent(new f.w.Event('input'));f.el('dictateQuestion').click();
+    assert(f.el('sendMessage').disabled && f.el('chatInput').disabled,'Draft locked during capture');
+    const final=[{transcript:'What happened?'}];final.isFinal=true;const interim=[{transcript:'Then'}];interim.isFinal=false;
+    f.state.recognition.onresult({results:[final,interim]});assert(f.el('chatInput').value==='Tell me more. What happened?','Only final text committed');
+    f.state.recognition.onresult({results:[final,interim]});assert(f.el('chatInput').value==='Tell me more. What happened?','No duplicate final');
+    f.el('dictateQuestion').click();assert(!f.el('sendMessage').disabled,'Review draft before sending');
+    f.el('dictateQuestion').click();f.state.recognition.onerror({error:'not-allowed'});assert(f.el('voiceStatus').textContent.includes('permission'),'Permission error explained');
+    assert(!f.el('chatInput').disabled && f.el('chatInput').value.includes('What happened?'),'Draft and typing retained');
+  });
+  await check('Automatic customer audio, expressions, scoring retry, and conversation isolation',async()=>{
+    f.el('autoSpeak').checked=true;f.el('autoSpeak').dispatchEvent(new f.w.Event('change'));f.state.failCoach=true;
+    await ask(f);await waitFor(()=>!f.el('retryRequest').hidden);await waitFor(()=>f.state.current && f.el('stageView').dataset.state==='speaking');
+    assert(f.el('stageView').dataset.expression==='concerned','Validated customer expression');
+    const count=f.state.utterances.length;f.el('retryRequest').click();await waitFor(()=>!f.el('chatInput').disabled);
+    assert(f.state.utterances.length===count,'Scoring retry does not replay reply');
+    const coach=f.state.requests.filter(r=>r.text?.format?.name==='interview_coaching').at(-1);
+    assert(!coach.input[0].content.includes('Private fictional scenario') && !coach.input[0].content.includes('expression'),'Coach sees visible text only');
+    f.el('dictateQuestion').click();assert(f.state.current===null,'Microphone interrupts customer audio');f.el('dictateQuestion').click();
+  });
+  await check('Request cancellation ignores late replies and customer retry reads once',async()=>{
+    f.state.holdCustomer=true;await ask(f,'What did you do next?');await waitFor(()=>!!f.state.release);
+    const count=f.state.utterances.length;f.el('cancelRequest').click();f.state.release();await new Promise(r=>setTimeout(r,30));
+    assert(f.state.utterances.length===count,'Cancelled reply never speaks');
+    f.el('retryRequest').click();await waitFor(()=>!f.el('chatInput').disabled);
+    assert(f.state.utterances.length===count+1,'Retry speaks new reply once');
+    f.el('endInterview').click();await waitFor(()=>!f.el('debriefCard').hidden);assert(f.state.current===null,'End stops audio');
+    f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');
+    f.el('newInterview').click();assert(f.el('customerStage').hidden && f.state.current===null,'New interview cleans up audio and scene');
+  });
+  await check('Unsupported speech APIs preserve text interviewing',async()=>{
+    f=await createFrame(source,{noSpeech:true,noRecognition:true});await start(f);
+    assert(f.el('dictateQuestion').disabled && f.el('replayReply').disabled && f.el('autoSpeak').disabled,'Unavailable controls disabled');
+    await ask(f);await waitFor(()=>!f.el('chatInput').disabled && f.el('transcript').textContent.includes('Last Tuesday'));assert(f.el('avatarArt').querySelector('svg'),'Static expressive avatar remains');
+  });
+  await check('Old saved interview restores with fallback avatar and no replay',async()=>{
+    const restore={version:1,personas:fixture.personas,jobStories:[],businessContext:'Clinic',learningGoals:[],selectedId:'p1',draft:'Saved draft',session:{id:'old',persona:fixture.personas[0],profile:{background:'Private fictional scenario'},transcript:[{id:'c0',role:'customer',text:'A restored greeting'}],assessments:[],status:'active',pending:null,jobStories:[],businessContext:'Clinic',learningGoals:[],debrief:null}};
+    f=await createFrame(source,{restore,saved:{autoSpeak:true,speechVoice:'test-en'}});
+    assert(f.el('avatarArt').querySelector('svg'),'Fallback avatar');assert(f.el('chatInput').value==='Saved draft','Draft restored');assert(f.state.utterances.length===0,'Restore never autoplays');
+    assert(f.el('speechVoice').value==='test-en','Saved voice restored');
+  });
+  await check('Native speech completion, errors, late callbacks, and pagehide cleanup',async()=>{
+    f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');
+    const previous=f.state.current;previous.onend();assert(f.el('stopSpeech').hidden,'Completion clears playback');
+    f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');
+    previous.onerror();assert(!f.el('stopSpeech').hidden,'Late native callbacks ignored');
+    f.state.current.onerror();assert(f.el('stopSpeech').hidden && f.el('voiceStatus').textContent.includes('could not play'),'Speech error remains recoverable');
+    f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');
+    f.w.dispatchEvent(new f.w.Event('pagehide'));assert(f.state.current===null && f.el('stopSpeech').hidden,'Pagehide stops speech');
+    f.el('dictateQuestion').click();f.w.dispatchEvent(new f.w.Event('pagehide'));assert(!f.el('chatInput').disabled && f.el('dictateQuestion').getAttribute('aria-pressed')==='false','Pagehide stops capture');
+  });
+  await check('Cancellation during reply persistence cannot start late audio',async()=>{
+    f.state.holdReplyWrite=true;const count=f.state.utterances.length;
+    await ask(f);await waitFor(()=>!!f.state.releaseWrite);
+    f.el('cancelRequest').click();f.state.holdWrites=false;f.state.releaseWrite();await new Promise(r=>setTimeout(r,40));
+    assert(f.state.utterances.length===count,'No audio after cancellation while saving');
+    assert(!f.el('retryRequest').hidden && f.el('retryRequest').textContent.includes('scoring'),'Reply retained with coach pending');
+    f.el('retryRequest').click();await waitFor(()=>!f.el('chatInput').disabled);assert(f.state.utterances.length===count,'Retry remains scoring only');
+  });
+  await check('Long replies advance in bounded chunks and reduced motion closes the mouth',async()=>{
+    const restore={version:1,personas:fixture.personas,jobStories:[],businessContext:'Clinic',learningGoals:[],selectedId:'p1',draft:'',session:{id:'long',persona:fixture.personas[0],profile:{background:'Private fictional scenario'},transcript:[{id:'c0',role:'customer',text:('A detailed answer about my workflow. ').repeat(20)}],assessments:[],status:'active',pending:null,jobStories:[],businessContext:'Clinic',learningGoals:[],debrief:null}};
+    f=await createFrame(source,{restore,reducedMotion:true});f.el('replayReply').click();await waitFor(()=>f.el('stageView').dataset.state==='speaking');
+    f.state.current.onboundary({charIndex:2});await new Promise(r=>setTimeout(r,40));assert(f.el('avatarMouth').hasAttribute('hidden'),'Reduced motion suppresses lip animation');
+    for(let i=0;i<10 && !f.el('stopSpeech').hidden;i++){f.state.current.onend();await new Promise(r=>setTimeout(r,20));}
+    assert(f.el('stopSpeech').hidden && f.state.utterances.length>1,'Long reply completes across chunks');
+    assert(f.state.utterances.every(u=>u.text.length<=220),'Native utterances bounded');
+  });
+  document.getElementById('status').textContent=passed+' passed, '+failed+' failed';button.disabled=false;window.testResult={passed,failed};
+};
+</script></body></html>
