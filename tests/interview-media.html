@@ -217,7 +217,8 @@ document.getElementById('run').onclick=async()=>{
       assert(caption.left>=stage.left && caption.right<=stage.right && caption.bottom<=stage.bottom,'Customer label fits at '+width);
       const portrait=bounds(f.el('portraitFrame'));
       assert(portrait.left>=stage.left && portrait.right<=stage.right && portrait.bottom<=stage.bottom,'Portrait fits at '+width);
-      assert(caption.right<=portrait.left,'Identity does not overlap the portrait at '+width);
+      assert(caption.right<=portrait.left || caption.bottom<=portrait.top,'Identity does not overlap the portrait at '+width);
+      assert(Math.abs((portrait.left+portrait.right)-(stage.left+stage.right))<2,'Customer portrait is centered at '+width);
       const controls=bounds(f.d.querySelector('.stageControls'));
       for(const id of ['autoSpeak','replayReply']){const box=bounds(f.el(id));assert(box.left>=controls.left && box.right<=controls.right,'Voice control fits at '+width);}
     }
