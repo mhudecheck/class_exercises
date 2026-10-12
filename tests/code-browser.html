@@ -1,0 +1,172 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>Gioia coding browser checks</title>
+<style>body{font:14px/1.6 system-ui;margin:24px;background:#f5f7fb;color:#0f172a}button{padding:10px 16px}iframe{width:100%;height:640px;border:1px solid #cbd5e1;background:white}.pass{color:#166534}.fail{color:#991b1b}#results{white-space:pre-wrap}</style></head><body>
+<h1>Gioia coding browser checks</h1><p>Runs the actual exercise with deterministic model responses and isolated browser storage. No provider calls are made.</p>
+<button id="run">Run checks</button><div id="results" role="status"></div><div id="frames"></div>
+<script>
+(async()=>{
+const $=id=>document.getElementById(id),results=$('results');
+let source=await(await fetch('../code.html')).text(),frameId=0,failures=0,total=0;
+const assert=(condition,message)=>{if(!condition)throw new Error(message);};
+const wait=async(fn)=>{const start=Date.now();while(!fn()){if(Date.now()-start>20000)throw new Error('Timed out waiting for browser state');await new Promise(r=>setTimeout(r,25));}};
+const respond=data=>new Response(JSON.stringify({status:'completed',output:[{type:'message',role:'assistant',content:[{type:'output_text',text:JSON.stringify(data)}]}]}),{status:200,headers:{'Content-Type':'application/json'}});
+async function app({storage=true,id=null}={}) {
+  const frame=document.createElement('iframe');const suffix=id||'check_'+(++frameId)+'_'+Date.now();
+  const bootstrap='<base href="'+new URL('../',location.href).href+'"/><script>const nativeDB=window.indexedDB;Object.defineProperty(window,"indexedDB",{value:{open:(name,version)=>'+(storage?'nativeDB.open(name+"_'+suffix+'",version)':'(()=>{throw new Error("Blocked storage")})()')+'}});<\/script>';
+  frame.srcdoc=source.replace('<head>','<head>'+bootstrap);$('frames').replaceChildren(frame);
+  await wait(()=>frame.contentWindow?.GioiaApp?.ready);
+  const w=frame.contentWindow,d=w.document,state={requests:[],recode:false,failure:'',hold:false};
+  w.fetch=async(url,options)=>{
+    const body=JSON.parse(options.body),input=JSON.parse(body.input),schema=body.text.format.name;
+    state.requests.push({body,input,schema});
+    if(state.hold)await new Promise((resolve,reject)=>{options.signal.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError')),{once:true});});
+    if(state.failure==='http'){state.failure='';return new Response(JSON.stringify({error:{message:'Test outage'}}),{status:503});}
+    let result;
+    if(schema==='gioia_passage_coding') {
+      const label=state.recode?'Sharing follow-up responsibility':'Checking the work twice',existing=input.codebook.find(c=>c.label===label);
+      const code=existing?.id||'suggested';
+      result={new_concepts:existing?[]:[{key:code,label,description:'Keeping track of work',inclusion:'Checking and tracking work',exclusion:'Unrelated activities',examples:['Checking a list']}],
+        assignments:input.segments.map(s=>({segment_id:s.id,category_id:code,quote:s.text,rationale:'The participant describes tracking the work.'})),uncoded_segment_ids:[]};
+      if(!input.allow_new){result.new_concepts=[];result.assignments=input.codebook.length?input.segments.map(s=>({segment_id:s.id,category_id:input.codebook[0].id,quote:s.text,rationale:'Matches supplied criteria'})):[];result.uncoded_segment_ids=result.assignments.length?[]:input.segments.map(s=>s.id);}
+      if(state.failure==='quote'){state.failure='';result.assignments[0].quote='This is not in the transcript.';}
+    }else if(schema==='gioia_concept_reconciliation')result={merges:[]};
+    else {
+      const existing=input.existing_parents[0],label=input.parent_level==='theme'?'Keeping coordination visible':'Collective accountability';
+      result={groups:input.children.length?[{existing_id:existing?.id||'',label:existing?.label||label,description:'A pattern across the supporting concepts',inclusion:'Related tracking practices',exclusion:'Unsupported abstraction',examples:[],child_ids:input.children.map(c=>c.id)}]:[],ungrouped_ids:[]};
+    }
+    return respond(result);
+  };
+  return {frame,w,d,state,id:suffix,click:id=>d.getElementById(id).click(),project:()=>w.GioiaApp.getProject()};
+}
+async function paste(a,text,name='Interview') {
+  a.d.getElementById('pasteText').value=text;a.click('pasteBtn');
+  assert(a.d.getElementById('importDialog').open,'Import preview opened');
+  a.d.getElementById('importName').value=name;a.click('addInterview');
+}
+async function analyze(a){a.click('analyzeBtn');await wait(()=>!a.project().pending&&a.d.getElementById('cancelBtn').hidden);assert(a.project().assignments.length>0,'Coding generated');}
+const interview='Interviewer: What happened?\nJamie: I checked the list twice to make sure nobody was missed.';
+async function check(name,fn) {
+  total++;
+  try{await fn();const row=document.createElement('p');row.className='pass';row.textContent='PASS '+name;results.append(row);}
+  catch(e){failures++;const row=document.createElement('p');row.className='fail';row.textContent='FAIL '+name+': '+e.message;results.append(row);}
+}
+async function upload(a,name,text) {
+  const dt=new a.w.DataTransfer();dt.items.add(new a.w.File([text],name,{type:'text/plain'}));
+  const input=a.d.getElementById('fileInput');input.files=dt.files;input.dispatchEvent(new a.w.Event('change'));
+  await wait(()=>a.d.getElementById('importDialog').open);a.click('addInterview');
+}
+function docxBytes() {
+  // A minimal DOCX ZIP with stored entries, generated without an external test dependency.
+  const texts={
+    '[Content_Types].xml':'<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
+    '_rels/.rels':'<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
+    'word/document.xml':'<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Interviewer: What happened?</w:t></w:r></w:p><w:p><w:r><w:t>Jamie: I checked the list twice.</w:t></w:r></w:p></w:body></w:document>'
+  };
+  const crc=bytes=>{let c=0xffffffff;for(const byte of bytes){c^=byte;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0);}return (c^0xffffffff)>>>0;};
+  const local=[],central=[];let offset=0;
+  for(const [path,text] of Object.entries(texts)) {
+    const name=new TextEncoder().encode(path),data=new TextEncoder().encode(text),check=crc(data);
+    const h=new Uint8Array(30+name.length),v=new DataView(h.buffer);v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint32(14,check,true);v.setUint32(18,data.length,true);v.setUint32(22,data.length,true);v.setUint16(26,name.length,true);h.set(name,30);
+    const c=new Uint8Array(46+name.length),cv=new DataView(c.buffer);cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint32(16,check,true);cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);cv.setUint16(28,name.length,true);cv.setUint32(42,offset,true);c.set(name,46);
+    local.push(h,data);central.push(c);offset+=h.length+data.length;
+  }
+  const centralSize=central.reduce((n,c)=>n+c.length,0),end=new Uint8Array(22),v=new DataView(end.buffer);v.setUint32(0,0x06054b50,true);v.setUint16(8,central.length,true);v.setUint16(10,central.length,true);v.setUint32(12,centralSize,true);v.setUint32(16,offset,true);
+  return new Blob([...local,...central,end]);
+}
+function pdfBytes(empty=false) {
+  const text=empty?'':'BT /F1 12 Tf 50 750 Td (Interviewer: What happened?) Tj 0 -25 Td (Jamie: I checked the list twice.) Tj ET';
+  const objects=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Length '+text.length+' >>\nstream\n'+text+'\nendstream'];
+  let pdf='%PDF-1.4\n',offsets=[0];
+  objects.forEach((o,i)=>{offsets.push(pdf.length);pdf+=(i+1)+' 0 obj\n'+o+'\nendobj\n';});const xref=pdf.length;
+  pdf+='xref\n0 6\n0000000000 65535 f \n'+offsets.slice(1).map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';return pdf;
+}
+$('run').onclick=async()=>{
+  $('run').disabled=true;results.replaceChildren();failures=0;total=0;
+  await check('paste, multi-interview coding, hierarchy and exact quotation navigation',async()=>{
+    const a=await app();await paste(a,interview,'Jamie');await paste(a,'Interviewer: Then what?\nAlex: We check every name before leaving.','Alex');await analyze(a);
+    const p=a.project();assert(p.interviews.length===2,'Both interviews retained');assert(p.assignments.length===2,'Both interviews coded');assert(p.categories.some(c=>c.level==='dimension'),'Dimensions drafted');
+    a.d.querySelector('.quote-btn').click();assert(a.d.querySelector('mark')?.textContent===p.assignments[0].quote,'Quotation highlighted');
+    a.click('tab-structure');assert(a.d.querySelector('#diagram svg'),'Structure displayed');assert(!a.d.getElementById('structureView').hidden,'Structure view visible');
+    assert(a.state.requests.every(r=>r.body.model==='gpt-6-luna'&&r.body.reasoning.effort==='low'),'Baseline model contract');
+  });
+  await check('category and criteria edits, protected recoding review, accepted new hierarchy',async()=>{
+    const a=await app();await paste(a,interview);await analyze(a);
+    a.d.querySelector('#codingRows button.secondary').click();assert(a.project().assignments[0].reviewed,'Coding reviewed');
+    a.click('tab-codebook');a.d.querySelector('#categoryRows button').click();
+    a.d.getElementById('categoryInclusion').value='Include coordination of responsibility, not individual checking.';
+    a.d.getElementById('categoryForm').requestSubmit();
+    assert(a.project().categories[0].inclusion.includes('coordination'),'Edited criteria stored');
+    a.state.recode=true;a.click('recodeBtn');await wait(()=>a.project().proposal);
+    assert(a.state.requests.filter(r=>r.schema==='gioia_passage_coding').at(-1).input.codebook.some(c=>c.inclusion.includes('coordination')),'Edited criteria submitted to model');
+    assert(a.project().assignments[0].reviewed,'Reviewed assignment remains intact');
+    assert(a.project().proposal.changes.some(c=>c.protected),'Conflicts protected');
+    a.click('acceptAll');assert(a.project().assignments[0].reviewed,'Accept all preserved reviewed coding');
+    assert(a.project().categories.some(c=>c.label==='Sharing follow-up responsibility'),'Suggested category accepted');
+    a.click('rejectAll');assert(!a.project().proposal,'Remaining changes discarded');
+  });
+  await check('project and codebook import controls round-trip actual browser exports',async()=>{
+    const a=await app();await paste(a,interview);await analyze(a);const exported=a.w.Gioia.exportProject(a.project());
+    const b=await app();const input=b.d.getElementById('projectInput');
+    let dt=new b.w.DataTransfer();dt.items.add(new b.w.File([JSON.stringify(exported)],'project.json'));input.files=dt.files;input.dispatchEvent(new b.w.Event('change'));
+    await wait(()=>b.d.getElementById('confirmDialog').open);b.click('confirmYes');
+    assert(b.project().assignments.length===1&&b.project().interviews.length===1,'Full project restored through file control');
+    const codebook=a.w.Gioia.exportCodebook(a.project());b.click('newProject');b.click('confirmYes');
+    dt=new b.w.DataTransfer();dt.items.add(new b.w.File([JSON.stringify(codebook)],'codebook.json'));input.files=dt.files;input.dispatchEvent(new b.w.Event('change'));
+    await wait(()=>b.project().categories.length===codebook.categories.length);assert(b.project().interviews.length===0,'Codebook import does not import transcripts');
+  });
+  await check('manual categories, coding and fixed-codebook analysis',async()=>{
+    const a=await app();await paste(a,interview);a.click('tab-codebook');a.click('addCategory');
+    a.d.getElementById('categoryLabel').value='Checking twice';a.d.getElementById('categoryInclusion').value='Repeated checks';a.d.getElementById('categoryForm').requestSubmit();
+    const checkbox=a.d.getElementById('allowNew');checkbox.checked=false;checkbox.dispatchEvent(new a.w.Event('change'));
+    await analyze(a);assert(a.project().categories.filter(c=>c.level==='concept').length===1,'Fixed concepts retained');
+    a.click('tab-review');a.d.querySelector('#codingRows .actions button:nth-child(2)').click();
+    a.d.getElementById('codingQuote').value='checked the list twice';a.d.getElementById('codingRationale').value='My interpretation';a.d.getElementById('codingForm').requestSubmit();
+    assert(a.project().assignments[0].quote==='checked the list twice'&&a.project().assignments[0].reviewed,'Manual exact excerpt stored');
+  });
+  await check('invalid AI quotation leaves source intact and resume retries the pending step',async()=>{
+    const a=await app();await paste(a,interview);a.state.failure='quote';a.click('analyzeBtn');
+    await wait(()=>!a.d.getElementById('retryBtn').hidden);assert(a.project().assignments.length===0,'No fabricated coding committed');assert(a.project().interviews.length===1,'Source intact');
+    a.click('retryBtn');await wait(()=>!a.project().pending);assert(a.project().assignments.length===1,'Resume succeeded');
+  });
+  await check('cancellation, saved pending state, reload and resume',async()=>{
+    const a=await app();await paste(a,interview);a.state.hold=true;a.click('analyzeBtn');
+    await wait(()=>!a.d.getElementById('cancelBtn').hidden);a.click('cancelBtn');await wait(()=>!a.d.getElementById('retryBtn').hidden);
+    await wait(()=>a.d.getElementById('saved').textContent==='Saved in this browser');
+    const b=await app({id:a.id});assert(b.project().pending,'Pending analysis restored');assert(!b.d.getElementById('retryBtn').hidden,'Resume offered');b.click('retryBtn');await wait(()=>!b.project().pending);assert(b.project().assignments.length===1,'Restored resume succeeded');
+  });
+  await check('editing a paused project invalidates stale candidate analysis',async()=>{
+    const a=await app();await paste(a,interview);a.state.failure='http';a.click('analyzeBtn');await wait(()=>!a.d.getElementById('retryBtn').hidden);
+    a.d.getElementById('researchQuestion').value='New research question';a.d.getElementById('researchQuestion').dispatchEvent(new a.w.Event('change'));
+    assert(!a.project().pending,'Stale candidate cleared');await analyze(a);
+  });
+  await check('text, Markdown and baseline JSON file imports',async()=>{
+    const a=await app();await upload(a,'one.txt',interview);
+    await upload(a,'two.md','## Transcript\n### Student (s1)\nWhy?\n### Alex (c1)\nI checked twice.\n## Coaching\nIgnore this.');
+    await upload(a,'three.json',JSON.stringify({format:'customer_interview_practice',transcript:[{role:'student',text:'Why?'},{role:'customer',text:'I checked again.'}],persona:{persona_name:'Robin'}}));
+    assert(a.project().interviews.length===3,'Three file formats imported');assert(a.project().interviews[2].provenance==='simulated','Simulation provenance retained');await analyze(a);
+  });
+  await check('actual Word and PDF extraction and scanned-PDF rejection',async()=>{
+    const a=await app();
+    const word=await a.w.GioiaApp.readFile(new a.w.File([docxBytes()],'interview.docx'));
+    assert(word.text.includes('Jamie: I checked the list twice.'),'Word extracted');
+    const pdf=await a.w.GioiaApp.readFile(new a.w.File([pdfBytes()],'interview.pdf'));
+    assert(pdf.text.includes('Jamie: I checked the list twice.'),'PDF extracted');
+    await paste(a,word.text,'Word');await paste(a,pdf.text,'PDF');await analyze(a);assert(a.project().assignments.length===2,'Extracted transcripts codeable');
+    let failed=false;try{await a.w.GioiaApp.readFile(new a.w.File([pdfBytes(true)],'scan.pdf'));}catch(e){failed=/no selectable text/.test(e.message);}assert(failed,'Empty scanned PDF rejected');
+  });
+  await check('blocked storage retains a usable in-memory exercise and exports',async()=>{
+    const a=await app({storage:false});await paste(a,interview);await analyze(a);
+    assert(!a.d.getElementById('storageNotice').hidden,'Storage warning shown');
+    let blob=null;a.w.URL.createObjectURL=value=>{blob=value;return 'blob:test';};a.w.HTMLAnchorElement.prototype.click=function(){};
+    a.click('exportProject');const exported=JSON.parse(await blob.text());assert(exported.assignments.length===1,'Project download includes coding');assert(!('apiKey' in exported),'No settings exported');
+    a.click('exportCsv');assert((await blob.text()).includes('checked the list twice'),'CSV exported');a.click('exportSvg');assert((await blob.text()).includes('<svg'),'SVG exported');
+  });
+  await check('teaching sample provenance, category merge/delete and responsive layout',async()=>{
+    const a=await app();a.click('sampleBtn');a.click('addInterview');a.click('addInterview');assert(a.project().interviews.every(i=>i.provenance==='simulated'),'Both teaching interviews labeled');await analyze(a);
+    a.frame.style.width='390px';await new Promise(r=>setTimeout(r,50));assert(a.d.documentElement.scrollWidth<=a.frame.clientWidth+1,'No document horizontal overflow');
+    a.click('tab-codebook');const deleteBtn=[...a.d.querySelectorAll('#categoryRows button')].find(b=>b.textContent==='Delete');deleteBtn.click();a.click('confirmYes');assert(a.project().interviews.length===2,'Delete retains transcripts');
+  });
+  $('run').disabled=false;globalThis.testResult={total,failures,passed:total-failures};
+  const summary=document.createElement('h2');summary.textContent=(total-failures)+' / '+total+' checks passed';summary.className=failures?'fail':'pass';results.append(summary);
+};
+})();
+</script></body></html>
