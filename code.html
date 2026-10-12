@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Gioia Interview Coding</title>
+  <link rel="stylesheet" href="code.css"/>
+  <script src="code-core.js" defer></script>
+  <script src="code-app.js" defer></script>
+</head>
+<body>
+<div id="viewport">
+<main class="app">
+  <header class="topbar">
+    <div><div class="eyebrow">Qualitative research · Class exercise</div><h1>Gioia Interview Coding</h1><p class="help">From participants’ words to concepts, themes, and dimensions.</p></div>
+    <div class="actions"><a class="secondary btn" href="interview.html">Interview practice</a><button id="settingsBtn" class="secondary">Settings</button></div>
+  </header>
+  <div class="notice intro">Paste or upload interviews, generate a coding draft, then inspect and refine its categories. AI suggestions are a starting point for your interpretation. <details><summary>How the Gioia method works</summary><p><b>First-order concepts</b> stay close to participants’ own words. <b>Second-order themes</b> interpret patterns across concepts. <b>Aggregate dimensions</b> express broader theoretical ideas when the evidence supports them. Trace every interpretation back to quotations and consider alternative readings.</p><p>Adapted from <a href="https://doi.org/10.1177/1094428112452151" target="_blank" rel="noopener">Gioia, Corley &amp; Hamilton (2013)</a>. A data structure is one part of qualitative research; it does not establish theoretical saturation or a complete grounded theory.</p></details></div>
+  <div id="notice" class="notice" role="status" hidden></div>
+  <div id="storageNotice" class="notice warning" role="status" hidden></div>
+  <section class="card project-card">
+    <div class="bd">
+      <div class="grid2"><div><label for="projectTitle">Project name</label><input id="projectTitle" type="text" maxlength="160"/></div><div><label for="researchQuestion">Research question (optional)</label><input id="researchQuestion" type="text" maxlength="1000" placeholder="How do participants navigate this experience?"/></div></div>
+      <div class="project-summary"><span id="counts" class="pill">No interviews yet</span><span id="saved" class="help" aria-live="polite"></span><button id="newProject" class="secondary small">New project</button></div>
+    </div>
+  </section>
+  <section class="card noPrint">
+    <details id="importSection" open>
+      <summary class="hd">1. Add interviews</summary>
+      <div class="bd grid2">
+        <div><label for="pasteText">Paste an interview transcript</label><textarea id="pasteText" placeholder="Interviewer: Tell me about the last time this happened.&#10;Participant: I had to call three people before anyone could help…"></textarea><div class="actions"><button id="pasteBtn">Preview transcript</button><button id="sampleBtn" class="secondary">Load teaching sample</button></div></div>
+        <div><label for="fileInput">Upload transcripts</label><div id="dropZone" class="drop"><p>Drop interview files here, or choose files.</p><input id="fileInput" type="file" multiple accept=".txt,.md,.json,.docx,.pdf"/><p class="help">Text, Markdown, Interview Practice JSON, Word (.docx), or PDFs with selectable text. Each file is a separate interview.</p></div><div class="actions"><button id="projectImportBtn" class="secondary">Import project / codebook JSON</button><input id="projectInput" type="file" accept=".json" hidden/></div><p class="help">Word and PDF extraction happens in your browser. Review extracted text and speaker roles before adding it. Scanned PDFs need text extraction elsewhere.</p></div>
+      </div>
+    </details>
+  </section>
+  <section class="card">
+    <div class="bd analysis-bar">
+      <div><label class="checkLabel"><input id="allowNew" type="checkbox" checked/>Allow AI to suggest new categories</label><p class="help">Unchecked: use only your existing first-order concepts and mark unmatched passages uncoded.</p></div>
+      <div class="actions noPrint"><button id="analyzeBtn">Generate Gioia coding</button><button id="recodeBtn" class="secondary">Recode with current criteria</button><button id="retryBtn" class="secondary" hidden>Resume analysis</button><button id="cancelBtn" class="danger" hidden>Cancel</button></div>
+      <div id="progress" class="progress help" role="status"></div>
+      <p id="stale" class="help warning-text" hidden>Project or criteria changed. Recode to review proposed updates.</p>
+      <p class="help model-disclosure">Generating or recoding sends transcript text and your codebook to the endpoint in Settings. Remove identifying details before analysis when appropriate. Work is saved in this browser; downloads let you move it to another device.</p>
+    </div>
+  </section>
+  <div class="workspace">
+    <section class="card results">
+      <div class="tabs noPrint" role="tablist" aria-label="Analysis views">
+        <button id="tab-review" role="tab" aria-selected="true" aria-controls="reviewView">Coded passages</button>
+        <button id="tab-codebook" role="tab" aria-selected="false" aria-controls="codebookView">Codebook</button>
+        <button id="tab-structure" role="tab" aria-selected="false" aria-controls="structureView">Gioia structure</button>
+        <button id="tab-changes" role="tab" aria-selected="false" aria-controls="changesView">Proposed changes</button>
+      </div>
+      <div id="reviewView" role="tabpanel" aria-labelledby="tab-review" class="bd">
+        <div class="filters noPrint">
+          <div><label for="interviewFilter">Interview</label><select id="interviewFilter"><option value="">All interviews</option></select></div>
+          <div><label for="categoryFilter">Category</label><select id="categoryFilter"><option value="">All concepts</option></select></div>
+          <div><label for="statusFilter">Show</label><select id="statusFilter"><option value="">All coding</option><option value="draft">AI drafts</option><option value="reviewed">Reviewed</option><option value="uncoded">Uncoded passages</option></select></div>
+          <div><label for="search">Search quotations</label><input id="search" type="search" placeholder="Find words or codes"/></div>
+        </div>
+        <div id="codingRows"></div>
+      </div>
+      <div id="codebookView" role="tabpanel" aria-labelledby="tab-codebook" class="bd" hidden>
+        <div class="row"><div><h2>Shared codebook</h2><p class="help">Define what belongs in each category, what does not, and how it connects to the next level.</p></div><button id="addCategory">Add category</button></div>
+        <div id="categoryRows"></div>
+      </div>
+      <div id="structureView" role="tabpanel" aria-labelledby="tab-structure" class="bd" hidden>
+        <h2>Gioia data structure</h2><p class="help">Select a category to inspect its criteria and supporting quotations. Unassigned categories remain visible.</p>
+        <div id="diagram" class="diagram"></div><div id="structureDetails"></div>
+      </div>
+      <div id="changesView" role="tabpanel" aria-labelledby="tab-changes" class="bd" hidden>
+        <div class="row"><h2>Review recoding proposals</h2><div class="actions"><button id="acceptAll">Accept unprotected changes</button><button id="rejectAll" class="secondary">Discard remaining changes</button></div></div>
+        <p class="help">Student-reviewed assignments stay protected. Resolve conflicts individually; accepting all does not change protected work. Accept new categories before their assignments and groupings.</p>
+        <div id="changesRows"></div>
+      </div>
+    </section>
+    <aside class="card source-panel">
+      <div class="hd"><h2>Transcript &amp; context</h2></div>
+      <div class="bd"><label for="sourceInterview">Interview</label><select id="sourceInterview"><option value="">Choose an interview</option></select><div id="interviewActions" class="actions noPrint"></div><div id="sourceText" class="source-text" tabindex="0"></div></div>
+    </aside>
+  </div>
+  <footer class="card"><div class="bd row"><div><h2>Keep your analysis</h2><p class="help">Project JSON preserves interviews and coding. Codebook JSON reuses categories in another project.</p></div><div class="actions"><button id="exportProject" class="secondary">Project JSON</button><button id="exportCodebook" class="secondary">Codebook JSON</button><button id="exportCsv" class="secondary">Coding CSV</button><button id="exportMarkdown" class="secondary">Markdown report</button><button id="exportSvg" class="secondary">Structure SVG</button><button id="printBtn" class="secondary">Print</button></div></div></footer>
+</main>
+</div>
+<dialog id="settingsDialog" aria-labelledby="settingsTitle">
+  <div class="hd row"><h2 id="settingsTitle">Model settings</h2><button id="closeSettings" class="secondary">Close</button></div>
+  <div class="bd"><label for="model">Model</label><input id="model" value="gpt-6-luna" readonly/><label for="endpoint">Responses endpoint</label><input id="endpoint" type="url" value="https://patient-bush-7366.mhudecheck.workers.dev/v1/responses"/><label for="apiKey">OpenAI API key (optional for the class Worker)</label><input id="apiKey" type="password" autocomplete="off"/><label class="checkLabel"><input id="rememberKey" type="checkbox"/>Remember key in this browser</label><p class="help">Leave the key blank for the class Worker. A direct api.openai.com endpoint requires a key. Keys are sent only to api.openai.com and never included in exports. Analysis uses low reasoning effort.</p></div>
+</dialog>
+<dialog id="importDialog" aria-labelledby="importTitle">
+  <div class="hd row"><h2 id="importTitle">Review transcript import</h2><button id="closeImport" class="secondary">Cancel import</button></div>
+  <div class="bd"><label for="importName">Interview name</label><input id="importName" type="text" maxlength="160"/><label for="provenance">Source</label><select id="provenance"><option value="unspecified">Unspecified</option><option value="real">Real interview</option><option value="simulated">Simulated teaching interview</option></select><label for="importText">Extracted transcript — edit before import</label><textarea id="importText" class="tall"></textarea><button id="previewSpeakers" class="secondary">Update speaker preview</button><p class="help">Participant passages are coded. Interviewer passages provide context. Excluded passages are not sent to the model. For unlabeled text, add speaker names followed by a colon if needed.</p><div id="speakerRows"></div><div id="importError" class="notice error" role="status" hidden></div><button id="addInterview">Add interview</button><p id="importQueue" class="help"></p></div>
+</dialog>
+<dialog id="categoryDialog" aria-labelledby="categoryTitle">
+  <div class="hd row"><h2 id="categoryTitle">Edit category</h2><button id="closeCategory" class="secondary">Cancel</button></div>
+  <form id="categoryForm" class="bd">
+    <label for="categoryLevel">Level</label><select id="categoryLevel"><option value="concept">First-order concept</option><option value="theme">Second-order theme</option><option value="dimension">Aggregate dimension</option></select>
+    <label for="categoryLabel">Category label</label><input id="categoryLabel" required maxlength="180"/>
+    <label for="categoryDescription">Meaning / description</label><textarea id="categoryDescription" class="short"></textarea>
+    <label for="categoryInclusion">Inclusion criteria — what belongs here?</label><textarea id="categoryInclusion" class="short" placeholder="Include passages describing…"></textarea>
+    <label for="categoryExclusion">Exclusion criteria — what does not belong?</label><textarea id="categoryExclusion" class="short" placeholder="Exclude general opinions unless…"></textarea>
+    <label for="categoryExamples">Examples (one per line)</label><textarea id="categoryExamples" class="short"></textarea>
+    <label for="categoryParent">Group under</label><select id="categoryParent"></select>
+    <div id="categoryError" class="notice error" hidden></div><button type="submit">Save category</button>
+  </form>
+</dialog>
+<dialog id="codingDialog" aria-labelledby="codingTitle">
+  <div class="hd row"><h2 id="codingTitle">Code a passage</h2><button id="closeCoding" class="secondary">Cancel</button></div>
+  <form id="codingForm" class="bd"><label for="codingQuote">Exact quotation</label><textarea id="codingQuote"></textarea><p class="help">Use the entire passage or a verbatim excerpt from it.</p><label for="codingCategory">First-order concept</label><select id="codingCategory"></select><label for="codingRationale">Your interpretation</label><textarea id="codingRationale" class="short"></textarea><div id="codingError" class="notice error" hidden></div><button type="submit">Save reviewed coding</button></form>
+</dialog>
+<dialog id="confirmDialog" aria-labelledby="confirmTitle"><div class="hd"><h2 id="confirmTitle">Confirm change</h2></div><div class="bd"><p id="confirmMessage"></p><div class="actions"><button id="confirmYes" class="danger">Confirm</button><button id="confirmNo" class="secondary">Cancel</button></div></div></dialog>
+</body>
+</html>

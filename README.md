@@ -2,6 +2,57 @@
 
 These exercises are static HTML pages and require no build step.
 
+## Gioia Interview Coding
+
+Open [code.html](code.html) to code interview transcripts using an AI-assisted
+Gioia workflow: participant-centered first-order concepts, interpretive
+second-order themes, and aggregate dimensions when supported by the evidence.
+
+1. Paste a transcript or upload text, Markdown, Interview Practice JSON,
+   Word (.docx), or a PDF with selectable text. Select several files to create a
+   project with multiple interviews and a shared codebook. Word and PDF
+   extraction runs locally using the pinned libraries in vendor/.
+2. Review extracted text, name each interview, identify its source as real or
+   simulated, and choose participant/interviewer/excluded speaker roles.
+   Baseline Interview Practice exports retain their simulated provenance and
+   import the transcript without coaching. Scanned PDFs require OCR elsewhere.
+3. Optionally enter a research question and define categories in **Codebook**.
+   Edit category labels, descriptions, inclusion/exclusion criteria, examples,
+   and parent groupings at all three levels. Uncheck **Allow AI to suggest new
+   categories** to apply only the supplied first-order concepts.
+4. Select **Generate Gioia coding**. The page codes participant passages in
+   batches, reconciles concepts across interviews, and drafts themes and
+   dimensions. Review the coded quotations and select a quotation to see its
+   exact transcript context. Add, edit, remove, or mark coding reviewed; inspect
+   the connected **Gioia structure** and supporting evidence.
+5. After changing categories or criteria, select **Recode with current criteria**.
+   Accept or reject proposed category, grouping, and coding changes. Accepting
+   all applies only unprotected changes; student-reviewed conflicts require
+   individual resolution. Merges redirect references; deletion preserves source
+   text and detaches child categories.
+6. Download **Project JSON** to move the complete analysis between devices, or
+   **Codebook JSON** to reuse categories. Coding CSV, Markdown reports,
+   structure SVG, and print are also available.
+
+The exercise uses the same class Responses Worker, gpt-6-luna, low reasoning
+effort, optional direct OpenAI endpoint, and key handling as Interview Practice.
+Imported documents are not sent to an extraction service. Generating or recoding
+submits extracted text and codebook criteria to the endpoint in Settings and
+incurs model usage. Exact quotations and hierarchy references are validated;
+invalid results leave the current project intact.
+
+The current project and pending analysis are saved in separate IndexedDB
+storage. Refresh, cancel, and provider failures retain completed batches; use
+**Resume analysis** to continue. Editing a paused project clears its stale
+candidate analysis. If storage is unavailable, work remains in the open tab;
+download before closing it. API keys and settings are excluded from exports.
+Project imports reset in-flight operations and pending recoding proposals.
+
+The built-in teaching sample is fictional and remains labeled simulated.
+Analysis drafts require student interpretation and review. The generated data
+structure does not establish saturation or a complete grounded theory. Method
+reference: [Gioia, Corley & Hamilton (2013)](https://doi.org/10.1177/1094428112452151).
+
 ## Customer Interview Practice
 
 Open `interview.html` to practice customer discovery with a fictional customer and a live Mom Test scorecard.
@@ -28,6 +79,18 @@ Browser IndexedDB restores the current interview, including any pending reply, s
 Scores are an AI-assisted classroom rubric adapted from [The Mom Test](https://www.momtestbook.com/teachers), not an official grading system. Customer responses and discoveries are fictional training material, not evidence of market demand. Exports omit the private scenario, portrait data, and API settings.
 
 ## Local validation
+
+Run the coding and interview unit checks:
+
+    node --test tests/code.test.cjs tests/interview.test.cjs
+
+Serve the repository and open tests/code-browser.html, then select **Run checks**
+for deterministic checks of the actual coding page. The suite uses isolated
+browser storage and mocked Responses calls; it covers multi-interview coding,
+criteria edits, protected proposal review, exact quotation navigation, manual
+and fixed-codebook coding, malformed model output, cancel/reload/resume,
+transcript file imports, actual Word/PDF extraction, scanned-PDF rejection,
+exports, blocked storage, and mobile overflow. No provider calls are made.
 
 Run `node --test tests/interview.test.cjs` for dependency-free import, scoring, reference, response, conversation-isolation, and export checks.
 
