@@ -1,0 +1,952 @@
+import {
+  assignments,
+  initialCosts,
+  active,
+  validateFields,
+  money,
+  fmt,
+  costLayers,
+  bases,
+} from './assignments.mjs';
+import { assist, defaultEndpoint } from './assist.mjs';
+const kind = document.body.dataset.exercise,
+  ex = assignments[kind];
+const key = 'venture_decision_v1_' + kind;
+const $ = (id) => document.getElementById(id);
+function read(storageKey) {
+  try {
+    return JSON.parse(localStorage.getItem(storageKey));
+  } catch {
+    return null;
+  }
+}
+function fresh() {
+  return {
+    step: 0,
+    max: 0,
+    fields: {},
+    costs: structuredClone(initialCosts),
+    pending: [],
+    questions: [],
+    turns: [],
+    coach: '',
+    message: '',
+    sealed: false,
+  };
+}
+let s = read(key) || fresh(),
+  settings = read('venture_ai_settings') || { endpoint: defaultEndpoint };
+let secret = settings.key || '',
+  request = null,
+  saving = true;
+const get = (id) => s.fields[id]?.v ?? '';
+const sourceNames = {
+  'Student estimate': 'Student estimate',
+  Observed: 'Observed',
+  'AI estimate': 'Accepted AI estimate',
+  'Student statement': 'Confirmed from description',
+};
+function save() {
+  try {
+    localStorage.setItem(key, JSON.stringify(s));
+    saving = true;
+  } catch {
+    saving = false;
+  }
+  $('saved').textContent = saving
+    ? 'Saved in this browser'
+    : 'Kept in this tab only. Download your brief before closing.';
+}
+function set(id, v, changed = true) {
+  const old = s.fields[id] || { source: 'Student estimate', note: '' };
+  s.fields[id] = { ...old, v };
+  if (changed && ['AI estimate', 'Student statement'].includes(old.source) && old.v !== v) {
+    s.fields[id].source = 'Student estimate';
+    s.fields[id].note = 'Revised from ' + sourceNames[old.source] + '. ' + old.note;
+  }
+  if (changed) s.coach = '';
+}
+function el(tag, text, cls) {
+  const n = document.createElement(tag);
+  if (text != null) n.textContent = text;
+  if (cls) n.className = cls;
+  return n;
+}
+function button(label, action, secondary = false) {
+  const b = el('button', label, secondary ? 'quiet' : '');
+  b.type = 'button';
+  b.addEventListener('click', () => {
+    try {
+      action();
+    } catch (e) {
+      error(e);
+    }
+  });
+  return b;
+}
+function error(e) {
+  $('status').textContent = e.message || String(e);
+  $('status').scrollIntoView({ block: 'nearest' });
+}
+function panel(title) {
+  const section = el('section', null, 'panel');
+  if (title) section.append(el('h2', title));
+  return section;
+}
+const hint = (t) => el('p', t, 'hint');
+function options(select, items, selected, blank = true) {
+  if (blank) select.append(new Option('Choose…', ''));
+  for (const [key, label] of items) select.append(new Option(label, key));
+  select.value = selected;
+}
+function labeled(text, control) {
+  const l = el('label', text);
+  l.append(control);
+  return l;
+}
+function fieldView(f, { locked = false, note = true } = {}) {
+  const box = el('div', null, 'field' + (f.type === 'textarea' ? ' wide' : ''));
+  if (f.when) {
+    box.dataset.dep = f.when[0];
+    box.dataset.is = f.when[1];
+    box.hidden = !active(f, get);
+  }
+  const ctl = el(f.choices ? 'select' : f.type === 'textarea' ? 'textarea' : 'input');
+  ctl.id = 'f-' + f.id;
+  ctl.disabled = locked;
+  ctl.value = get(f.id);
+  if (f.choices)
+    options(
+      ctl,
+      f.choices.map((v, i) => [v, f.id === 'testChannel' ? v + ' · ' + get(i ? 'bName' : 'aName') : v]),
+      get(f.id),
+    );
+  else if (f.type === 'number') {
+    ctl.type = 'number';
+    ctl.step = f.integer ? '1' : 'any';
+    if (f.min !== -Infinity) ctl.min = '0';
+    if (f.max != null) ctl.max = String(f.max);
+    ctl.value = get(f.id);
+  }
+  box.append(labeled(f.label, ctl));
+  let sourceTitle, sourceSelect, sourceNote;
+  if (f.type === 'number' && note) {
+    const d = el('details');
+    sourceTitle = el('summary', sourceNames[s.fields[f.id]?.source] || 'Student estimate');
+    sourceSelect = el('select');
+    const current = s.fields[f.id]?.source || 'Student estimate';
+    options(
+      sourceSelect,
+      [...new Set(['Student estimate', 'Observed', current])].map((v) => [v, sourceNames[v]]),
+      current,
+      false,
+    );
+    sourceSelect.disabled = locked;
+    sourceNote = el('input');
+    sourceNote.value = s.fields[f.id]?.note || '';
+    sourceNote.disabled = locked;
+    sourceSelect.onchange = () => {
+      set(f.id, get(f.id), false);
+      s.fields[f.id].source = sourceSelect.value;
+      sourceTitle.textContent = sourceNames[sourceSelect.value];
+      save();
+      if (s.step === 3) updatePreview();
+    };
+    sourceNote.oninput = () => {
+      set(f.id, get(f.id), false);
+      s.fields[f.id].note = sourceNote.value;
+      save();
+      if (s.step === 3) updatePreview();
+    };
+    const body = el('div', null, 'source');
+    body.append(labeled('Number source', sourceSelect), labeled('Source note (optional)', sourceNote));
+    d.append(sourceTitle, body);
+    box.append(d);
+  }
+  ctl.addEventListener('input', () => {
+    set(f.id, ctl.value);
+    if (sourceTitle) {
+      sourceTitle.textContent = sourceNames[s.fields[f.id].source];
+      sourceSelect.value = s.fields[f.id].source;
+      sourceNote.value = s.fields[f.id].note;
+    }
+    document.querySelectorAll('[data-dep]').forEach((n) => {
+      n.hidden = get(n.dataset.dep) !== n.dataset.is;
+    });
+    if (s.step === 0) {
+      s.pending = [];
+      s.questions = [];
+    }
+    if (s.step === 1) {
+      s.pending = s.pending.filter((p) => p.id !== f.id);
+      document.getElementById('proposal-' + f.id)?.remove();
+    }
+    save();
+    if (s.step === 2) updateLab();
+    if (s.step === 3) {
+      $('coachNote')?.remove();
+      updatePreview();
+    }
+  });
+  return box;
+}
+const context = [
+  { id: 'company', label: 'What does your company sell, and to whom?', type: 'textarea' },
+  { id: 'scenario', label: ex.scenario, type: 'textarea' },
+];
+function allBase() {
+  return ex.groups(s, get).flatMap((g) => g.fields);
+}
+const flatten = (groups) => groups.flatMap((g) => g.fields);
+function gridFields(fields, opts = {}) {
+  const grid = el('div', null, 'grid');
+  fields.forEach((f) => grid.append(fieldView(f, opts)));
+  return grid;
+}
+function actions(...children) {
+  const a = el('div', null, 'actions');
+  a.append(...children);
+  return a;
+}
+function go(step) {
+  s.step = step;
+  s.max = Math.max(s.max, step);
+  save();
+  render();
+  $('steps').scrollIntoView({ block: 'start' });
+  const heading = $('page').querySelector('h2');
+  if (heading) {
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: true });
+  }
+}
+function contextPage() {
+  const p = panel('Your venture');
+  p.append(gridFields(context, { locked: s.sealed }));
+  p.append(
+    actions(
+      button('Open worksheet', () => {
+        validateFields(context, get);
+        go(1);
+      }),
+    ),
+  );
+  return p;
+}
+function costControls(c, i, box) {
+  const grid = el('div', null, 'grid');
+  const name = el('input');
+  name.value = c.label;
+  name.disabled = s.sealed;
+  name.onchange = () => {
+    c.label = name.value.trim() || 'Cost line';
+    box.querySelector('h2').textContent = c.label;
+    s.pending = [];
+    document.querySelectorAll('.ai-card').forEach((n) => n.remove());
+    save();
+  };
+  grid.append(labeled('Cost item', name));
+  for (const [prop, map, label] of [
+    ['layer', costLayers, 'Cost layer'],
+    ['basis', bases, 'Both amounts are in'],
+  ]) {
+    const sel = el('select');
+    options(sel, Object.entries(map), c[prop], false);
+    sel.disabled = s.sealed;
+    sel.onchange = () => {
+      c[prop] = sel.value;
+      s.pending = [];
+      save();
+      render();
+    };
+    grid.append(labeled(label, sel));
+  }
+  box.append(grid);
+  if (!s.sealed)
+    box.append(
+      actions(
+        button(
+          'Remove this cost',
+          () => {
+            s.costs.splice(i, 1);
+            for (const prefix of ['baseCost', 'newCost']) {
+              for (let k = i; k < s.costs.length; k++) {
+                if (s.fields[prefix + (k + 1)]) s.fields[prefix + k] = s.fields[prefix + (k + 1)];
+                else delete s.fields[prefix + k];
+              }
+              delete s.fields[prefix + s.costs.length];
+            }
+            s.pending = [];
+            save();
+            render();
+          },
+          true,
+        ),
+      ),
+    );
+}
+function worksheet() {
+  const frag = document.createDocumentFragment();
+  const start = panel('Build your worksheet');
+  start.append(
+    hint(
+      'Use USD throughout. Enter your figures or draft suggestions from your venture description. Open a number’s source to record where it came from.',
+    ),
+  );
+  if (!s.sealed) {
+    start.append(actions(button('Draft from my description', () => runAI('draft'), true)));
+    start.append(
+      hint(
+        'This sends your description and worksheet to the service in AI settings. Only accepted suggestions enter the worksheet.',
+      ),
+    );
+    if (s.questions.length) start.append(el('p', s.questions.join(' '), 'note'));
+    for (const p of s.pending) if (!get(p.id)) start.append(proposalView(p));
+  } else {
+    start.append(hint('Your original worksheet and prediction are saved for comparison.'));
+    start.append(
+      button(
+        'Correct original inputs',
+        () => {
+          if (
+            !confirm(
+              'Keep your original entries for editing and clear the comparison, negotiation, and decision brief?',
+            )
+          )
+            return;
+          const ids = new Set([...context, ...allBase(), ...ex.predict].map((f) => f.id));
+          s.fields = Object.fromEntries(Object.entries(s.fields).filter(([id]) => ids.has(id)));
+          s.sealed = false;
+          s.max = 1;
+          s.turns = [];
+          s.message = '';
+          s.coach = '';
+          go(1);
+        },
+        true,
+      ),
+    );
+  }
+  frag.append(start);
+  ex.groups(s, get).forEach((g, i) => {
+    const p = panel(g.title);
+    if (kind === 'margin' && i) costControls(s.costs[i - 1], i - 1, p);
+    p.append(gridFields(g.fields, { locked: s.sealed }));
+    if (kind === 'margin' && !s.sealed) {
+      p.append(
+        actions(
+          button(
+            'Use current figures for empty proposed values',
+            () => {
+              for (const f of g.fields.filter((f) => f.id.startsWith('base'))) {
+                const target = 'new' + f.id.slice(4);
+                if (get(f.id) !== '' && get(target) === '')
+                  s.fields[target] = {
+                    ...s.fields[f.id],
+                    note: ('Copied from current scenario. ' + (s.fields[f.id].note || '')).trim(),
+                  };
+              }
+              s.pending = s.pending.filter((p) => !get(p.id));
+              save();
+              render();
+            },
+            true,
+          ),
+        ),
+      );
+    }
+    frag.append(p);
+  });
+  if (kind === 'margin' && !s.sealed)
+    frag.append(
+      actions(
+        button(
+          'Add a cost item',
+          () => {
+            s.costs.push({ label: 'Additional cost', layer: 'operating', basis: 'unit' });
+            s.pending = [];
+            save();
+            render();
+          },
+          true,
+        ),
+      ),
+    );
+  const pred = panel('Make your prediction');
+  pred.append(gridFields(ex.predict, { locked: s.sealed, note: false }));
+  pred.append(
+    actions(
+      button(s.sealed ? 'View calculations' : 'Save prediction and check calculations', () => {
+        validateFields(context, get);
+        validateFields(allBase(), get);
+        validateFields(ex.predict, get);
+        ex.result(s, get, false);
+        if (!s.sealed) {
+          for (const [id, value, origin] of ex.seed(s, get))
+            s.fields[id] = { ...s.fields[origin], v: value };
+          s.pending = [];
+          s.questions = [];
+          s.sealed = true;
+        }
+        go(2);
+      }),
+    ),
+  );
+  frag.append(pred);
+  return frag;
+}
+function draftFields() {
+  return allBase()
+    .filter((f) => !get(f.id))
+    .map((f) => {
+      const m = /^(?:base|new)Cost(\d+)$/.exec(f.id),
+        c = m && s.costs[Number(m[1])];
+      return {
+        id: f.id,
+        label: fieldLabel(f.id, f.label),
+        choices: f.choices,
+        condition: f.when,
+        basis: c ? bases[c.basis] : undefined,
+      };
+    });
+}
+function fieldLabel(id, label) {
+  const m = /^(base|new)Cost(\d+)$/.exec(id);
+  if (kind === 'margin' && m) {
+    const c = s.costs[Number(m[2])];
+    return label + ' · ' + c.label + ' (' + bases[c.basis] + ', ' + costLayers[c.layer] + ')';
+  }
+  if (kind === 'channels' && /^[ab][A-Z]/.test(id)) {
+    const prefix = id[0];
+    return (get(prefix + 'Name') || 'Channel ' + (prefix === 'a' ? '1' : '2')) + ' · ' + label;
+  }
+  return label;
+}
+function proposalView(p) {
+  const f = allBase().find((f) => f.id === p.id),
+    box = el('div', null, 'ai-card');
+  box.id = 'proposal-' + p.id;
+  box.append(
+    el('strong', fieldLabel(p.id, f.label)),
+    el(
+      'p',
+      (p.origin === 'stated' ? 'From your description: “' + p.quote + '”. ' : 'AI estimate. ') +
+        p.rationale,
+    ),
+  );
+  const ctl = el(f.choices ? 'select' : 'input');
+  if (f.choices)
+    options(
+      ctl,
+      f.choices.map((v) => [v, v]),
+      p.value,
+    );
+  else ctl.value = p.value;
+  box.append(labeled('Review suggested value', ctl));
+  box.append(
+    button('Edit and accept', () => {
+      if (get(f.id)) throw Error('This field already contains a confirmed value.');
+      validateFields([{ ...f, when: null, optional: false }], () => ctl.value);
+      const revised = ctl.value !== p.value;
+      s.fields[f.id] = {
+        v: ctl.value,
+        source: revised
+          ? 'Student estimate'
+          : p.origin === 'stated'
+            ? 'Student statement'
+            : 'AI estimate',
+        note:
+          (revised ? 'Student revised suggestion. ' : '') +
+          (p.quote ? '“' + p.quote + '” ' : '') +
+          p.rationale,
+      };
+      s.pending = s.pending.filter((v) => v !== p);
+      save();
+      render();
+    }),
+  );
+  return box;
+}
+function drawCharts(parent, charts) {
+  if (!charts) return;
+  const wrap = el('div', null, 'grid');
+  for (const { title, amounts } of charts) {
+    const chart = el('div', null, 'chart');
+    chart.setAttribute('aria-hidden', 'true');
+    chart.append(el('h3', title));
+    const [price, c1, c2, c3] = amounts;
+    const steps = [
+      ['Price', 0, price],
+      ['Fulfill', price, c1],
+      ['Acquire', c1, c2],
+      ['Operate', c2, c3],
+      ['CM3', 0, c3],
+    ];
+    const min = Math.min(0, ...amounts),
+      range = Math.max(0, ...amounts) - min || 1;
+    for (const [label, start, end] of steps) {
+      const row = el('div', null, 'waterrow'),
+        track = el('span', null, 'track'),
+        bar = el('i', null, label === 'Price' || label === 'CM3' ? '' : 'cost');
+      track.style.setProperty('--zero', (100 * -min) / range + '%');
+      bar.style.left = (100 * (Math.min(start, end) - min)) / range + '%';
+      bar.style.width = (100 * Math.abs(end - start)) / range + '%';
+      track.append(bar);
+      row.append(el('span', label), track, el('span', money(end - start)));
+      chart.append(row);
+    }
+    wrap.append(chart);
+  }
+  parent.append(wrap);
+}
+function resultView(result) {
+  const box = el('div');
+  for (const t of result.tables) {
+    const table = el('table'),
+      caption = el('caption', t.title);
+    table.append(caption);
+    const tr = table.createTHead().insertRow();
+    for (const label of t.head) {
+      const th = el('th', label);
+      th.scope = 'col';
+      tr.append(th);
+    }
+    const body = table.createTBody();
+    for (const row of t.rows) {
+      const tr = body.insertRow();
+      row.forEach((v, i) => {
+        const cell = el(i ? 'td' : 'th', v);
+        if (!i) cell.scope = 'row';
+        tr.append(cell);
+      });
+    }
+    box.append(table);
+  }
+  for (const note of result.notes) box.append(el('p', note, 'note'));
+  drawCharts(box, result.charts);
+  return box;
+}
+function checkedLab() {
+  validateFields(flatten(ex.lab(s, get)), get);
+  if (kind === 'channels' && !get('aCap') && !get('bCap'))
+    throw Error('Set a maximum for at least one channel in this round.');
+  return ex.result(s, get, true);
+}
+function updateLab() {
+  const dest = $('labOutput');
+  if (!dest) return;
+  try {
+    dest.replaceChildren(resultView(checkedLab()));
+  } catch (e) {
+    dest.replaceChildren(hint(e.message));
+  }
+}
+function labPage() {
+  const frag = document.createDocumentFragment(),
+    first = panel('Check your prediction');
+  for (const f of ex.predict) first.append(el('p', f.label + ' — ' + get(f.id)));
+  first.append(resultView(ex.result(s, get, false)));
+  frag.append(first);
+  for (const g of ex.lab(s, get)) {
+    const p = panel(g.title);
+    p.append(gridFields(g.fields));
+    frag.append(p);
+  }
+  const updated = panel('Your revised scenario'),
+    out = el('div');
+  out.id = 'labOutput';
+  updated.append(out);
+  frag.append(updated);
+  if (kind === 'funding') frag.append(investor());
+  frag.append(
+    actions(
+      button('Defend your decision', () => {
+        checkedLab();
+        go(3);
+      }),
+    ),
+  );
+  return frag;
+}
+function investor() {
+  const p = panel('Talk with the investor');
+  p.append(
+    hint(
+      'Defend the current terms, or change the figures above before you respond. You can finish at any point.',
+    ),
+  );
+  for (const [i, t] of s.turns.entries()) {
+    p.append(
+      el('h3', 'Exchange ' + (i + 1)),
+      el('p', 'Founder — ' + t.student),
+      el('p', 'Investor — ' + t.question),
+    );
+    const d = el('details');
+    d.append(el('summary', 'Terms discussed'), el('p', t.terms));
+    p.append(d);
+  }
+  if (s.turns.length < 3) {
+    const message = el('textarea');
+    message.id = 'investorMessage';
+    message.value = s.message;
+    message.oninput = () => {
+      s.message = message.value;
+      save();
+    };
+    p.append(
+      labeled('Your message to the investor', message),
+      actions(button('Ask for investor reply', () => runAI('investor'), true)),
+    );
+  }
+  return p;
+}
+function validateFinal() {
+  checkedLab();
+  validateFields(ex.final, get);
+  if (kind === 'channels') {
+    const i = get('testChannel') === 'Channel 1' ? 1 : 2;
+    if (Number(get('testBudget')) > Number(get('budget')))
+      throw Error('The experiment budget exceeds the available budget.');
+    const prefix = i === 1 ? 'a' : 'b';
+    const bookings = get(prefix + 'Type') === 'Whole bookings';
+    const available = Number(get(prefix + 'Revised')) * (bookings ? Number(get(prefix + 'Rate')) : 1);
+    if (Number(get('testBudget')) - available > 1e-8)
+      throw Error(
+        'The experiment budget exceeds the revised allocation for ' +
+          get(prefix + 'Name') +
+          '. Revise the allocation or reduce the test budget.',
+      );
+    if (bookings) {
+      const qty = Number(get('testBudget')) / Number(get(prefix + 'Rate'));
+      if (Math.abs(qty - Math.round(qty)) > 1e-8)
+        throw Error('The experiment budget must buy whole bookings.');
+    }
+  }
+}
+function finalPage() {
+  const frag = document.createDocumentFragment(),
+    p = panel('Defend your decision');
+  const fields = ex.final;
+  p.append(gridFields(fields), actions(button('Ask for coaching', () => runAI('coach'), true)));
+  if (s.coach) {
+    const note = el('p', s.coach, 'note');
+    note.id = 'coachNote';
+    p.append(note);
+  }
+  frag.append(p);
+  const preview = panel('Your decision brief'),
+    copy = el('div', null, 'brief');
+  copy.id = 'preview';
+  preview.append(copy);
+  preview.append(
+    actions(
+      button('Download Markdown', () => {
+        validateFinal();
+        download();
+      }),
+      button(
+        'Print brief',
+        () => {
+          validateFinal();
+          window.print();
+        },
+        true,
+      ),
+    ),
+  );
+  frag.append(preview);
+  return frag;
+}
+function entries(fields) {
+  return fields
+    .filter((f) => active(f, get) && get(f.id) !== '')
+    .map((f) => {
+      const data = s.fields[f.id];
+      const src =
+        f.type === 'number'
+          ? ' [' + (sourceNames[data.source] || data.source) + (data.note ? ' · ' + data.note : '') + ']'
+          : '';
+      return fieldLabel(f.id, f.label) + ' — ' + get(f.id) + src;
+    });
+}
+function resultLines(result) {
+  return result.tables
+    .flatMap((t) => [
+      t.title,
+      ...t.rows.map(
+        (r) =>
+          r[0] +
+          ' — ' +
+          r
+            .slice(1)
+            .map((v, i) => t.head[i + 1] + ': ' + v)
+            .join(' / '),
+      ),
+    ])
+    .concat(result.notes);
+}
+function brief() {
+  const sections = [
+    ['Your venture', entries(context)],
+    ['Original prediction', entries(ex.predict)],
+    ['Confirmed worksheet', entries(allBase())],
+    ['Original calculation', resultLines(ex.result(s, get, false))],
+    ['Revised assumptions', entries(flatten(ex.lab(s, get)))],
+    ['Revised calculation', resultLines(checkedLab())],
+  ];
+  if (kind === 'funding' && s.turns.length)
+    sections.push([
+      'Investor discussion',
+      s.turns.flatMap((t) => [t.terms, 'Founder — ' + t.student, 'Investor — ' + t.question]),
+    ]);
+  const decision = entries(ex.final);
+  if (kind === 'channels' && get('testChannel'))
+    decision.push(
+      'Chosen test channel — ' + get((get('testChannel') === 'Channel 1' ? 'a' : 'b') + 'Name'),
+    );
+  if (kind === 'funding' && get('outcome')) {
+    const prefix = get('outcome') === 'Stand by the original offer' ? '' : 'counter';
+    decision.push(
+      get('outcome') === 'Walk away'
+        ? 'No deal. No new investor ownership.'
+        : 'Resulting ownership — ' +
+            fmt(
+              (100 * Number(get(prefix + 'investment'))) /
+                (Number(get(prefix + 'pre')) + Number(get(prefix + 'investment'))),
+            ) +
+            '% for ' +
+            money(Number(get(prefix + 'investment'))) +
+            '.',
+    );
+  }
+  sections.push(['Decision and next step', decision]);
+  if (s.coach) sections.push(['Coaching question', [s.coach]]);
+  return sections;
+}
+function updatePreview() {
+  const dest = $('preview');
+  if (!dest) return;
+  try {
+    const sections = brief();
+    dest.replaceChildren();
+    for (const [title, lines] of sections) {
+      const d = el('details');
+      d.open = title === 'Decision and next step';
+      d.append(el('summary', title), el('pre', lines.join('\n')));
+      dest.append(d);
+    }
+    const print = $('printout') || el('article');
+    print.id = 'printout';
+    print.hidden = true;
+    print.replaceChildren(el('h1', ex.topic + ' decision brief'));
+    for (const [title, lines] of sections) print.append(el('h2', title), el('pre', lines.join('\n')));
+    document.body.append(print);
+  } catch (e) {
+    dest.textContent = e.message;
+    $('printout')?.remove();
+  }
+}
+function download() {
+  const md =
+    '# ' +
+    ex.topic +
+    ' decision brief\n\n' +
+    brief()
+      .map(([t, lines]) => '## ' + t + '\n\n' + lines.map((v) => '- ' + v).join('\n'))
+      .join('\n\n') +
+    '\n';
+  const url = URL.createObjectURL(new Blob([md], { type: 'text/markdown;charset=utf-8' })),
+    a = el('a');
+  a.href = url;
+  a.download = kind + '-decision-brief.md';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function render() {
+  $('status').textContent = '';
+  $('notice').replaceChildren();
+  $('page').replaceChildren();
+  $('steps').replaceChildren(
+    ...['Venture', 'Worksheet', 'Compare', 'Decision brief'].map((label, i) => {
+      const b = button(label, () => {
+        if (i === 3) checkedLab();
+        go(i);
+      });
+      b.disabled = i > s.max || !!request;
+      if (i === s.step) b.setAttribute('aria-current', 'step');
+      return b;
+    }),
+  );
+  const container = el('fieldset');
+  container.disabled = !!request;
+  container.append([contextPage, worksheet, labPage, finalPage][s.step]());
+  $('page').append(container);
+  if (s.step === 2) updateLab();
+  if (s.step === 3) updatePreview();
+  else $('printout')?.remove();
+  if (request) {
+    $('notice').append(
+      el('span', 'Waiting for the AI service… '),
+      button('Cancel request', () => request?.abort(), true),
+    );
+  }
+  $('reset').disabled = !!request;
+  $('settings').disabled = !!request;
+}
+function quoteContainsValue(quote, value) {
+  const amounts = String(quote).matchAll(
+    /[-+]?(?:[0-9][0-9,]*(?:\.[0-9]+)?|\.[0-9]+)(?:\s*(thousand|million|billion|[kmb])\b)?/gi,
+  );
+  const scale = { k: 1e3, thousand: 1e3, m: 1e6, million: 1e6, b: 1e9, billion: 1e9 };
+  return Array.from(amounts).some((match) => {
+    const amount = parseFloat(match[0].replaceAll(',', '')) * (scale[match[1]?.toLowerCase()] || 1);
+    return amount === Number(value);
+  });
+}
+function readDraft(out, eligible) {
+  const allowed = new Map(eligible.map((f) => [f.id, f])),
+    seen = new Set(),
+    proposals = [],
+    clarify = [];
+  const description = get('company') + ' ' + get('scenario');
+  for (const p of out.suggestions) {
+    if (
+      !allowed.has(p?.id) ||
+      seen.has(p.id) ||
+      typeof p.value !== 'string' ||
+      !p.value.trim() ||
+      typeof p.rationale !== 'string'
+    )
+      continue;
+    if (p.origin !== 'estimate' && (p.origin !== 'stated' || !p.quote || !description.includes(p.quote)))
+      continue;
+    const f = allBase().find((f) => f.id === p.id);
+    if (p.origin === 'stated' && f.type === 'number' && !quoteContainsValue(p.quote, p.value)) {
+      clarify.push(
+        'Please enter ' + fieldLabel(f.id, f.label) + ' directly so your stated figure is preserved.',
+      );
+      continue;
+    }
+    try {
+      validateFields([{ ...f, when: null, optional: false }], () => p.value);
+    } catch {
+      continue;
+    }
+    proposals.push(p);
+    seen.add(p.id);
+  }
+  s.pending = proposals;
+  s.questions = out.questions.filter((q) => typeof q === 'string').concat(clarify);
+}
+async function runAI(mode) {
+  if (request) return;
+  let controller, timer;
+  try {
+    validateFields(context, get);
+    const payload = { assignment: ex.topic, company: get('company'), scenario: get('scenario') };
+    const eligible = mode === 'draft' ? draftFields() : [];
+    if (mode === 'draft') {
+      if (!eligible.length) throw Error('All worksheet fields already contain values.');
+      payload.eligible = eligible;
+      payload.confirmed = entries(allBase());
+    } else {
+      payload.calculations = resultLines(checkedLab());
+      payload.confirmed = entries([...allBase(), ...flatten(ex.lab(s, get))]);
+      if (mode === 'investor') {
+        if (!s.message.trim() || s.turns.length >= 3)
+          throw Error('Enter your message before requesting an investor reply.');
+        payload.history = s.turns;
+        payload.message = s.message;
+      } else {
+        if (!get('decision').trim())
+          throw Error('Write your decision first so the coach can respond to your reasoning.');
+        payload.reasoning = entries(ex.final);
+      }
+    }
+    controller = new AbortController();
+    request = controller;
+    render();
+    timer = setTimeout(() => controller.abort(), 60000);
+    const out = await assist(
+      mode,
+      payload,
+      { endpoint: settings.endpoint, key: secret },
+      controller.signal,
+    );
+    if (mode === 'draft') readDraft(out, eligible);
+    else if (mode === 'investor') {
+      const terms = entries(flatten(ex.lab(s, get))).join(' / ');
+      s.turns.push({ student: s.message, question: out.question, terms });
+      s.message = '';
+    } else s.coach = out.question;
+    save();
+    request = null;
+    render();
+    $('status').textContent =
+      mode === 'draft'
+        ? 'Draft ready. Review suggestions above.'
+        : mode === 'investor'
+          ? 'Investor replied.'
+          : 'Coaching question ready.';
+  } catch (e) {
+    if (controller) {
+      request = null;
+      render();
+      const offline =
+        mode === 'draft'
+          ? 'For your venture, list one observed price or cost. Enter other figures as student estimates and note what you would check.'
+          : kind === 'funding'
+            ? 'For your projected exit revenue of ' +
+              money(Number(get('counterrevenue'))) +
+              ', what evidence would persuade the investor?'
+            : kind === 'channels'
+              ? 'What evidence supports your revised spend on ' +
+                get('aName') +
+                ' versus ' +
+                get('bName') +
+                '?'
+              : 'Can you deliver the proposed ' +
+                get('trialVolume') +
+                ' units of ' +
+                get('unit') +
+                ' each month?';
+      error(
+        Error(
+          (controller.signal.aborted ? 'Request stopped.' : e.message) +
+            ' Your entries are saved in this tab. ' +
+            offline,
+        ),
+      );
+    } else error(e);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+$('settings').onclick = () => {
+  $('endpoint').value = settings.endpoint;
+  $('apiKey').value = secret;
+  $('remember').checked = !!settings.key;
+  $('config').returnValue = 'cancel';
+  $('config').showModal();
+};
+$('config').onclose = () => {
+  if ($('config').returnValue !== 'save') return;
+  secret = $('apiKey').value.trim();
+  settings = { endpoint: $('endpoint').value.trim() || defaultEndpoint };
+  if ($('remember').checked) settings.key = secret;
+  try {
+    localStorage.setItem('venture_ai_settings', JSON.stringify(settings));
+  } catch {
+    error(Error('Settings apply to this tab only.'));
+  }
+};
+$('reset').onclick = () => {
+  if (confirm('Clear this assignment on this device and start a new venture?')) {
+    s = fresh();
+    go(0);
+  }
+};
+$('title').textContent = ex.title;
+$('intro').textContent = ex.intro;
+render();
+save();

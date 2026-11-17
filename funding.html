@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Funding negotiation · Venture decisions</title>
+    <link rel="stylesheet" href="venture/style.css" />
+  </head>
+  <body data-exercise="funding">
+    <header>
+      <div class="bar">
+        <span class="wordmark">Entrepreneurship <span>/</span> Venture decisions</span
+        ><button id="settings" class="quiet">AI settings</button>
+      </div>
+    </header>
+    <main>
+      <div class="mast">
+        <p class="topic">Funding negotiation</p>
+        <h1 id="title">Funding negotiation</h1>
+        <p id="intro"></p>
+      </div>
+      <nav aria-label="Assignment steps" id="steps"></nav>
+      <div id="notice" role="status"></div>
+      <div id="page"></div>
+      <div id="status" role="status"></div>
+      <footer><span id="saved"></span><button id="reset" class="quiet">Start over</button></footer>
+    </main>
+    <dialog id="config">
+      <form method="dialog">
+        <h2>AI settings</h2>
+        <p>Requesting assistance sends this exercise’s context to the selected service.</p>
+        <label>Responses endpoint<input id="endpoint" type="url" /></label
+        ><label
+          >API key for direct OpenAI access<input
+            id="apiKey"
+            type="password"
+            autocomplete="off" /></label
+        ><label class="check"
+          ><input id="remember" type="checkbox" /> Remember my key on this device</label
+        >
+        <p>
+          <button value="save">Save settings</button>
+          <button value="cancel" class="quiet">Cancel</button>
+        </p>
+      </form>
+    </dialog>
+    <noscript>Enable JavaScript to use the worksheet and calculator.</noscript>
+    <script type="module" src="venture/app.mjs"></script>
+  </body>
+</html>
