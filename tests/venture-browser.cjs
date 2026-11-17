@@ -31,14 +31,14 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
               questions: ['Does the stated price apply to a seat?'],
               suggestions: [
                 {
-                  id: 'newVolume',
+                  id: 'units',
                   value: '30',
                   origin: 'estimate',
                   quote: '',
                   rationale: 'A provisional enrollment target. Check room capacity.',
                 },
                 {
-                  id: 'basePrice',
+                  id: 'price',
                   value: '80',
                   origin: 'stated',
                   quote: '$80 per seat',
@@ -129,45 +129,74 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
         'mobile overflow',
       );
     }
-    await start(
-      'margin',
-      'We teach darkroom workshops at $80 per seat.',
-      'Should we buy ads to increase enrollment?',
+    await page.goto(new URL('margin.html', base).href);
+    await page.locator('#product').fill('One smoothie bowl for students in the library');
+    assert.equal(await page.getByRole('spinbutton', { name: /selling price per unit/i }).count(), 1);
+    assert.doesNotMatch(
+      await page.locator('main').innerText(),
+      /current price|proposed price|scenario|baseline/i,
     );
-    await button('Draft from my description');
-    await page.locator('#proposal-newVolume').waitFor();
-    assert.equal(await page.locator('#f-newVolume').inputValue(), '');
-    const accept = page.locator('#proposal-basePrice').getByRole('button');
-    await keyboardFocus(accept);
-    await page.keyboard.press('Enter');
-    assert.equal(await page.locator('#f-basePrice').inputValue(), '80');
-    await fields({
-      unit: 'seat',
-      newPrice: 80,
-      baseVolume: 20,
-      newVolume: 22,
-      capacity: 21,
-      baseCost0: 10,
-      newCost0: 10,
-      baseCost1: 100,
-      newCost1: 300,
-      baseCost2: 0,
-      newCost2: 0,
-      baseCost3: 500,
-      newCost3: 500,
-      perUnit: 'Fall',
-      perMonth: 'Fall',
-    });
-    await seal();
-    assert.match(await page.locator('#page').innerText(), /exceeds your capacity of 21/);
-    await enter('trialVolume', 24);
-    await button('Defend your decision');
-    await fields({
-      decision: 'Keep the smaller campaign until another room is available.',
-      trigger: '23 seats',
-      next: 'Check room availability.',
-    });
-    await finish('Check room availability.');
+    const fillMargin = async (id, value) => {
+      await page.locator('#' + id).fill(String(value));
+    };
+    await page.locator('#draftTools summary').click();
+    await fillMargin('description', 'We also sell workshops at $80 per seat.');
+    await button('Suggest estimates');
+    const suggestion = page
+      .locator('#suggestions .ai-card')
+      .filter({ hasText: 'Selling price per unit' });
+    await suggestion.waitFor();
+    assert.equal(await page.locator('#price').inputValue(), '');
+    await suggestion.getByRole('button').click();
+    assert.equal(await page.locator('#price').inputValue(), '80');
+    await fillMargin('description', 'A bowl costs $4.30 for fruit, packaging and labor.');
+    for (const [k, v] of Object.entries({
+      price: 9,
+      cost: 4.3,
+      channel: 'Campus ads',
+      spend: 300,
+      units: 400,
+      fee: 3,
+      other: 0.6,
+    })) {
+      await fillMargin(k, v);
+    }
+    assert.match(await page.locator('#cm1').innerText(), /\$4.70/);
+    assert.match(await page.locator('#cm2').innerText(), /\$0.75 per unit.*\$3.95/);
+    await button('Show CM3');
+    assert.match(await page.locator('#cm3').innerText(), /\$3.08 \(34.2%/);
+    await page.reload();
+    await page.locator('#ladderTable table').waitFor();
+    await fillMargin('reflection', 'I would ask the fruit supplier for a quote.');
+    failure = true;
+    await button('Ask for feedback');
+    await page.locator('#feedback').filter({ hasText: '503' }).waitFor();
+    failure = false;
+    const filePromise = page.waitForEvent('download');
+    await button('Download Markdown');
+    const md = await fs.readFile(await (await filePromise).path(), 'utf8');
+    assert.match(md, /fruit supplier/);
+    assert.match(md, /CM3: \$3.08/);
+    assert.doesNotMatch(md, /comparison|baseline|proposed/i);
+    await page.evaluate(
+      () =>
+        (window.print = () => {
+          document.body.dataset.printed = 'yes';
+        }),
+    );
+    await button('Print worksheet');
+    assert.equal(await page.locator('body').getAttribute('data-printed'), 'yes');
+    await page.emulateMedia({ media: 'print' });
+    assert.ok(await page.locator('#printout').isVisible());
+    await page.emulateMedia({ media: 'screen' });
+    await fillMargin('spend', 0);
+    await fillMargin('units', '');
+    await fillMargin('cost', 12);
+    await button('Show CM3');
+    assert.match(await page.locator('#interpretation').innerText(), /exceed/);
+    await fillMargin('cost', '');
+    assert.equal(await page.locator('#results').isVisible(), false);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await start('channels', 'We repair bicycles for commuters.', 'Should we buy events or social ads?');
     await fields({
       budget: 500,
