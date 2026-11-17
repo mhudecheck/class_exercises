@@ -1,4 +1,4 @@
-import { number, margin, matchingVolume, channel, allocation, funding } from './math.mjs';
+import { number, channel, allocation, funding } from './math.mjs';
 const money = (n) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -16,100 +16,8 @@ const positive = { positive: true },
   count = { integer: true },
   positiveCount = { positive: true, integer: true };
 const area = (id, label) => field(id, label, 'textarea');
-const costLayers = {
-  fulfillment: 'Make or deliver',
-  acquisition: 'Marketing and sales',
-  operating: 'Other operating costs',
-};
-const bases = { unit: 'Dollars per unit', month: 'Dollars per month', percent: 'Percent of revenue' };
-const directions = ['Rise', 'Fall', 'Stay the same'];
 const rowsFor = (prefix, definitions) =>
   definitions.map(([id, label, opts]) => num(prefix + id, label, opts));
-export const initialCosts = [
-  { label: 'Making and delivering the unit', layer: 'fulfillment', basis: 'unit' },
-  { label: 'Marketing and sales', layer: 'acquisition', basis: 'month' },
-  { label: 'Payment fees', layer: 'operating', basis: 'percent' },
-  { label: 'Rent or other overhead', layer: 'operating', basis: 'month' },
-];
-function marginGroups(s) {
-  const base = group(
-    'Sales',
-    field('unit', 'What is one unit of sale?'),
-    num('basePrice', 'Current price per unit ($)', positive),
-    num('newPrice', 'Proposed price per unit ($)', positive),
-    num('baseVolume', 'Current units per month', positiveCount),
-    num('newVolume', 'Proposed units per month', positiveCount),
-    num('capacity', 'Maximum units you could deliver per month (optional)', { ...optional, ...count }),
-  );
-  return [
-    base,
-    ...s.costs.map((c, i) =>
-      group(c.label, num('baseCost' + i, 'Current cost'), num('newCost' + i, 'Proposed cost')),
-    ),
-  ];
-}
-function costModel(s, get, side, volume) {
-  const costs = s.costs.map((c, i) => ({ ...c, amount: get(side + 'Cost' + i) }));
-  return margin(get(side + 'Price'), volume, costs);
-}
-function marginResult(s, get, lab) {
-  const baseline = costModel(s, get, 'base', get('baseVolume'));
-  const proposed = costModel(s, get, 'new', lab ? get('trialVolume') : get('newVolume'));
-  const threshold = matchingVolume(baseline.monthly, proposed),
-    capacity = get('capacity');
-  const unit = get('unit');
-  const detail = (m) => [
-    money(m.price),
-    money(m.totals.fulfillment),
-    money(m.cm1) + ' (' + pct((100 * m.cm1) / m.price) + ')',
-    money(m.totals.acquisition),
-    money(m.cm2) + ' (' + pct((100 * m.cm2) / m.price) + ')',
-    money(m.totals.operating),
-    money(m.cm3) + ' (' + pct((100 * m.cm3) / m.price) + ')',
-    fmt(m.volume),
-    money(m.monthly),
-  ];
-  const labels = [
-    'Selling price per ' + unit,
-    'Fulfillment cost per unit',
-    'CM1 = price − fulfillment',
-    'Acquisition cost per unit',
-    'CM2 = CM1 − acquisition',
-    'Operating cost per unit',
-    'CM3 = CM2 − operating costs',
-    'Monthly volume',
-    'Monthly contribution = CM3 × volume',
-  ];
-  const b = detail(baseline),
-    p = detail(proposed);
-  const interpretation =
-    threshold === null
-      ? 'No volume reaches the baseline with these costs.'
-      : fmt(threshold) +
-        ' units per month to match or exceed the current monthly contribution.' +
-        (capacity !== '' && threshold > Number(capacity)
-          ? ' That exceeds your capacity of ' + fmt(capacity) + '.'
-          : '');
-  return {
-    tables: [
-      {
-        title: 'Contribution by layer',
-        head: ['Calculation', 'Current', 'Proposed'],
-        rows: labels.map((label, i) => [label, b[i], p[i]]),
-      },
-    ],
-    notes: [
-      interpretation,
-      ...(capacity !== '' && proposed.volume > Number(capacity)
-        ? ['Your proposed volume exceeds your stated capacity.']
-        : []),
-    ],
-    charts: [baseline, proposed].map((m, i) => ({
-      title: i ? 'Proposed per unit' : 'Current per unit',
-      amounts: [m.price, m.cm1, m.cm2, m.cm3],
-    })),
-  };
-}
 const channelIds = ['a', 'b'];
 function channelGroups() {
   return [
@@ -123,7 +31,7 @@ function channelGroups() {
         'Channel ' + (i + 1),
         field(id + 'Name', 'Channel name'),
         ...rowsFor(id, [
-          ['Spend', 'Historical or estimated spend ($)'],
+          ['Spend', 'Amount spent or budgeted ($)'],
           ['Reach', 'People reached', count],
           ['Won', 'New paying customers', count],
         ]),
@@ -246,7 +154,7 @@ function fundingResult(s, get, lab) {
     'Exit value = exit revenue × multiple',
     'Value today = exit value ÷ (1 + annual return) ^ years',
     'Required ownership = investment ÷ value today',
-    'Desired ownership for reverse calculation',
+    'Ownership you want to offer',
     'Required exit value = investor payoff ÷ desired fraction',
     'Required annual exit revenue = required exit value ÷ multiple',
   ];
@@ -262,7 +170,7 @@ function fundingResult(s, get, lab) {
       },
     ],
     notes: [
-      'This simplified VC method assumes no intervening dilution and one payout at exit.',
+      'Assume the company raises no more equity before it sells. The investor gets paid once, at the sale.',
       ...(latest.required === null || latest.required > 100
         ? ['Even 100% ownership would not deliver the target return under this forecast.']
         : []),
@@ -270,39 +178,12 @@ function fundingResult(s, get, lab) {
   };
 }
 export const assignments = {
-  margin: {
-    topic: 'Contribution margin',
-    title: 'Is this change worth making?',
-    scenario: 'What change are you considering, and what do you expect it to cost?',
-    intro:
-      'Compare today’s economics with the change you want to make. Find the sales volume that would justify it.',
-    groups: marginGroups,
-    predict: [
-      choice('perUnit', 'How will contribution per unit change?', directions),
-      choice('perMonth', 'How will total monthly contribution change?', directions),
-    ],
-    lab: (s) => [
-      group(
-        'Test another sales volume',
-        num('trialVolume', 'Proposed monthly units to test', positiveCount),
-      ),
-    ],
-    seed: (s, get) => [['trialVolume', get('newVolume'), 'newVolume']],
-    result: marginResult,
-    final: [
-      area('decision', 'What change will you make, and why?'),
-      field('trigger', 'What sales threshold would change your decision?'),
-      area('next', 'Which assumption will you verify, and how?'),
-    ],
-    fallback:
-      'Compare the monthly contribution with the amount each sale leaves. Can you deliver enough units to reach the calculated threshold?',
-  },
   channels: {
     topic: 'Customer acquisition',
     title: 'Where should our next marketing dollars go?',
-    scenario: 'Which two channels are you considering, and what budget decision do you face?',
+    scenario: 'Where could you reach your first customers? Describe two channels you could try.',
     intro:
-      'Compare two ways to reach paying customers. Allocate your budget, then test a real constraint.',
+      'Decide how to split your marketing budget between two channels. Then plan a test you could actually run.',
     groups: channelGroups,
     predict: [
       area(
@@ -313,7 +194,7 @@ export const assignments = {
     lab: (s, get) => [
       group(
         'Test a practical limit',
-        area('constraint', 'What changed or became binding? Use a constraint from your venture.'),
+        area('constraint', 'What limits how much you can spend or how many people you can reach?'),
       ),
       ...channelIds.map((id) => {
         const units = get(id + 'Type') === 'Whole bookings' ? 'bookings' : 'dollars';
@@ -330,22 +211,26 @@ export const assignments = {
     seed: (s, get) => channelIds.map((id) => [id + 'Revised', get(id + 'Initial'), id + 'Initial']),
     result: channelResult,
     final: [
-      area('decision', 'Why this allocation? What supports using the past rate at this scale?'),
+      area(
+        'decision',
+        'Why did you split the budget this way? What makes you think each channel can bring in those customers?',
+      ),
       choice('testChannel', 'Which channel will you test?', ['Channel 1', 'Channel 2']),
       field('cta', 'Call to action'),
       num('testBudget', 'Experiment budget ($)'),
-      field('window', 'Measurement window'),
-      num('pass', 'Minimum new paying customers to continue', positiveCount),
-      area('next', 'What will you do if the channel misses that pass mark?'),
+      field('window', 'When will you run the test?'),
+      num('pass', 'How many new customers would make the test worth repeating?', positiveCount),
+      area('next', 'If fewer customers buy than you expected, what will you try next?'),
     ],
     fallback:
       'Which part of your revised allocation relies on untested reach or capacity? What result would make you stop spending?',
   },
   funding: {
     topic: 'Funding negotiation',
-    title: 'What ownership can we defend?',
+    title: 'How much of your company would you offer an investor?',
     scenario: 'What milestone will the investment fund, and what offer are you considering?',
-    intro: 'Price an offer for your venture, test the investor’s return, and defend a counteroffer.',
+    intro:
+      'Work out what the investor would own and what your company would need to sell for. Then decide what terms you would offer.',
     groups: () => [
       group(
         'The offer',
@@ -355,7 +240,7 @@ export const assignments = {
     ],
     predict: [
       num('ownership', 'Predict the investor’s ownership (%)', { max: 100 }),
-      area('reason', 'What makes that stake reasonable or difficult to defend?'),
+      area('reason', 'Why would you be willing to give up that share of the company?'),
     ],
     lab: () => [group('Revise terms or forecast', ...rowsFor('counter', dealFields))],
     seed: (s, get) => dealFields.map(([key]) => ['counter' + key, get(key), key]),
@@ -366,7 +251,10 @@ export const assignments = {
         'Make the counteroffer',
         'Walk away',
       ]),
-      area('decision', 'Defend the terms using your ownership and exit forecast.'),
+      area(
+        'decision',
+        'What terms would you accept? Use the investor’s share and your expected sale price to explain why.',
+      ),
       area('next', 'What evidence would most strengthen your position?'),
     ],
     fallback:
@@ -386,4 +274,4 @@ export function validateFields(fields, get) {
       throw Error('Complete “' + f.label + '”.');
   }
 }
-export { money, fmt, costLayers, bases };
+export { money, fmt };

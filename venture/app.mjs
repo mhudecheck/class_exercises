@@ -1,14 +1,5 @@
-import {
-  assignments,
-  initialCosts,
-  active,
-  validateFields,
-  money,
-  fmt,
-  costLayers,
-  bases,
-} from './assignments.mjs';
-import { assist, defaultEndpoint } from './assist.mjs';
+import { assignments, active, validateFields, money, fmt } from './assignments.mjs';
+import { assist, defaultEndpoint, quoteContainsValue } from './assist.mjs';
 const kind = document.body.dataset.exercise,
   ex = assignments[kind];
 const key = 'venture_decision_v1_' + kind;
@@ -25,7 +16,6 @@ function fresh() {
     step: 0,
     max: 0,
     fields: {},
-    costs: structuredClone(initialCosts),
     pending: [],
     questions: [],
     turns: [],
@@ -233,72 +223,18 @@ function contextPage() {
   );
   return p;
 }
-function costControls(c, i, box) {
-  const grid = el('div', null, 'grid');
-  const name = el('input');
-  name.value = c.label;
-  name.disabled = s.sealed;
-  name.onchange = () => {
-    c.label = name.value.trim() || 'Cost line';
-    box.querySelector('h2').textContent = c.label;
-    s.pending = [];
-    document.querySelectorAll('.ai-card').forEach((n) => n.remove());
-    save();
-  };
-  grid.append(labeled('Cost item', name));
-  for (const [prop, map, label] of [
-    ['layer', costLayers, 'Cost layer'],
-    ['basis', bases, 'Both amounts are in'],
-  ]) {
-    const sel = el('select');
-    options(sel, Object.entries(map), c[prop], false);
-    sel.disabled = s.sealed;
-    sel.onchange = () => {
-      c[prop] = sel.value;
-      s.pending = [];
-      save();
-      render();
-    };
-    grid.append(labeled(label, sel));
-  }
-  box.append(grid);
-  if (!s.sealed)
-    box.append(
-      actions(
-        button(
-          'Remove this cost',
-          () => {
-            s.costs.splice(i, 1);
-            for (const prefix of ['baseCost', 'newCost']) {
-              for (let k = i; k < s.costs.length; k++) {
-                if (s.fields[prefix + (k + 1)]) s.fields[prefix + k] = s.fields[prefix + (k + 1)];
-                else delete s.fields[prefix + k];
-              }
-              delete s.fields[prefix + s.costs.length];
-            }
-            s.pending = [];
-            save();
-            render();
-          },
-          true,
-        ),
-      ),
-    );
-}
 function worksheet() {
   const frag = document.createDocumentFragment();
   const start = panel('Build your worksheet');
   start.append(
     hint(
-      'Use USD throughout. Enter your figures or draft suggestions from your venture description. Open a number’s source to record where it came from.',
+      'Enter your figures in US dollars. Estimates are fine. Select the note below a number to record how you arrived at it.',
     ),
   );
   if (!s.sealed) {
     start.append(actions(button('Draft from my description', () => runAI('draft'), true)));
     start.append(
-      hint(
-        'This sends your description and worksheet to the service in AI settings. Only accepted suggestions enter the worksheet.',
-      ),
+      hint('The AI coach uses your description and worksheet. You choose which estimates to use.'),
     );
     if (s.questions.length) start.append(el('p', s.questions.join(' '), 'note'));
     for (const p of s.pending) if (!get(p.id)) start.append(proposalView(p));
@@ -328,50 +264,11 @@ function worksheet() {
     );
   }
   frag.append(start);
-  ex.groups(s, get).forEach((g, i) => {
-    const p = panel(g.title);
-    if (kind === 'margin' && i) costControls(s.costs[i - 1], i - 1, p);
-    p.append(gridFields(g.fields, { locked: s.sealed }));
-    if (kind === 'margin' && !s.sealed) {
-      p.append(
-        actions(
-          button(
-            'Use current figures for empty proposed values',
-            () => {
-              for (const f of g.fields.filter((f) => f.id.startsWith('base'))) {
-                const target = 'new' + f.id.slice(4);
-                if (get(f.id) !== '' && get(target) === '')
-                  s.fields[target] = {
-                    ...s.fields[f.id],
-                    note: ('Copied from current scenario. ' + (s.fields[f.id].note || '')).trim(),
-                  };
-              }
-              s.pending = s.pending.filter((p) => !get(p.id));
-              save();
-              render();
-            },
-            true,
-          ),
-        ),
-      );
-    }
-    frag.append(p);
-  });
-  if (kind === 'margin' && !s.sealed)
-    frag.append(
-      actions(
-        button(
-          'Add a cost item',
-          () => {
-            s.costs.push({ label: 'Additional cost', layer: 'operating', basis: 'unit' });
-            s.pending = [];
-            save();
-            render();
-          },
-          true,
-        ),
-      ),
-    );
+  for (const g of ex.groups(s, get)) {
+    const section = panel(g.title);
+    section.append(gridFields(g.fields, { locked: s.sealed }));
+    frag.append(section);
+  }
   const pred = panel('Make your prediction');
   pred.append(gridFields(ex.predict, { locked: s.sealed, note: false }));
   pred.append(
@@ -399,23 +296,15 @@ function draftFields() {
   return allBase()
     .filter((f) => !get(f.id))
     .map((f) => {
-      const m = /^(?:base|new)Cost(\d+)$/.exec(f.id),
-        c = m && s.costs[Number(m[1])];
       return {
         id: f.id,
         label: fieldLabel(f.id, f.label),
         choices: f.choices,
         condition: f.when,
-        basis: c ? bases[c.basis] : undefined,
       };
     });
 }
 function fieldLabel(id, label) {
-  const m = /^(base|new)Cost(\d+)$/.exec(id);
-  if (kind === 'margin' && m) {
-    const c = s.costs[Number(m[2])];
-    return label + ' · ' + c.label + ' (' + bases[c.basis] + ', ' + costLayers[c.layer] + ')';
-  }
   if (kind === 'channels' && /^[ab][A-Z]/.test(id)) {
     const prefix = id[0];
     return (get(prefix + 'Name') || 'Channel ' + (prefix === 'a' ? '1' : '2')) + ' · ' + label;
@@ -467,38 +356,6 @@ function proposalView(p) {
   );
   return box;
 }
-function drawCharts(parent, charts) {
-  if (!charts) return;
-  const wrap = el('div', null, 'grid');
-  for (const { title, amounts } of charts) {
-    const chart = el('div', null, 'chart');
-    chart.setAttribute('aria-hidden', 'true');
-    chart.append(el('h3', title));
-    const [price, c1, c2, c3] = amounts;
-    const steps = [
-      ['Price', 0, price],
-      ['Fulfill', price, c1],
-      ['Acquire', c1, c2],
-      ['Operate', c2, c3],
-      ['CM3', 0, c3],
-    ];
-    const min = Math.min(0, ...amounts),
-      range = Math.max(0, ...amounts) - min || 1;
-    for (const [label, start, end] of steps) {
-      const row = el('div', null, 'waterrow'),
-        track = el('span', null, 'track'),
-        bar = el('i', null, label === 'Price' || label === 'CM3' ? '' : 'cost');
-      track.style.setProperty('--zero', (100 * -min) / range + '%');
-      bar.style.left = (100 * (Math.min(start, end) - min)) / range + '%';
-      bar.style.width = (100 * Math.abs(end - start)) / range + '%';
-      track.append(bar);
-      row.append(el('span', label), track, el('span', money(end - start)));
-      chart.append(row);
-    }
-    wrap.append(chart);
-  }
-  parent.append(wrap);
-}
 function resultView(result) {
   const box = el('div');
   for (const t of result.tables) {
@@ -523,7 +380,6 @@ function resultView(result) {
     box.append(table);
   }
   for (const note of result.notes) box.append(el('p', note, 'note'));
-  drawCharts(box, result.charts);
   return box;
 }
 function checkedLab() {
@@ -572,7 +428,7 @@ function investor() {
   const p = panel('Talk with the investor');
   p.append(
     hint(
-      'Defend the current terms, or change the figures above before you respond. You can finish at any point.',
+      'Tell the investor why your offer makes sense. You can revise your terms between replies or end the conversation when you’re ready.',
     ),
   );
   for (const [i, t] of s.turns.entries()) {
@@ -793,16 +649,6 @@ function render() {
   $('reset').disabled = !!request;
   $('settings').disabled = !!request;
 }
-function quoteContainsValue(quote, value) {
-  const amounts = String(quote).matchAll(
-    /[-+]?(?:[0-9][0-9,]*(?:\.[0-9]+)?|\.[0-9]+)(?:\s*(thousand|million|billion|[kmb])\b)?/gi,
-  );
-  const scale = { k: 1e3, thousand: 1e3, m: 1e6, million: 1e6, b: 1e9, billion: 1e9 };
-  return Array.from(amounts).some((match) => {
-    const amount = parseFloat(match[0].replaceAll(',', '')) * (scale[match[1]?.toLowerCase()] || 1);
-    return amount === Number(value);
-  });
-}
 function readDraft(out, eligible) {
   const allowed = new Map(eligible.map((f) => [f.id, f])),
     seen = new Set(),
@@ -899,17 +745,11 @@ async function runAI(mode) {
             ? 'For your projected exit revenue of ' +
               money(Number(get('counterrevenue'))) +
               ', what evidence would persuade the investor?'
-            : kind === 'channels'
-              ? 'What evidence supports your revised spend on ' +
-                get('aName') +
-                ' versus ' +
-                get('bName') +
-                '?'
-              : 'Can you deliver the proposed ' +
-                get('trialVolume') +
-                ' units of ' +
-                get('unit') +
-                ' each month?';
+            : 'What makes you expect ' +
+              get('aName') +
+              ' and ' +
+              get('bName') +
+              ' to bring in that many customers?';
       error(
         Error(
           (controller.signal.aborted ? 'Request stopped.' : e.message) +

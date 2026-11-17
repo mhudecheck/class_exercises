@@ -8,11 +8,11 @@ Each standalone assignment takes about 15–20 minutes. Students bring their own
 
 | Assignment | Slides in *Launch + Scale* | Student submission |
 | --- | --- | --- |
-| [Contribution margin](https://michaelhudecheck.com/class_exercises/margin.html) | 28 | Recommendation, volume threshold, and assumption to verify |
+| [Contribution margin](https://michaelhudecheck.com/class_exercises/margin.html) | 21–25, 28 | One selling price, CM1 through CM3 in dollars and as a percentage of price, and the cost to investigate first |
 | [Customer acquisition](https://michaelhudecheck.com/class_exercises/channels.html) | 10–11 | Revised allocation across two channels and a measurable channel test |
 | [Funding negotiation](https://michaelhudecheck.com/class_exercises/funding.html) | 50–56 | Original offer, counteroffer or walk-away decision, and supporting evidence |
 
-Use USD and a common time period for comparable inputs. In the margin exercise, choose each cost’s basis, including fixed monthly expenses. Enter the deck’s allocated rent as a per-unit cost when reproducing its worked example. In the acquisition exercise, allocations use dollars or whole bookings according to the channel. In the funding exercise, the desired equity percentage drives the reverse calculation; investment and pre-money valuation determine the offered percentage.
+Use USD and a common time period for comparable inputs. The margin worksheet follows one sale from the student's own venture. Students estimate its price and cost to make or deliver, convert marketing spending into a cost per unit, then subtract fees and allocated overhead. The ladder and worksheet show each calculation. Slide 28's $9 bowl yields CM1 of $4.70, CM2 of $3.95, and CM3 of $3.08. In the acquisition exercise, allocations use dollars or whole bookings according to the channel. In the funding exercise, the desired equity percentage drives the reverse calculation; investment and pre-money valuation determine the offered percentage.
 
 Each page saves its own assignment in this browser. Students explicitly request AI suggestions or coaching using the class Responses Worker or a configured endpoint. Suggestions require individual acceptance. All calculations, the written decision, and exports work without the provider. Students turn in their own brief through the course LMS. Run the worked examples and boundary checks with `node --test tests/venture.test.mjs`. For the optional mobile keyboard walkthrough, serve the repository locally, make Playwright and Chromium available, and run `EXERCISE_URL=http://127.0.0.1:8765/ node tests/venture-browser.cjs`. The walkthrough uses a fresh browser context and mocks AI calls. Set `CHROME_PATH` to use an installed Chrome executable.
 

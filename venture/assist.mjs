@@ -76,3 +76,14 @@ export async function assist(mode, input, settings, signal) {
     throw Error('The service returned no question.');
   return output;
 }
+
+export function quoteContainsValue(quote, value) {
+  const amounts = String(quote).matchAll(
+    /[-+]?(?:[0-9][0-9,]*(?:\.[0-9]+)?|\.[0-9]+)(?:\s*(thousand|million|billion|[kmb])\b)?/gi,
+  );
+  const scale = { k: 1e3, thousand: 1e3, m: 1e6, million: 1e6, b: 1e9, billion: 1e9 };
+  return Array.from(amounts).some((match) => {
+    const amount = parseFloat(match[0].replaceAll(',', '')) * (scale[match[1]?.toLowerCase()] || 1);
+    return amount === Number(value);
+  });
+}

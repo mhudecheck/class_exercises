@@ -1,0 +1,46 @@
+#worksheet section > label {
+  display: block;
+  margin-top: 0.9rem;
+}
+.pair {
+  margin-top: 1rem;
+}
+.rung:not(:empty) {
+  padding: 0.8rem 1rem;
+  background: var(--soft);
+  border-left: 3px solid var(--teal);
+  font-variant-numeric: tabular-nums;
+}
+#waterfall {
+  max-width: 42rem;
+  margin: 1rem 0;
+}
+#waterfall .waterrow {
+  grid-template-columns: 8rem 1fr 5.3rem;
+}
+#worksheet table {
+  font-size: 0.95rem;
+}
+#worksheet th,
+#worksheet td {
+  overflow-wrap: anywhere;
+}
+#interpretation {
+  font-weight: 600;
+}
+#feedback:empty,
+#status:empty {
+  display: none;
+}
+@media print {
+  #printout h2 {
+    font-size: 14pt;
+    margin: 12pt 0 4pt;
+  }
+  #printout p {
+    white-space: pre-wrap;
+  }
+  #printout tr {
+    break-inside: avoid;
+  }
+}

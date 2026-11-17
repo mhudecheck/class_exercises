@@ -3,10 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Contribution margin · Venture decisions</title>
+    <title>The contribution margin ladder · Venture decisions</title>
     <link rel="stylesheet" href="venture/style.css" />
+    <link rel="stylesheet" href="venture/ladder.css" />
   </head>
-  <body data-exercise="margin">
+  <body>
     <header>
       <div class="bar">
         <span class="wordmark">Entrepreneurship <span>/</span> Venture decisions</span
@@ -15,36 +16,174 @@
     </header>
     <main>
       <div class="mast">
-        <p class="topic">Contribution margin</p>
-        <h1 id="title">Contribution margin</h1>
-        <p id="intro"></p>
+        <h1>The contribution margin ladder</h1>
+        <p id="intro">
+          Pick one thing your venture could sell. Follow the money from the price a customer pays to
+          what’s left after each cost.
+        </p>
       </div>
-      <nav aria-label="Assignment steps" id="steps"></nav>
-      <div id="notice" role="status"></div>
-      <div id="page"></div>
-      <div id="status" role="status"></div>
+      <form id="worksheet">
+        <section class="panel">
+          <h2>One sale from your venture</h2>
+          <label for="product">What would a customer buy from you?</label>
+          <input
+            id="product"
+            placeholder="For example, one smoothie bowl or one hour of tutoring"
+            required
+          />
+          <div class="grid pair">
+            <label
+              >Cost to make or deliver one unit ($)<input
+                id="cost"
+                type="number"
+                step="any"
+                min="0"
+                required
+                aria-describedby="productionHelp"
+            /></label>
+            <label
+              >Selling price per unit ($)<input id="price" type="number" step="any" min="0" required
+            /></label>
+          </div>
+          <p class="hint" id="productionHelp">
+            Count the materials, packaging, labor, and delivery for one sale. Use estimates if you
+            haven’t launched yet.
+          </p>
+          <details id="draftTools">
+            <summary>Get help estimating costs</summary>
+            <p>
+              Describe what goes into your product or service. The AI can suggest figures for you to
+              check.
+            </p>
+            <label
+              >What do you already know?<textarea
+                id="description"
+                placeholder="Include any costs or prices you’ve looked up."
+              ></textarea>
+            </label>
+            <button type="button" class="quiet" id="draft">Suggest estimates</button
+            ><small> Sends your description and worksheet to the AI coach.</small>
+            <p id="draftStatus" role="status"></p>
+            <div id="suggestions"></div>
+          </details>
+          <p class="rung" id="cm1" aria-live="polite"></p>
+        </section>
+        <section class="panel">
+          <h2>The cost of winning a sale</h2>
+          <p>
+            Think of one way you’ll find customers. If you plan to spend $100 on flyers, for example, how
+            many sales do you expect those flyers to bring in?
+          </p>
+          <label
+            >How will you reach customers?<input id="channel" placeholder="For example, campus flyers"
+          /></label>
+          <div class="grid pair">
+            <label
+              >Spending on this channel ($)<input id="spend" type="number" min="0" step="any" required
+            /></label>
+            <label
+              >Units you expect this spending to sell<input
+                id="units"
+                type="number"
+                min="1"
+                step="1"
+                aria-describedby="marketingHelp"
+            /></label>
+          </div>
+          <p class="hint" id="marketingHelp">
+            Use the same time period for both estimates. If you expect no marketing expense, enter $0.
+          </p>
+          <p class="rung" id="cm2" aria-live="polite"></p>
+        </section>
+        <section class="panel">
+          <h2>Fees and overhead</h2>
+          <p>
+            Include the payment fee and one unit’s share of expenses such as rent or insurance. For
+            example, $60 in rent spread over 100 sales adds $0.60 per sale.
+          </p>
+          <div class="grid">
+            <label
+              >Payment fee (% of selling price)<input
+                id="fee"
+                type="number"
+                min="0"
+                max="100"
+                step="any"
+                required
+            /></label>
+            <label
+              >Other operating costs per unit ($)<input
+                id="other"
+                type="number"
+                min="0"
+                step="any"
+                required
+            /></label>
+          </div>
+          <p class="hint">Enter 0 for any cost that doesn’t apply. Count each expense once.</p>
+          <div id="practice" hidden>
+            <p id="practicePrompt"></p>
+            <button id="reveal" type="button" class="quiet">Show CM3</button>
+          </div>
+          <p class="rung" id="cm3" aria-live="polite"></p>
+        </section>
+        <section class="panel" id="results" hidden>
+          <h2>Your contribution margin ladder</h2>
+          <div id="waterfall" aria-hidden="true"></div>
+          <div id="ladderTable"></div>
+          <p id="interpretation"></p>
+        </section>
+        <section class="panel">
+          <h2>What did you learn about this sale?</h2>
+          <label
+            >Which cost would you work on first, and why?<textarea
+              id="reflection"
+              placeholder="Use a figure from your ladder to explain your choice."
+            ></textarea>
+          </label>
+          <label
+            >Where did your estimates come from?<textarea
+              id="evidence"
+              placeholder="For example, a supplier quote, a similar product’s price, or a guess you still need to check."
+            ></textarea>
+          </label>
+          <button type="button" id="coach" class="quiet">Ask for feedback</button>
+          <small> Sends your worksheet to the AI coach.</small>
+          <p id="feedback" role="status"></p>
+        </section>
+        <div class="actions">
+          <button id="print" type="submit">Print worksheet</button
+          ><button id="download" type="submit" class="quiet">Download Markdown</button>
+        </div>
+        <p id="status" role="status"></p>
+      </form>
       <footer><span id="saved"></span><button id="reset" class="quiet">Start over</button></footer>
+      <details id="legacy" hidden>
+        <summary>Earlier worksheet</summary>
+        <p>You have a saved copy of the previous exercise on this device.</p>
+        <button id="legacyDownload" class="quiet">Download earlier answers</button>
+      </details>
     </main>
     <dialog id="config">
       <form method="dialog">
         <h2>AI settings</h2>
-        <p>Requesting assistance sends this exercise’s context to the selected service.</p>
-        <label>Responses endpoint<input id="endpoint" type="url" /></label
+        <label>Responses endpoint<input type="url" id="endpoint" required /></label
         ><label
           >API key for direct OpenAI access<input
-            id="apiKey"
             type="password"
+            id="apiKey"
             autocomplete="off" /></label
         ><label class="check"
-          ><input id="remember" type="checkbox" /> Remember my key on this device</label
+          ><input type="checkbox" id="remember" /> Remember my key on this device</label
         >
-        <p>
-          <button value="save">Save settings</button>
-          <button value="cancel" class="quiet">Cancel</button>
-        </p>
+        <div class="actions">
+          <button value="save">Save settings</button
+          ><button value="cancel" class="quiet" formnovalidate>Cancel</button>
+        </div>
       </form>
     </dialog>
-    <noscript>Enable JavaScript to use the worksheet and calculator.</noscript>
-    <script type="module" src="venture/app.mjs"></script>
+    <article id="printout" hidden></article>
+    <noscript>Enable JavaScript to calculate your margins.</noscript>
+    <script type="module" src="venture/ladder.mjs"></script>
   </body>
 </html>
