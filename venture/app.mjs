@@ -232,6 +232,7 @@ function fieldView(f, { locked = false, note = true } = {}) {
   return box;
 }
 const context = [
+  { id: 'team', label: 'Team members (optional)', type: 'text', optional: true },
   { id: 'company', label: 'What does your company sell, and to whom?', type: 'textarea' },
   { id: 'scenario', label: ex.scenario, type: 'textarea', optional: kind === 'channels' },
 ];
@@ -693,14 +694,129 @@ function updatePreview() {
     const print = $('printout') || el('article');
     print.id = 'printout';
     print.hidden = true;
-    print.replaceChildren(el('h1', ex.topic + ' decision brief'));
-    for (const [title, lines] of sections) print.append(el('h2', title), el('pre', lines.join('\n')));
+    print.replaceChildren(printSheet());
     document.body.append(print);
   } catch (e) {
     dest.textContent = e.message;
     $('printout')?.remove();
   }
 }
+// The printout follows the course exercise sheets, like the margin and funding pages.
+function sheetBox(number, title, hintText, ...content) {
+  const box = el('section', null, 'sh-box');
+  const head = el('div', null, 'sh-boxhead');
+  head.append(el('span', number + ' · ' + title), el('span', hintText, 'sh-hint'));
+  const body = el('div', null, 'sh-body');
+  body.append(...content);
+  box.append(head, body);
+  return box;
+}
+function sheetTable(t) {
+  const table = el('table', null, 'sh-table');
+  const tr = table.createTHead().insertRow();
+  for (const label of t.head) tr.append(el('th', label));
+  const body = table.createTBody();
+  for (const row of t.rows) {
+    const r = body.insertRow();
+    row.forEach((v, i) => r.append(el(i ? 'td' : 'th', v)));
+  }
+  return table;
+}
+function sheetText(text, lines = 3) {
+  if (String(text).trim()) return el('p', String(text).trim(), 'sh-answer');
+  const blank = el('div', null, 'sh-lines');
+  for (let i = 0; i < lines; i++) blank.append(el('span'));
+  return blank;
+}
+function sheetRows(rows) {
+  const list = el('dl', null, 'sh-rows');
+  for (const [term, value, total] of rows) {
+    const row = el('div', null, total ? 'sh-total' : '');
+    row.append(el('dt', term), el('dd', value));
+    list.append(row);
+  }
+  return list;
+}
+function printSheet() {
+  const sheet = el('div', null, 'sheet');
+  const head = el('header', null, 'sh-head');
+  const titles = el('div');
+  titles.append(
+    el('p', 'ENTP 311 · Go to market · ' + ex.topic, 'sh-kicker'),
+    el('h1', ex.title, 'sh-title'),
+  );
+  const meta = el('p', null, 'sh-meta');
+  meta.append(
+    el('span', 'EWU · Launching the venture'),
+    el('br'),
+    el('span', 'Group exercise · slides 10–12'),
+  );
+  head.append(titles, meta);
+  const ids = el('div', null, 'sh-ids');
+  const today = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date());
+  for (const [label, value] of [
+    ['Team', get('team')],
+    ['Venture', get('company')],
+    ['Date', today],
+  ]) {
+    const box = el('div', null, 'sh-id');
+    box.append(el('span', label), el('strong', value));
+    ids.append(box);
+  }
+  const revised = checkedLab();
+  const grid = el('div', null, 'sh-grid');
+  const span = (box, ...extra) => {
+    box.classList.add('sh-span', ...extra);
+    return box;
+  };
+  const prediction = ex.predict.map((f) => get(f.id)).join(' ');
+  const test = channelName(get('testChannel'));
+  let notes = [];
+  try {
+    notes = experimentNotes(channelExperiment(get));
+  } catch {
+    // The live experiment panel explains any edits needed before printing.
+  }
+  const testBody = [
+    sheetRows([
+      ['Channel', test],
+      ['What we ask people to do', get('cta')],
+      ['When', get('window')],
+      ['Budget', get('testBudget') === '' ? '' : money(Number(get('testBudget')))],
+      ['Pass mark: new customers', get('pass'), true],
+    ]),
+  ];
+  if (notes.length) {
+    const list = el('ul', null, 'sh-notes');
+    for (const note of notes) list.append(el('li', note));
+    testBody.push(list);
+  }
+  grid.append(
+    span(sheetBox(1, 'Our two channels', 'From the same trial for each', sheetTable(revised.tables[0]))),
+    sheetBox(2, 'Our prediction', 'Before the calculation', sheetText(prediction)),
+    sheetBox(3, 'The limit we tested', 'A practical constraint', sheetText(get('constraint'))),
+    span(
+      sheetBox(
+        4,
+        'Budget allocation',
+        'Original and revised',
+        sheetTable(revised.tables[1]),
+        el('p', revised.notes[0] || '', 'sh-small'),
+      ),
+    ),
+    span(sheetBox(5, 'Our test', 'What would make it worth repeating', ...testBody), 'sh-result'),
+    sheetBox(6, 'Why this split', 'And why each channel can deliver', sheetText(get('decision'))),
+    sheetBox(7, 'If we miss', 'What we will try next', sheetText(get('next'))),
+  );
+  if (s.coach)
+    grid.append(
+      span(sheetBox(8, 'A question from the AI coach', 'Talk it through as a group', sheetText(s.coach))),
+    );
+  sheet.append(head, ids, grid);
+  return sheet;
+}
+const channelName = (choice) =>
+  choice ? get((choice === 'Channel 1' ? 'a' : 'b') + 'Name') || choice : '';
 function download() {
   const md =
     '# ' +
