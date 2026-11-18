@@ -24,21 +24,28 @@ function channelGroups() {
     group(
       'Budget and customer',
       num('budget', 'Available test budget ($)', positive),
-      field('customer', 'What counts as a new paying customer?'),
+      field('customer', 'What counts as a first-time paying customer?', 'text', {
+        help: 'Count a person once, when they make their first purchase.',
+      }),
     ),
     ...channelIds.map((id, i) =>
       group(
         'Channel ' + (i + 1),
         field(id + 'Name', 'Channel name'),
         ...rowsFor(id, [
-          ['Spend', 'Amount spent or budgeted ($)'],
-          ['Reach', 'People reached', count],
-          ['Won', 'New paying customers', count],
+          ['Spend', 'Cost of the trial ($)'],
+          ['Reach', 'People reached in that trial', count],
+          ['Won', 'First-time paying customers from that trial', count],
         ]),
-        choice(id + 'Type', 'How do you buy this channel?', ['Flexible dollars', 'Whole bookings']),
+        field(id + 'Type', 'How do you pay for this channel?', 'select', {
+          choices: ['Flexible dollars', 'Whole bookings'],
+          help: 'For ads, printing, or other costs you can vary, use flexible dollars. For a booth or an event with a set price, use whole bookings.',
+        }),
         num(id + 'Rate', 'Cost per booking ($)', { ...positive, when: [id + 'Type', 'Whole bookings'] }),
-        field(id + 'LimitText', 'What limits how much this channel can deliver?'),
-        num(id + 'Initial', 'Initial allocation (dollars or number of bookings)'),
+        field(id + 'LimitText', 'Known limit (optional)', 'text', optional),
+        num(id + 'Initial', 'Initial allocation (dollars or number of bookings)', {
+          help: 'Enter dollars for flexible spending or the number of bookings for a channel with a set price. Enter 0 to leave it unfunded.',
+        }),
       ),
     ),
     group(
@@ -52,22 +59,26 @@ function channelGroups() {
     ),
   ];
 }
+function channelMetrics(get) {
+  return channelIds.map((id) => channel(get(id + 'Spend'), get(id + 'Reach'), get(id + 'Won')));
+}
+function channelPlan(get, metrics, revised) {
+  return allocation(
+    get('budget'),
+    metrics,
+    channelIds.map((id) => ({
+      name: get(id + 'Name'),
+      type: get(id + 'Type') === 'Whole bookings' ? 'bookings' : 'dollars',
+      rate: get(id + 'Rate'),
+      quantity: get(id + (revised ? 'Revised' : 'Initial')),
+      cap: revised ? get(id + 'Cap') : '',
+    })),
+  );
+}
 function channelResult(s, get, lab) {
-  const metrics = channelIds.map((id) => channel(get(id + 'Spend'), get(id + 'Reach'), get(id + 'Won')));
-  const plan = (revised) =>
-    allocation(
-      get('budget'),
-      metrics,
-      channelIds.map((id) => ({
-        name: get(id + 'Name'),
-        type: get(id + 'Type') === 'Whole bookings' ? 'bookings' : 'dollars',
-        rate: get(id + 'Rate'),
-        quantity: get(id + (revised ? 'Revised' : 'Initial')),
-        cap: revised ? get(id + 'Cap') : '',
-      })),
-    );
-  const original = plan(false),
-    updated = lab ? plan(true) : null;
+  const metrics = channelMetrics(get);
+  const original = channelPlan(get, metrics, false);
+  const updated = lab ? channelPlan(get, metrics, true) : null;
   const tables = [
     {
       title: 'Channel performance',
@@ -87,39 +98,127 @@ function channelResult(s, get, lab) {
       ]),
     },
   ];
-  const line = (l) =>
+  const line = (l, i) =>
     money(l.spend) +
     ' · ' +
-    (l.customers === null ? 'no spend-based forecast' : fmt(l.customers) + ' expected new customers');
+    (metrics[i].cac > 0 ? fmt(l.customers) + ' expected new customers' : 'no spend-based forecast');
   tables.push({
     title: 'Budget allocation',
     head: ['Channel', 'Original', ...(lab ? ['Revised'] : [])],
     rows: [
-      ...original.lines.map((l, i) => [l.name, line(l), ...(lab ? [line(updated.lines[i])] : [])]),
+      ...original.lines.map((l, i) => [l.name, line(l, i), ...(lab ? [line(updated.lines[i], i)] : [])]),
       ['Unspent', money(original.unspent), ...(lab ? [money(updated.unspent)] : [])],
     ],
   });
   const notes = [
-    'Projected customers = planned spend ÷ historical CAC. This assumes the channel performs at the same rate at the new spending level.',
+    'Projected customers = planned spend ÷ the trial’s customer acquisition cost (CAC). This assumes each channel performs at the same rate as spending changes. If you entered estimates, the forecast depends on those estimates.',
   ];
   for (const [i, m] of metrics.entries())
     if (m.cac === null || !m.cac)
       notes.push(
         get(channelIds[i] + 'Name') +
           ': ' +
-          (m.cac === null ? 'No new customers were recorded.' : 'Historical spend was zero.') +
-          ' A paid acquisition forecast needs a measured, positive CAC.',
+          (m.cac === null ? 'The trial has no paying customers.' : 'The trial has no spending.') +
+          ' A spending forecast needs both a positive cost and paying customers.',
       );
-  if ([get('orderValue'), get('orders'), get('orderMargin')].some((v) => v !== '')) {
-    const orders = number(get('orders'), 'expected lifetime orders'),
-      price = number(get('orderValue'), 'average order revenue');
-    notes.push('Lifetime revenue per customer = ' + money(price * orders) + '.');
-    if (get('orderMargin') !== '')
-      notes.push(
-        'Lifetime contribution before acquisition = ' + money(Number(get('orderMargin')) * orders) + '.',
-      );
+  if (get('orders') !== '' && get('orderValue') !== '') {
+    notes.push(
+      'Lifetime revenue per customer = ' +
+        money(Number(get('orders')) * Number(get('orderValue'))) +
+        '.',
+    );
+  }
+  if (get('orders') !== '' && get('orderMargin') !== '') {
+    notes.push(
+      'Lifetime contribution before acquisition = ' +
+        money(Number(get('orders')) * Number(get('orderMargin'))) +
+        '.',
+    );
   }
   return { tables, notes };
+}
+export function channelExperiment(get) {
+  const selected = get('testChannel');
+  if (!selected || get('testBudget') === '') return null;
+  const index = selected === 'Channel 1' ? 0 : 1;
+  const id = channelIds[index];
+  const name = get(id + 'Name');
+  const spend = number(get('testBudget'), 'test budget');
+  const budgetError = (message) => {
+    const error = Error(message);
+    error.fieldId = 'testBudget';
+    return error;
+  };
+  const metrics = channelMetrics(get);
+  const line = channelPlan(get, metrics, true).lines[index];
+  if (spend - line.spend > 1e-8) {
+    throw budgetError(
+      'The test budget exceeds the ' +
+        money(line.spend) +
+        ' set aside for ' +
+        name +
+        '. Reduce the test budget or change your revised allocation.',
+    );
+  }
+  if (get(id + 'Type') === 'Whole bookings') {
+    const bookings = spend / Number(get(id + 'Rate'));
+    if (bookings < 1 || Math.abs(bookings - Math.round(bookings)) > 1e-8) {
+      throw budgetError(
+        'The test budget for ' +
+          name +
+          ' must cover at least one whole booking at ' +
+          money(Number(get(id + 'Rate'))) +
+          ' each.',
+      );
+    }
+  }
+  const target =
+    get('pass') === '' ? null : number(get('pass'), 'first-time customer target', positiveCount);
+  const trial = metrics[index];
+  return {
+    name,
+    spend,
+    allocation: line.spend,
+    trialCac: trial.cac,
+    forecast: spend > 0 && trial.cac > 0 ? spend / trial.cac : null,
+    target,
+    targetCac: target && spend > 0 ? spend / target : null,
+  };
+}
+export function experimentNotes(test) {
+  if (!test) return [];
+  const notes = [
+    test.name +
+      ' has ' +
+      money(test.allocation) +
+      ' in the revised plan. This test uses ' +
+      money(test.spend) +
+      '.',
+  ];
+  if (test.forecast !== null) {
+    notes.push(
+      'At the trial’s acquisition cost, this test would bring in about ' +
+        fmt(test.forecast) +
+        ' first-time paying customers.',
+    );
+  } else {
+    notes.push(
+      'There is no spending forecast for this test. Use the test to measure how many first-time customers buy.',
+    );
+  }
+  if (test.targetCac !== null) {
+    notes.push(
+      'At this budget, getting ' +
+        fmt(test.target) +
+        ' first-time paying customers means spending at most ' +
+        money(test.targetCac) +
+        ' per customer.',
+    );
+  }
+  if (test.target !== null && test.forecast !== null && test.target - test.forecast > 1e-8) {
+    notes.push('Your target is higher than the forecast. What has to improve to reach it?');
+  }
+  return notes;
 }
 const dealFields = [
   ['investment', 'Investment ($)', positive],
@@ -194,13 +293,13 @@ export const assignments = {
     lab: (s, get) => [
       group(
         'Test a practical limit',
-        area('constraint', 'What limits how much you can spend or how many people you can reach?'),
+        area('constraint', 'What limit will you test? For example, only one market stall is available.'),
       ),
       ...channelIds.map((id) => {
         const units = get(id + 'Type') === 'Whole bookings' ? 'bookings' : 'dollars';
         return group(
           get(id + 'Name'),
-          num(id + 'Cap', 'Maximum ' + units + ' available (set at least one channel limit)', {
+          num(id + 'Cap', 'Maximum ' + units + ' available (optional)', {
             optional: true,
             integer: units === 'bookings',
           }),
@@ -216,11 +315,13 @@ export const assignments = {
         'Why did you split the budget this way? What makes you think each channel can bring in those customers?',
       ),
       choice('testChannel', 'Which channel will you test?', ['Channel 1', 'Channel 2']),
-      field('cta', 'Call to action'),
-      num('testBudget', 'Experiment budget ($)'),
+      field('cta', 'What will you ask people to do?', 'text', {
+        help: 'For example, scan the flyer’s QR code and buy their first cup.',
+      }),
+      num('testBudget', 'Budget for this test ($)'),
       field('window', 'When will you run the test?'),
       num('pass', 'How many new customers would make the test worth repeating?', positiveCount),
-      area('next', 'If fewer customers buy than you expected, what will you try next?'),
+      area('next', 'If you miss your customer target, what will you try next?'),
     ],
     fallback:
       'Which part of your revised allocation relies on untested reach or capacity? What result would make you stop spending?',
@@ -269,9 +370,15 @@ export function validateFields(fields, get) {
     if (!active(f, get)) continue;
     const value = get(f.id);
     if (!String(value).trim() && f.optional) continue;
-    if (f.type === 'number') number(value, f.label, f);
-    else if (!String(value).trim() || (f.choices && !f.choices.includes(value)))
-      throw Error('Complete “' + f.label + '”.');
+    try {
+      if (f.type === 'number') number(value, f.label, f);
+      else if (!String(value).trim() || (f.choices && !f.choices.includes(value))) {
+        throw Error('Complete “' + f.label + '”.');
+      }
+    } catch (error) {
+      error.fieldId = f.id;
+      throw error;
+    }
   }
 }
 export { money, fmt };
