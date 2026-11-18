@@ -28,6 +28,41 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
           body: 'Unavailable',
           headers: { 'Access-Control-Allow-Origin': '*' },
         });
+      if (name === 'venture_channels_draft') {
+        const eligible = new Set(context.eligible.map(({ id }) => id));
+        const firstReply = eligible.has('aSpend');
+        const figures = firstReply
+          ? {
+              budget: '$999',
+              aName: 'Social ads',
+              aSpend: '300',
+              aWon: '5,000',
+              aType: 'Flexible dollars',
+              aRate: '99',
+              bName: 'Repair clinics',
+              bSpend: '$120',
+              bReach: '200',
+              bWon: '12',
+              bType: 'Whole bookings',
+              bRate: '120',
+              orderValue: '200',
+              aInitial: '999',
+            }
+          : { aWon: '0' };
+        const output = {
+          suggestions: emptyEstimates
+            ? []
+            : Object.entries(figures).map(([id, value]) => ({
+                id,
+                value,
+                origin: 'estimate',
+                quote: '',
+                rationale: 'An illustrative assumption for one trial.',
+              })),
+          questions: [],
+        };
+        return route.fulfill({ json: { output_text: JSON.stringify(output) } });
+      }
       const output =
         name === 'venture_margin_draft' && emptyEstimates
           ? { suggestions: [], questions: ['How many units can you make?'] }
@@ -120,7 +155,10 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
       assert.ok((await page.locator('#preview').innerText()).includes('Decision and next step'));
       failure = true;
       await button('Ask for coaching');
-      await page.locator('#status').filter({ hasText: '503' }).waitFor();
+      const feedbackStatus = (await page.locator('#channelCoachStatus').count())
+        ? '#channelCoachStatus'
+        : '#status';
+      await page.locator(feedbackStatus).filter({ hasText: '503' }).waitFor();
       failure = false;
       const promise = page.waitForEvent('download', { timeout: 5000 });
       await button('Download Markdown');
@@ -328,32 +366,63 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     await fillMargin('cost', '');
     assert.equal(await page.locator('#results').isVisible(), false);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-    await start('channels', 'We repair bicycles for commuters.', 'Should we buy events or social ads?');
+    await start('channels', 'We repair bicycles for commuters.', '');
+    await fields({ budget: 500, customer: 'A new customer paying for a tune-up', aReach: 3000 });
+    failure = true;
+    await button('Draft from my description');
+    await page.locator('#channelDraftStatus').filter({ hasText: '503' }).waitFor();
+    assert.equal(await page.locator('#f-budget').inputValue(), '500');
+    failure = false;
+    emptyEstimates = true;
+    await button('Draft from my description');
+    await page.locator('#channelDraftStatus').filter({ hasText: 'no usable figures' }).waitFor();
+    emptyEstimates = false;
+    await button('Draft from my description');
+    await page.locator('#channelDraftStatus').filter({ hasText: 'Review suggested figures' }).waitFor();
+    await page.reload();
+    assert.equal(await page.locator('#f-budget').inputValue(), '500');
+    assert.equal(await page.locator('#proposal-budget').count(), 0);
+    assert.equal(await page.locator('#proposal-aRate').count(), 0);
+    assert.equal(await page.locator('#proposal-aInitial').count(), 0);
+    assert.equal(await page.locator('#proposal-orderValue').count(), 0);
+    assert.equal(await page.locator('#proposal-bRate').isVisible(), false);
+    assert.equal(await page.locator('#proposal-aWon input').inputValue(), '0');
+    assert.deepEqual(
+      requests
+        .filter((r) => r.mode === 'venture_channels_draft')
+        .at(-1)
+        .context.eligible.map((f) => f.id),
+      ['aWon'],
+    );
+    for (const id of [
+      'aName',
+      'aSpend',
+      'aWon',
+      'aType',
+      'bName',
+      'bSpend',
+      'bReach',
+      'bWon',
+      'bType',
+      'bRate',
+    ]) {
+      const use = page.locator('#proposal-' + id).getByRole('button', { name: 'Edit and accept' });
+      assert.equal(await page.locator('#f-' + id).inputValue(), '');
+      await keyboardFocus(use);
+      await page.keyboard.press('Enter');
+      assert.equal(await page.locator('#proposal-' + id).count(), 0);
+    }
     await fields({
-      budget: 500,
-      customer: 'A new customer paying for a tune-up',
-      aName: 'Social ads',
-      aSpend: 300,
-      aReach: 3000,
-      aWon: 0,
-      aType: 'Flexible dollars',
-      aLimitText: 'Local audience size',
       aInitial: 140,
-      bName: 'Repair clinics',
-      bSpend: 120,
-      bReach: 200,
-      bWon: 12,
-      bType: 'Whole bookings',
-      bRate: 120,
-      bLimitText: 'One booking next week',
       bInitial: 2,
       orderValue: 50,
-      orders: 3,
-      orderMargin: 10,
       forecast: 'Events should be cheaper. 12/200 is 6%, and 120/12 is $10. Ads won zero.',
     });
     await seal();
-    assert.match(await page.locator('#page').innerText(), /no customers/i);
+    const comparison = await page.locator('#page').innerText();
+    assert.match(comparison, /no (?:paying )?customers/i);
+    assert.match(comparison, /\$120.00 ÷ 12 = \$10.00/);
+    assert.doesNotMatch(comparison, /Lifetime revenue per customer/);
     await fields({ constraint: 'One clinic booking is available.', bCap: 1, bRevised: 1 });
     assert.match(await page.locator('#labOutput').innerText(), /\$240.00/);
     await button('Defend your decision');
@@ -361,12 +430,43 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
       decision: 'Fund one clinic; test the ads separately.',
       testChannel: 'Channel 2',
       cta: 'Book a tune-up',
-      testBudget: 120,
+      testBudget: 60,
       window: 'Next ten days',
-      pass: 9,
+      pass: 15,
       next: 'Revisit the location.',
     });
+    assert.match(
+      await page.locator('#experimentCheck').innerText(),
+      /must cover at least one whole booking/,
+    );
+    await enter('testBudget', 120);
+    assert.match(
+      await page.locator('#experimentCheck').innerText(),
+      /about 12 first-time paying customers/,
+    );
+    assert.match(await page.locator('#experimentCheck').innerText(), /target is higher/);
+    await button('Ask for coaching');
+    await page.locator('#coachNote').waitFor();
+    const coach = requests.findLast((r) => r.mode === 'venture_channels_coach').context;
+    assert.deepEqual(coach.experiment, {
+      name: 'Repair clinics',
+      spend: 120,
+      allocation: 120,
+      trialCac: 10,
+      forecast: 12,
+      target: 15,
+      targetCac: 8,
+    });
+    assert.equal(coach.calculations, undefined);
     await finish('Book a tune-up');
+    await button('Worksheet');
+    await button('Correct original inputs');
+    await enter('aReach', 2500);
+    await seal();
+    assert.equal(await page.locator('#f-constraint').inputValue(), 'One clinic booking is available.');
+    await button('Defend your decision');
+    assert.equal(await page.locator('#f-cta').inputValue(), 'Book a tune-up');
+    assert.equal(await page.locator('#coachNote').count(), 0);
     await start(
       'funding',
       'We sell refill kits to campus labs.',

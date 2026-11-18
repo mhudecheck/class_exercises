@@ -26,7 +26,7 @@ export async function assist(mode, input, settings, signal) {
     if (!settings.key) throw Error('Enter your API key in AI settings.');
     headers.Authorization = 'Bearer ' + settings.key;
   }
-  const isDraft = mode === 'draft' || mode === 'margin_draft';
+  const isDraft = ['draft', 'margin_draft', 'channels_draft'].includes(mode);
   const marginDraft = [
     'Help an undergraduate estimate the missing figures for a contribution margin worksheet.',
     'Make cost per unit (cost) and selling price (price) your first priority. When a recognizable product or service is named and either field is eligible, give an illustrative figure for that field even if the student gives only the product name. Choose a reasonable size, setting, and sales format. State your assumptions and how the student can check them. For a cup of coffee, for example, assume a size and sales setting, itemize beans, supplies, and labor, and suggest what to charge for that same cup. Mark those figures as estimates.',
@@ -36,15 +36,32 @@ export async function assist(mode, input, settings, signal) {
     'If the student gives an exact amount for that field, preserve it and use origin stated with the exact quote. If you derive a figure or make an assumption, use origin estimate and leave quote empty.',
     'If a stated amount has an unclear unit or could refer to several rows, ask what it covers and leave that field unanswered.',
   ].join(' ');
+  const channelsDraft = [
+    'Help an undergraduate plan a small customer acquisition experiment for their venture. Return suggestions for the eligible worksheet fields, following the student’s actual venture and stated channels. When they have named fewer than two channels, suggest practical options where they could reach those customers.',
+    'An exercise can be hypothetical. For each missing trial spend, reach, and first-time paying buyer count, propose a concrete illustrative set for one small trial. Explain the assumptions briefly. Treat spend, unique people reached, and first-time paying customers as figures from that same trial. Use whole counts, with buyers no more than reach. Never imply that an estimate was observed.',
+    'Use a stated test budget if clearly provided. Otherwise suggest one modest budget suited to the venture. Treat the test budget as the amount available to allocate next. It is separate from the trial figures used to estimate a channel’s performance.',
+    'For a stall, venue, or event sold at a fixed price, suggest Whole bookings and the cost of one booking. For flexible spending, choose Flexible dollars and omit the booking rate. Give reasonable amounts in the budget’s currency (US dollars).',
+    'Use only exact eligible field IDs and choices. Return numeric values as plain numbers in strings. Existing and reviewed figures are given for context. Never overwrite or change them. When a stated number has a clear meaning, copy the exact supporting phrase into quote and mark origin stated. If the student gives an ambiguous amount, ask about it. Otherwise use origin estimate and leave quote empty.',
+    'Ask at most two specific questions only when the student’s description makes an estimate ambiguous. Offer useful values now even if the student has no historical data. Leave the prediction, budget allocation, and final decision to the student.',
+  ].join(' ');
+  const channelsCoach = [
+    'Coach this student with one question of at most 60 words about their customer acquisition experiment.',
+    'Use the selected experiment’s channel, budget, forecast and target from experiment when available. Its figures cover only that one test and may differ from the full revised allocation. If the target exceeds the forecast, ask what change could close that specific gap. If no spend forecast is available, ask how they will measure their early results.',
+    'If the test details are incomplete, focus on one missing decision that would make the test measurable. Use the student’s own reasoning and stated limit. Do not combine channels, recalculate, invent results, give a grade, or write the student’s answer.',
+  ].join(' ');
+  const specificTask = {
+    margin_draft: marginDraft,
+    channels_draft: channelsDraft,
+    channels_coach: channelsCoach,
+  }[mode];
   const task =
-    mode === 'margin_draft'
-      ? marginDraft
-      : mode === 'draft'
-        ? 'Draft a concise worksheet for this student and their own venture. For each eligible empty field propose an editable value as a string. Use exact field IDs, choices, units and bases. Respect stated facts and copy the exact supporting phrase into quote with origin stated. For an estimate, use origin estimate, an empty quote, and explain why it may fit and what to check. If a stated value has ambiguous units or meaning (for example $80 with no billing unit), ask a clarifying question and omit every affected field; never replace it with a guess. Do not suggest predictions, decisions or a different company. Omit optional values without context.'
-        : (mode === 'investor'
-            ? 'Role-play the prospective investor. Ask one pointed question about the latest counteroffer or evidence, building on the last student message and prior turns.'
-            : 'Coach this student. Ask one specific question that challenges the reasoning in their decision, tied to their own figures or practical constraint.') +
-          ' Use only the supplied confirmed figures and calculator results. Do not recalculate, invent terms, supply an answer, or grade. Maximum 60 words.';
+    specificTask ??
+    (mode === 'draft'
+      ? 'Draft a concise worksheet for this student and their own venture. For each eligible empty field propose an editable value as a string. Use exact field IDs, choices, units and bases. Respect stated facts and copy the exact supporting phrase into quote with origin stated. For an estimate, use origin estimate, an empty quote, and explain why it may fit and what to check. If a stated value has ambiguous units or meaning (for example $80 with no billing unit), ask a clarifying question and omit every affected field; never replace it with a guess. Do not suggest predictions, decisions or a different company. Omit optional values without context.'
+      : (mode === 'investor'
+          ? 'Role-play the prospective investor. Ask one pointed question about the latest counteroffer or evidence, building on the last student message and prior turns.'
+          : 'Coach this student. Ask one specific question that challenges the reasoning in their decision, tied to their own figures or practical constraint.') +
+        ' Use only the supplied confirmed figures and calculator results. Do not recalculate, invent terms, supply an answer, or grade. Maximum 60 words.');
   const body = {
     model: 'gpt-6-luna',
     reasoning: { effort: 'low' },

@@ -1,5 +1,19 @@
-import { assignments, active, validateFields, money, fmt } from './assignments.mjs';
-import { assist, defaultEndpoint, quoteContainsValue } from './assist.mjs';
+import {
+  assignments,
+  active,
+  validateFields,
+  money,
+  fmt,
+  channelExperiment,
+  experimentNotes,
+} from './assignments.mjs?v=3';
+import {
+  channelDraftFields,
+  checkChannelCounts,
+  missingChannelDraftFields,
+  reviewChannelDraft,
+} from './channel-draft.mjs';
+import { assist, defaultEndpoint, quoteContainsValue } from './assist.mjs?v=3';
 const kind = document.body.dataset.exercise,
   ex = assignments[kind];
 const key = 'venture_decision_v1_' + kind;
@@ -75,8 +89,29 @@ function button(label, action, secondary = false) {
   return b;
 }
 function error(e) {
-  $('status').textContent = e.message || String(e);
-  $('status').scrollIntoView({ block: 'nearest' });
+  const old = $('fieldError');
+  if (old) {
+    const input = old.closest('.field').querySelector('[aria-invalid=true]');
+    input?.removeAttribute('aria-invalid');
+    if (input?.dataset.help) input.setAttribute('aria-describedby', input.dataset.help);
+    else input?.removeAttribute('aria-describedby');
+    old.remove();
+  }
+  const message = e.message || String(e);
+  const field = e.fieldId && $('f-' + e.fieldId);
+  if (field && !field.disabled) {
+    const feedback = el('p', message, 'note');
+    feedback.id = 'fieldError';
+    feedback.setAttribute('role', 'alert');
+    field.closest('.field').append(feedback);
+    field.setAttribute('aria-invalid', 'true');
+    field.setAttribute('aria-describedby', [field.dataset.help, feedback.id].filter(Boolean).join(' '));
+    $('status').textContent = '';
+    field.focus();
+  } else {
+    $('status').textContent = message;
+    $('status').scrollIntoView({ block: 'nearest' });
+  }
 }
 function panel(title) {
   const section = el('section', null, 'panel');
@@ -119,6 +154,13 @@ function fieldView(f, { locked = false, note = true } = {}) {
     ctl.value = get(f.id);
   }
   box.append(labeled(f.label, ctl));
+  if (f.help) {
+    const explanation = hint(f.help);
+    explanation.id = 'help-' + f.id;
+    ctl.dataset.help = explanation.id;
+    ctl.setAttribute('aria-describedby', explanation.id);
+    box.append(explanation);
+  }
   let sourceTitle, sourceSelect, sourceNote;
   if (f.type === 'number' && note) {
     const d = el('details');
@@ -153,8 +195,17 @@ function fieldView(f, { locked = false, note = true } = {}) {
     d.append(sourceTitle, body);
     box.append(d);
   }
+  if (kind === 'channels' && !locked && !get(f.id)) {
+    const proposal = s.pending.find((item) => item.id === f.id);
+    if (proposal) box.append(proposalView(proposal));
+  }
   ctl.addEventListener('input', () => {
+    const previous = get(f.id);
     set(f.id, ctl.value);
+    if (ctl.hasAttribute('aria-invalid')) box.querySelector('#fieldError')?.remove();
+    ctl.removeAttribute('aria-invalid');
+    if (ctl.dataset.help) ctl.setAttribute('aria-describedby', ctl.dataset.help);
+    else ctl.removeAttribute('aria-describedby');
     if (sourceTitle) {
       sourceTitle.textContent = sourceNames[s.fields[f.id].source];
       sourceSelect.value = s.fields[f.id].source;
@@ -170,11 +221,13 @@ function fieldView(f, { locked = false, note = true } = {}) {
     if (s.step === 1) {
       s.pending = s.pending.filter((p) => p.id !== f.id);
       document.getElementById('proposal-' + f.id)?.remove();
+      if (kind === 'channels') updateChannelDraftAfterEdit(f.id, previous);
     }
     save();
     if (s.step === 2) updateLab();
     if (s.step === 3) {
       $('coachNote')?.remove();
+      updateChannelExperiment();
       updatePreview();
     }
   });
@@ -182,7 +235,7 @@ function fieldView(f, { locked = false, note = true } = {}) {
 }
 const context = [
   { id: 'company', label: 'What does your company sell, and to whom?', type: 'textarea' },
-  { id: 'scenario', label: ex.scenario, type: 'textarea' },
+  { id: 'scenario', label: ex.scenario, type: 'textarea', optional: kind === 'channels' },
 ];
 function allBase() {
   return ex.groups(s, get).flatMap((g) => g.fields);
@@ -213,6 +266,13 @@ function go(step) {
 function contextPage() {
   const p = panel('Your venture');
   p.append(gridFields(context, { locked: s.sealed }));
+  if (kind === 'channels') {
+    p.append(
+      hint(
+        'If you already have ideas for channels, include them above. You can leave that box blank and ask for ideas in the worksheet.',
+      ),
+    );
+  }
   p.append(
     actions(
       button('Open worksheet', () => {
@@ -232,30 +292,61 @@ function worksheet() {
     ),
   );
   if (!s.sealed) {
-    start.append(actions(button('Draft from my description', () => runAI('draft'), true)));
+    if (kind === 'channels') {
+      start.append(
+        hint(
+          'For each channel, use spending, reach, and new buyers from the same trial. If you haven’t run it yet, estimate all three for a trial you could do.',
+        ),
+      );
+    }
+    const draftButton = button('Draft from my description', () => runAI('draft'), true);
+    draftButton.id = 'askDraft';
+    start.append(actions(draftButton));
     start.append(
-      hint('The AI coach uses your description and worksheet. You choose which estimates to use.'),
+      hint(
+        kind === 'channels'
+          ? 'AI can suggest two channels and starting figures for their trials. Review each suggestion before using it, then decide how to split the budget.'
+          : 'The AI coach uses your description and worksheet. You choose which estimates to use.',
+      ),
     );
-    if (s.questions.length) start.append(el('p', s.questions.join(' '), 'note'));
-    for (const p of s.pending) if (!get(p.id)) start.append(proposalView(p));
+    if (kind === 'channels') {
+      const status = el(
+        'p',
+        s.pending.length ? 'Review suggested figures beside the worksheet fields below.' : '',
+      );
+      status.id = 'channelDraftStatus';
+      status.setAttribute('role', 'status');
+      start.append(status);
+      if (s.questions.length) {
+        const questions = el('ul', null, 'note');
+        questions.id = 'draftQuestions';
+        questions.append(...s.questions.map((question) => el('li', question)));
+        start.append(questions);
+      }
+    } else {
+      if (s.questions.length) start.append(el('p', s.questions.join(' '), 'note'));
+      for (const p of s.pending) if (!get(p.id)) start.append(proposalView(p));
+    }
   } else {
     start.append(hint('Your original worksheet and prediction are saved for comparison.'));
     start.append(
       button(
         'Correct original inputs',
         () => {
-          if (
-            !confirm(
-              'Keep your original entries for editing and clear the comparison, negotiation, and decision brief?',
+          if (kind !== 'channels') {
+            if (
+              !confirm(
+                'Keep your original entries for editing and clear the comparison, negotiation, and decision brief?',
+              )
             )
-          )
-            return;
-          const ids = new Set([...context, ...allBase(), ...ex.predict].map((f) => f.id));
-          s.fields = Object.fromEntries(Object.entries(s.fields).filter(([id]) => ids.has(id)));
+              return;
+            const ids = new Set([...context, ...allBase(), ...ex.predict].map((f) => f.id));
+            s.fields = Object.fromEntries(Object.entries(s.fields).filter(([id]) => ids.has(id)));
+            s.turns = [];
+            s.message = '';
+          }
           s.sealed = false;
           s.max = 1;
-          s.turns = [];
-          s.message = '';
           s.coach = '';
           go(1);
         },
@@ -266,6 +357,13 @@ function worksheet() {
   frag.append(start);
   for (const g of ex.groups(s, get)) {
     const section = panel(g.title);
+    if (kind === 'channels' && g.title.startsWith('Repeat business')) {
+      section.append(
+        hint(
+          'Skip this section unless you want to estimate what a customer is worth over multiple orders. Enter expected orders along with revenue, contribution, or both.',
+        ),
+      );
+    }
     section.append(gridFields(g.fields, { locked: s.sealed }));
     frag.append(section);
   }
@@ -276,11 +374,15 @@ function worksheet() {
       button(s.sealed ? 'View calculations' : 'Save prediction and check calculations', () => {
         validateFields(context, get);
         validateFields(allBase(), get);
+        if (kind === 'channels') {
+          for (const prefix of ['a', 'b']) checkChannelCounts(prefix, get);
+        }
         validateFields(ex.predict, get);
         ex.result(s, get, false);
         if (!s.sealed) {
-          for (const [id, value, origin] of ex.seed(s, get))
-            s.fields[id] = { ...s.fields[origin], v: value };
+          for (const [id, value, origin] of ex.seed(s, get)) {
+            if (!Object.hasOwn(s.fields, id)) s.fields[id] = { ...s.fields[origin], v: value };
+          }
           s.pending = [];
           s.questions = [];
           s.sealed = true;
@@ -293,16 +395,40 @@ function worksheet() {
   return frag;
 }
 function draftFields() {
-  return allBase()
-    .filter((f) => !get(f.id))
-    .map((f) => {
-      return {
-        id: f.id,
-        label: fieldLabel(f.id, f.label),
-        choices: f.choices,
-        condition: f.when,
-      };
+  const fields = allBase().map((f) => ({
+    id: f.id,
+    label: fieldLabel(f.id, f.label),
+    choices: f.choices,
+    condition: f.when,
+  }));
+  return kind === 'channels' ? channelDraftFields(fields, get) : fields.filter((f) => !get(f.id));
+}
+function updateChannelDraftAfterEdit(id, previous) {
+  if (!/^[ab](Name|Type)$/.test(id) || previous === get(id)) return;
+  const prefix = id[0];
+  if (id.endsWith('Name')) {
+    s.pending = s.pending.filter((proposal) => {
+      if (!proposal.id.startsWith(prefix) || !/^[ab][A-Z]/.test(proposal.id)) return true;
+      $('proposal-' + proposal.id)?.remove();
+      return false;
     });
+  } else if (previous) {
+    // A dollar amount and the same number of bookings represent different plans.
+    const allocations = ['Initial', 'Revised', 'Cap'].map((suffix) => prefix + suffix);
+    const changedUnits = allocations.some((field) => get(field) !== '');
+    for (const field of allocations) {
+      delete s.fields[field];
+      if ($('f-' + field)) $('f-' + field).value = '';
+    }
+    if (changedUnits) {
+      const status = $('channelDraftStatus');
+      if (status)
+        status.textContent =
+          'Re-enter the allocation for ' +
+          (get(prefix + 'Name') || 'this channel') +
+          ' in the new units.';
+    }
+  }
 }
 function fieldLabel(id, label) {
   if (kind === 'channels' && /^[ab][A-Z]/.test(id)) {
@@ -319,11 +445,19 @@ function proposalView(p) {
     el('strong', fieldLabel(p.id, f.label)),
     el(
       'p',
-      (p.origin === 'stated' ? 'From your description: “' + p.quote + '”. ' : 'AI estimate. ') +
-        p.rationale,
+      (p.origin === 'stated'
+        ? 'You wrote “' + p.quote + '” '
+        : f.type === 'number' || kind !== 'channels'
+          ? 'AI estimate. '
+          : 'AI suggestion. ') + p.rationale,
     ),
   );
   const ctl = el(f.choices ? 'select' : 'input');
+  if (f.type === 'number' && kind === 'channels') {
+    ctl.type = 'number';
+    ctl.step = f.integer ? '1' : 'any';
+    ctl.min = '0';
+  }
   if (f.choices)
     options(
       ctl,
@@ -331,11 +465,21 @@ function proposalView(p) {
       p.value,
     );
   else ctl.value = p.value;
-  box.append(labeled('Review suggested value', ctl));
+  box.append(
+    labeled(
+      kind === 'channels' ? 'Review suggested ' + f.label.toLowerCase() : 'Review suggested value',
+      ctl,
+    ),
+  );
   box.append(
     button('Edit and accept', () => {
       if (get(f.id)) throw Error('This field already contains a confirmed value.');
+      if (kind === 'channels' && !active(f, get))
+        throw Error('Choose the channel’s payment type first.');
       validateFields([{ ...f, when: null, optional: false }], () => ctl.value);
+      if (kind === 'channels' && /^[ab](Reach|Won)$/.test(f.id)) {
+        checkChannelCounts(f.id[0], (id) => (id === f.id ? ctl.value : get(id)));
+      }
       const revised = ctl.value !== p.value;
       s.fields[f.id] = {
         v: ctl.value,
@@ -350,8 +494,13 @@ function proposalView(p) {
           p.rationale,
       };
       s.pending = s.pending.filter((v) => v !== p);
+      if (kind === 'channels') {
+        if (revised && f.id.endsWith('Name')) updateChannelDraftAfterEdit(f.id, p.value);
+        s.pending = reviewChannelDraft(s.pending, get);
+      }
       save();
       render();
+      if (kind === 'channels') $('f-' + f.id)?.focus();
     }),
   );
   return box;
@@ -384,15 +533,21 @@ function resultView(result) {
 }
 function checkedLab() {
   validateFields(flatten(ex.lab(s, get)), get);
-  if (kind === 'channels' && !get('aCap') && !get('bCap'))
-    throw Error('Set a maximum for at least one channel in this round.');
+  if (kind === 'channels' && !get('aCap') && !get('bCap')) {
+    const error = Error('Enter a dollar or booking limit for at least one channel.');
+    error.fieldId = 'aCap';
+    throw error;
+  }
   return ex.result(s, get, true);
 }
 function updateLab() {
   const dest = $('labOutput');
   if (!dest) return;
   try {
-    dest.replaceChildren(resultView(checkedLab()));
+    const revised = checkedLab();
+    dest.replaceChildren(
+      resultView(kind === 'channels' ? { tables: revised.tables.slice(1), notes: [] } : revised),
+    );
   } catch (e) {
     dest.replaceChildren(hint(e.message));
   }
@@ -459,31 +614,36 @@ function investor() {
 function validateFinal() {
   checkedLab();
   validateFields(ex.final, get);
-  if (kind === 'channels') {
-    const i = get('testChannel') === 'Channel 1' ? 1 : 2;
-    if (Number(get('testBudget')) > Number(get('budget')))
-      throw Error('The experiment budget exceeds the available budget.');
-    const prefix = i === 1 ? 'a' : 'b';
-    const bookings = get(prefix + 'Type') === 'Whole bookings';
-    const available = Number(get(prefix + 'Revised')) * (bookings ? Number(get(prefix + 'Rate')) : 1);
-    if (Number(get('testBudget')) - available > 1e-8)
-      throw Error(
-        'The experiment budget exceeds the revised allocation for ' +
-          get(prefix + 'Name') +
-          '. Revise the allocation or reduce the test budget.',
-      );
-    if (bookings) {
-      const qty = Number(get('testBudget')) / Number(get(prefix + 'Rate'));
-      if (Math.abs(qty - Math.round(qty)) > 1e-8)
-        throw Error('The experiment budget must buy whole bookings.');
-    }
+  if (kind === 'channels') channelExperiment(get);
+}
+function updateChannelExperiment() {
+  const panel = $('experimentCheck');
+  if (!panel) return;
+  try {
+    panel.replaceChildren(...experimentNotes(channelExperiment(get)).map((text) => el('p', text)));
+  } catch (error) {
+    panel.replaceChildren(hint(error.message));
   }
+  panel.hidden = !panel.childElementCount;
 }
 function finalPage() {
   const frag = document.createDocumentFragment(),
     p = panel('Defend your decision');
   const fields = ex.final;
-  p.append(gridFields(fields), actions(button('Ask for coaching', () => runAI('coach'), true)));
+  p.append(gridFields(fields));
+  if (kind === 'channels') {
+    const check = el('div', null, 'note');
+    check.id = 'experimentCheck';
+    check.hidden = true;
+    p.append(check);
+  }
+  p.append(actions(button('Ask for coaching', () => runAI('coach'), true)));
+  if (kind === 'channels') {
+    const status = el('p', '');
+    status.id = 'channelCoachStatus';
+    status.setAttribute('role', 'status');
+    p.append(status);
+  }
   if (s.coach) {
     const note = el('p', s.coach, 'note');
     note.id = 'coachNote';
@@ -556,10 +716,16 @@ function brief() {
       s.turns.flatMap((t) => [t.terms, 'Founder — ' + t.student, 'Investor — ' + t.question]),
     ]);
   const decision = entries(ex.final);
-  if (kind === 'channels' && get('testChannel'))
+  if (kind === 'channels' && get('testChannel')) {
     decision.push(
       'Chosen test channel — ' + get((get('testChannel') === 'Channel 1' ? 'a' : 'b') + 'Name'),
     );
+    try {
+      decision.push(...experimentNotes(channelExperiment(get)));
+    } catch {
+      // The live experiment panel explains any edits needed before export.
+    }
+  }
   if (kind === 'funding' && get('outcome')) {
     const prefix = get('outcome') === 'Stand by the original offer' ? '' : 'counter';
     decision.push(
@@ -638,8 +804,10 @@ function render() {
   container.append([contextPage, worksheet, labPage, finalPage][s.step]());
   $('page').append(container);
   if (s.step === 2) updateLab();
-  if (s.step === 3) updatePreview();
-  else $('printout')?.remove();
+  if (s.step === 3) {
+    updateChannelExperiment();
+    updatePreview();
+  } else $('printout')?.remove();
   if (request) {
     $('notice').append(
       el('span', 'Waiting for the AI service… '),
@@ -654,8 +822,10 @@ function readDraft(out, eligible) {
     seen = new Set(),
     proposals = [],
     clarify = [];
-  const description = get('company') + ' ' + get('scenario');
-  for (const p of out.suggestions) {
+  const description = [get('company'), get('scenario')];
+  if (kind === 'channels') description.push(...allBase().map((f) => s.fields[f.id]?.note || ''));
+  for (const proposal of out.suggestions) {
+    const p = proposal && { ...proposal };
     if (
       !allowed.has(p?.id) ||
       seen.has(p.id) ||
@@ -664,9 +834,23 @@ function readDraft(out, eligible) {
       typeof p.rationale !== 'string'
     )
       continue;
-    if (p.origin !== 'estimate' && (p.origin !== 'stated' || !p.quote || !description.includes(p.quote)))
+    if (
+      p.origin !== 'estimate' &&
+      (p.origin !== 'stated' ||
+        typeof p.quote !== 'string' ||
+        !p.quote.trim() ||
+        !description.some((text) => text.includes(p.quote)))
+    )
       continue;
     const f = allBase().find((f) => f.id === p.id);
+    p.value = p.value.trim();
+    if (
+      kind === 'channels' &&
+      f.type === 'number' &&
+      /^\$?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/.test(p.value)
+    ) {
+      if (!p.value.startsWith('$') || f.label.endsWith('($)')) p.value = p.value.replace(/[$,]/g, '');
+    }
     if (p.origin === 'stated' && f.type === 'number' && !quoteContainsValue(p.quote, p.value)) {
       clarify.push(
         'Please enter ' + fieldLabel(f.id, f.label) + ' directly so your stated figure is preserved.',
@@ -681,30 +865,97 @@ function readDraft(out, eligible) {
     proposals.push(p);
     seen.add(p.id);
   }
-  s.pending = proposals;
-  s.questions = out.questions.filter((q) => typeof q === 'string').concat(clarify);
+  return {
+    proposals: kind === 'channels' ? reviewChannelDraft(proposals, get) : proposals,
+    questions: out.questions.filter((q) => typeof q === 'string' && q.trim()).concat(clarify),
+  };
+}
+function channelMessage(mode, message) {
+  const status = $(mode === 'draft' ? 'channelDraftStatus' : 'channelCoachStatus');
+  if (!status) return;
+  status.textContent = message;
+  if (message) {
+    status.tabIndex = -1;
+    status.focus();
+  }
+}
+async function draftChannels(payload, eligible, settings, signal) {
+  const send = (fields, confirmed) =>
+    assist(
+      'channels_draft',
+      {
+        ...payload,
+        eligible: fields,
+        confirmed,
+      },
+      settings,
+      signal,
+    );
+  const first = readDraft(await send(eligible, payload.confirmed), eligible);
+  const missing = missingChannelDraftFields(eligible, first.proposals, get);
+  if (!missing.length || signal.aborted) return first;
+  $('notice').firstElementChild.textContent = 'Estimating the remaining trial figures… ';
+  try {
+    const seeds = first.proposals.map(({ id, value, origin }) => ({
+      id,
+      value,
+      source: origin + ' in first draft',
+    }));
+    const second = readDraft(await send(missing, payload.confirmed.concat(seeds)), missing);
+    return {
+      proposals: reviewChannelDraft([...first.proposals, ...second.proposals], get),
+      questions: [...new Set([...first.questions, ...second.questions])],
+    };
+  } catch (error) {
+    if (!first.proposals.length || signal.aborted) throw error;
+    return { ...first, partial: true };
+  }
 }
 async function runAI(mode) {
   if (request) return;
-  let controller, timer;
+  let controller,
+    timer,
+    timedOut = false;
+  const isChannels = kind === 'channels';
   try {
     validateFields(context, get);
     const payload = { assignment: ex.topic, company: get('company'), scenario: get('scenario') };
     const eligible = mode === 'draft' ? draftFields() : [];
     if (mode === 'draft') {
-      if (!eligible.length) throw Error('All worksheet fields already contain values.');
+      if (!eligible.length) {
+        throw Error(
+          isChannels
+            ? 'The trial fields are filled in. Use these figures to choose your initial allocation.'
+            : 'All worksheet fields already contain values.',
+        );
+      }
       payload.eligible = eligible;
-      payload.confirmed = entries(allBase());
+      payload.confirmed = isChannels
+        ? allBase()
+            .filter((f) => active(f, get) && get(f.id) !== '')
+            .map((f) => ({
+              id: f.id,
+              value: get(f.id),
+              source: s.fields[f.id]?.source,
+              note: s.fields[f.id]?.note,
+            }))
+        : entries(allBase());
     } else {
-      payload.calculations = resultLines(checkedLab());
-      payload.confirmed = entries([...allBase(), ...flatten(ex.lab(s, get))]);
+      const result = checkedLab();
+      if (isChannels) {
+        payload.experiment = channelExperiment(get);
+        payload.limit = get('constraint');
+      } else {
+        payload.calculations = resultLines(result);
+        payload.confirmed = entries([...allBase(), ...flatten(ex.lab(s, get))]);
+      }
       if (mode === 'investor') {
         if (!s.message.trim() || s.turns.length >= 3)
           throw Error('Enter your message before requesting an investor reply.');
         payload.history = s.turns;
         payload.message = s.message;
       } else {
-        if (!get('decision').trim())
+        if (!isChannels && !get('decision').trim())
           throw Error('Write your decision first so the coach can respond to your reasoning.');
         payload.reasoning = entries(ex.final);
       }
@@ -712,52 +963,75 @@ async function runAI(mode) {
     controller = new AbortController();
     request = controller;
     render();
-    timer = setTimeout(() => controller.abort(), 60000);
-    const out = await assist(
-      mode,
-      payload,
-      { endpoint: settings.endpoint, key: secret },
-      controller.signal,
-    );
-    if (mode === 'draft') readDraft(out, eligible);
-    else if (mode === 'investor') {
-      const terms = entries(flatten(ex.lab(s, get))).join(' / ');
-      s.turns.push({ student: s.message, question: out.question, terms });
-      s.message = '';
-    } else s.coach = out.question;
+    if (isChannels) $('notice').querySelector('button')?.focus();
+    timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 60000);
+    const service = { endpoint: settings.endpoint || defaultEndpoint, key: secret };
+    let message;
+    if (mode === 'draft') {
+      const draft = isChannels
+        ? await draftChannels(payload, eligible, service, controller.signal)
+        : readDraft(await assist(mode, payload, service, controller.signal), eligible);
+      controller.signal.throwIfAborted();
+      s.pending = draft.proposals;
+      s.questions = isChannels ? draft.questions.slice(0, 3) : draft.questions;
+      message = isChannels
+        ? s.pending.length
+          ? 'Review suggested figures beside the worksheet fields below.' +
+            (draft.partial
+              ? ' The follow-up request didn’t finish. You can keep these suggestions and fill in the remaining fields.'
+              : '')
+          : 'The AI returned no usable figures. Describe your product or trial in more detail and try again, or enter your own estimates.'
+        : 'Draft ready. Review suggestions above.';
+    } else {
+      const out = await assist(
+        isChannels ? 'channels_coach' : mode,
+        payload,
+        service,
+        controller.signal,
+      );
+      controller.signal.throwIfAborted();
+      if (mode === 'investor') {
+        const terms = entries(flatten(ex.lab(s, get))).join(' / ');
+        s.turns.push({ student: s.message, question: out.question, terms });
+        s.message = '';
+        message = 'Investor replied.';
+      } else {
+        s.coach = out.question.trim();
+        message = 'Coaching question ready.';
+      }
+    }
     save();
     request = null;
     render();
-    $('status').textContent =
-      mode === 'draft'
-        ? 'Draft ready. Review suggestions above.'
-        : mode === 'investor'
-          ? 'Investor replied.'
-          : 'Coaching question ready.';
+    if (isChannels) channelMessage(mode, message);
+    else $('status').textContent = message;
   } catch (e) {
     if (controller) {
       request = null;
       render();
+      const serviceError = timedOut
+        ? 'The AI service took too long to reply.'
+        : controller.signal.aborted
+          ? 'Request stopped.'
+          : e.message;
       const offline =
         mode === 'draft'
-          ? 'For your venture, list one observed price or cost. Enter other figures as student estimates and note what you would check.'
-          : kind === 'funding'
-            ? 'For your projected exit revenue of ' +
+          ? isChannels
+            ? 'Try again or use a small trial for each channel. Estimate its cost, how many people it reaches, and how many will buy.'
+            : 'For your venture, list one observed price or cost. Enter other figures as student estimates and note what you would check.'
+          : isChannels
+            ? ex.fallback
+            : 'For your projected exit revenue of ' +
               money(Number(get('counterrevenue'))) +
-              ', what evidence would persuade the investor?'
-            : 'What makes you expect ' +
-              get('aName') +
-              ' and ' +
-              get('bName') +
-              ' to bring in that many customers?';
-      error(
-        Error(
-          (controller.signal.aborted ? 'Request stopped.' : e.message) +
-            ' Your entries are saved in this tab. ' +
-            offline,
-        ),
-      );
-    } else error(e);
+              ', what evidence would persuade the investor?';
+      const message = serviceError + ' Your entries are saved in this tab. ' + offline;
+      if (isChannels) channelMessage(mode, message);
+      else error(Error(message));
+    } else if (isChannels && !e.fieldId) channelMessage(mode, e.message);
+    else error(e);
   } finally {
     clearTimeout(timer);
   }
