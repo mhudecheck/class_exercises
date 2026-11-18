@@ -9,6 +9,7 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     const ctx = await browser.newContext({
       viewport: { width: 390, height: 844 },
       acceptDownloads: true,
+      serviceWorkers: 'block',
     });
     const page = await ctx.newPage(),
       errors = [];
@@ -132,7 +133,55 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
         'mobile overflow',
       );
     }
-    await page.goto(new URL('margin.html', base).href);
+    const marginUrl = new URL('margin.html', base).href;
+    const initialMargin = await browser.newContext({
+      viewport: { width: 360, height: 800 },
+      serviceWorkers: 'block',
+    });
+    // The first row is present even before the worksheet script runs.
+    await initialMargin.route('**/venture/ladder.mjs*', (route) => route.abort());
+    const initialPage = await initialMargin.newPage();
+    await initialPage.goto(marginUrl);
+    for (const label of ['Expense', 'Total spending ($)', 'Units this expense helps sell']) {
+      assert.ok(
+        await initialPage.getByLabel(label, { exact: true }).isVisible(),
+        label + ' is on the initial page',
+      );
+    }
+    assert.ok(await initialPage.getByRole('button', { name: 'Add another sales cost' }).isDisabled());
+    await initialMargin.close();
+
+    const freshLoads = await browser.newContext();
+    const freshPage = await freshLoads.newPage();
+    await freshPage.goto(marginUrl);
+    await freshPage.waitForFunction(() => navigator.serviceWorker.controller, undefined, { timeout: 15000 });
+    const scriptResponse = freshPage.waitForResponse((response) =>
+      response.url().includes('/venture/ladder.mjs'),
+    );
+    const worksheetResponse = await freshPage.reload();
+    assert.ok(
+      worksheetResponse.fromServiceWorker(),
+      'the worksheet navigation goes through the freshness worker',
+    );
+    assert.match(await worksheetResponse.headerValue('cache-control'), /no-store/);
+    const script = await scriptResponse;
+    assert.ok(script.fromServiceWorker());
+    assert.match(await script.headerValue('cache-control'), /no-store/);
+    assert.ok(await freshPage.locator('#addSalesCost').isEnabled());
+    const channelsResponse = await freshPage.goto(new URL('channels.html', base).href);
+    assert.equal(
+      channelsResponse.fromServiceWorker(),
+      false,
+      'other exercises are outside the worker scope',
+    );
+    await freshLoads.close();
+
+    await page.goto(marginUrl);
+    assert.ok(
+      await page.locator('#salesCosts #spend').isVisible(),
+      'first row is ready without adding it',
+    );
+    assert.ok(await page.getByRole('button', { name: 'Add another sales cost' }).isEnabled());
     // Work saved before the upgrade keeps its original channel and figures.
     await page.evaluate(() =>
       localStorage.setItem(

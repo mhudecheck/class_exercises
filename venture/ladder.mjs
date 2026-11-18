@@ -1,4 +1,4 @@
-import { assist, defaultEndpoint, quoteContainsValue } from './assist.mjs';
+import { assist, defaultEndpoint, quoteContainsValue } from './assist.mjs?v=2';
 import { number } from './math.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -43,9 +43,9 @@ function loadSalesCosts() {
   state.salesCosts = [
     {
       ...newSalesCost(1),
-      name: state.channel ?? '',
-      spend: state.spend ?? '',
-      units: state.units ?? '',
+      name: state.channel ?? $('channel')?.value ?? '',
+      spend: state.spend ?? $('spend')?.value ?? '',
+      units: state.units ?? $('units')?.value ?? '',
     },
   ];
   delete state.channel;
@@ -102,8 +102,7 @@ function costChanged(id) {
   save();
 }
 function renderSalesCosts() {
-  const container = $('salesCosts');
-  container.replaceChildren();
+  const rows = document.createDocumentFragment();
   state.salesCosts.forEach((row, index) => {
     const group = node('fieldset', '');
     group.className = 'sales-cost';
@@ -168,8 +167,10 @@ function renderSalesCosts() {
       });
       group.append(remove);
     }
-    container.append(group);
+    rows.append(group);
   });
+  $('salesCosts').replaceChildren(rows);
+  $('addSalesCost').disabled = false;
 }
 $('addSalesCost').onclick = () => {
   const key = Math.max(...state.salesCosts.map((row) => row.key)) + 1;
@@ -592,7 +593,7 @@ $('config').onclose = () => {
 $('reset').onclick = () => {
   if (confirm('Clear this worksheet and start again?')) {
     pending?.abort();
-    state = {};
+    state = { salesCosts: [newSalesCost(1)] };
     $('draftStatus').textContent = $('status').textContent = '';
     restore();
   }
