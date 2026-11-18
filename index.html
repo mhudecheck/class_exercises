@@ -426,13 +426,6 @@
     return ok;
   }
 
-  function linInterp(x1, y1, x2, y2, y){
-    // interpolate x at which line through (x1,y1)-(x2,y2) hits value y
-    if (y2 === y1) return (x1 + x2)/2;
-    const t = (y - y1) / (y2 - y1);
-    return x1 + t * (x2 - x1);
-  }
-
   function niceTicks(min, max, n){
     if (!isFinite(min) || !isFinite(max) || min === max) return [min];
     const span = max - min;
@@ -465,7 +458,11 @@
       max = Math.max(max, r.tc, r.gv, r.ex, r.te);
     }
     if (!isFinite(min) || !isFinite(max)) return null;
-    if (min === max){ min = min * 0.9; max = max * 1.1; }
+    if (min === max){
+      const padding = min * 0.1 || 1;
+      min -= padding;
+      max += padding;
+    }
     if (min < 0) min = 0;
 
     const m = Math.max(20, Math.min(300, resolution|0));
@@ -509,8 +506,10 @@
       const d2 = A[i+1] - B[i+1];
       if (d1 === 0) return {x: prices[i], kind:'cross', err: 0};
       if (d1 * d2 < 0 || d2 === 0){
-        // linear interpolate where A-B = 0
-        const x = linInterp(prices[i], d1, prices[i+1], d2, 0);
+        // Invert the cubic easing used by curvePath so the marker lines up with the crossing.
+        const fraction = d1 / (d1 - d2);
+        const t = 0.5 - Math.sin(Math.asin(1 - 2 * fraction) / 3);
+        const x = prices[i] + t * (prices[i+1] - prices[i]);
         return {x, kind:'cross', err: 0};
       }
     }
@@ -527,12 +526,22 @@
     return el;
   }
 
-  function polyPoints(prices, values, xScale, yScale){
-    const pts = [];
-    for (let i=0; i<prices.length; i++){
-      pts.push(`${xScale(prices[i]).toFixed(2)},${yScale(values[i]).toFixed(2)}`);
+  function curvePath(prices, values, xScale, yScale){
+    const xs = prices.map(xScale);
+    const ys = values.map(yScale);
+    const commands = [`M ${xs[0]} ${ys[0]}`];
+    for (let i = 1; i < xs.length; i++){
+      const x0 = xs[i-1], y0 = ys[i-1];
+      const x1 = xs[i], y1 = ys[i];
+      if (y0 === y1){
+        commands.push(`L ${x1} ${y1}`);
+      } else {
+        // Horizontal tangents at both ends keep the transition within the sampled values.
+        const third = (x1 - x0) / 3;
+        commands.push(`C ${x0 + third} ${y0} ${x1 - third} ${y1} ${x1} ${y1}`);
+      }
     }
-    return pts.join(' ');
+    return commands.join(' ');
   }
 
   function renderChart(cur){
@@ -611,17 +620,16 @@
       svg.appendChild(svgEl('line', {x1:left+width, y1:padT, x2:left+width, y2:padT+plotH, stroke:'rgba(167,139,250,.55)', 'stroke-dasharray':'6 6'}));
     }
 
-    // draw polylines
     for (const cdef of curves){
-      const pl = svgEl('polyline', {
-        points: polyPoints(prices, cdef.values, xScale, yScale),
+      const path = svgEl('path', {
+        d: curvePath(prices, cdef.values, xScale, yScale),
         fill:'none',
         stroke: cdef.stroke,
         'stroke-width': cdef.w,
         'stroke-linejoin':'round',
         'stroke-linecap':'round'
       });
-      svg.appendChild(pl);
+      svg.appendChild(path);
     }
 
     // vertical markers and labels
@@ -737,6 +745,10 @@
       // Test 3: intersection should return something (cross or closest)
       const x = findIntersection(cur.prices, cur.C, cur.E);
       console.assert(x && typeof x.x === 'number', 'SelfTest: intersection should produce numeric x');
+
+      // An asymmetric crossing occurs at t = .25 along these cubic segments.
+      const crossing = findIntersection([10, 20], [20, 20], [10, 74]);
+      console.assert(Math.abs(crossing.x - 12.5) < 1e-9, 'SelfTest: intersection should match the cubic paths');
     } catch (e) {
       console.warn('Self-tests failed:', e);
     }
