@@ -195,7 +195,7 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     await initialMargin.route('**/venture/ladder.mjs*', (route) => route.abort());
     const initialPage = await initialMargin.newPage();
     await initialPage.goto(marginUrl);
-    for (const label of ['Expense', 'Total spending ($)', 'Units this expense helps sell']) {
+    for (const label of ['What is it?', 'Total spent ($)', 'Sales it brought in']) {
       assert.ok(
         await initialPage.getByLabel(label, { exact: true }).isVisible(),
         label + ' is on the initial page',
@@ -256,7 +256,7 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     await page.evaluate(() => localStorage.removeItem('venture_margin_ladder_v1'));
     await page.reload();
     await page.locator('#product').fill('One smoothie bowl for students in the library');
-    assert.equal(await page.getByRole('spinbutton', { name: /selling price per unit/i }).count(), 1);
+    assert.equal(await page.getByRole('spinbutton', { name: /price the customer pays/i }).count(), 1);
     assert.doesNotMatch(
       await page.locator('main').innerText(),
       /current price|proposed price|scenario|baseline/i,
@@ -274,9 +274,9 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     await button('Suggest estimates');
     const suggestion = page
       .locator('#suggestions .ai-card')
-      .filter({ hasText: 'Selling price per unit' });
+      .filter({ hasText: 'Price the customer pays' });
     await suggestion.waitFor();
-    await page.locator('#suggestions .ai-card').filter({ hasText: 'Cost to make or deliver' }).waitFor();
+    await page.locator('#suggestions .ai-card').filter({ hasText: 'Cost to make and deliver' }).waitFor();
     const estimateRequests = requests.filter((request) => request.mode === 'venture_margin_draft');
     assert.deepEqual(
       estimateRequests.at(-1).context.eligible.map((field) => field.id),
@@ -304,8 +304,14 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     }
     assert.match(await page.locator('#cm1').innerText(), /\$4.70/);
     assert.match(await page.locator('#cm2').innerText(), /\$0.75.*\$3.95/);
-    await button('Show CM3');
-    assert.match(await page.locator('#cm3').innerText(), /\$3.08 \(34.2%/);
+    // Students try CM3 themselves: a fee taken from CM2 gets a pointed hint, then the right answer passes.
+    await fillMargin('cm3Guess', (3.95 - 3.95 * 0.03 - 0.6).toFixed(2));
+    await button('Check my answer');
+    assert.match(await page.locator('#checkResult').innerText(), /of the price \(\$9.00\), not of CM2/);
+    assert.equal(await page.locator('#results').isVisible(), false);
+    await fillMargin('cm3Guess', '3.08');
+    await button('Check my answer');
+    assert.match(await page.locator('#cm3').innerText(), /^Right\. CM3 · .*\$3.08, or 34.2% of the price/);
     await page.reload();
     await page.locator('#ladderTable table').waitFor();
     await fillMargin('reflection', 'I would ask the fruit supplier for a quote.');
@@ -317,7 +323,7 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     await button('Download Markdown');
     const md = await fs.readFile(await (await filePromise).path(), 'utf8');
     assert.match(md, /fruit supplier/);
-    assert.match(md, /CM3: \$3.08/);
+    assert.match(md, /\*\*CM3:\*\* \$3.95 − \$0.27 fee − \$0.60 other costs = \$3.08/);
     assert.doesNotMatch(md, /comparison|baseline|proposed/i);
     await page.evaluate(
       () =>
@@ -329,40 +335,43 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     assert.equal(await page.locator('body').getAttribute('data-printed'), 'yes');
     await page.emulateMedia({ media: 'print' });
     assert.ok(await page.locator('#printout').isVisible());
+    const sheet = await page.locator('#printout').innerText();
+    assert.match(sheet, /5 · Your ladder/);
+    assert.match(sheet, /fruit supplier/);
     await page.emulateMedia({ media: 'screen' });
     // A campaign and a commission both apply to the same sale.
     await button('Add another sales cost');
     await fillMargin('channel-2', 'Sales commission');
     await page
-      .getByRole('combobox', { name: 'How is this cost charged?' })
+      .getByRole('combobox', { name: 'How do you pay for it?' })
       .nth(1)
       .selectOption('perUnit');
     await fillMargin('perUnit-2', '.50');
     assert.match(
       await page.locator('#salesCostWorking').innerText(),
-      /Campus ads: \$300.00 ÷ 400 units = \$0.75/,
+      /Campus ads: \$300.00 ÷ 400 sales = \$0.75/,
     );
     assert.match(
       await page.locator('#salesCostWorking').innerText(),
-      /Sales commission: \$0.50 per unit/,
+      /Sales commission: \$0.50 per sale/,
     );
     assert.match(await page.locator('#cm2').innerText(), /\$1.25.*\$3.45/);
     await page.reload();
     assert.equal(Number(await page.locator('#perUnit-2').inputValue()), 0.5);
-    await button('Show CM3');
+    await button('Show me the answer');
     assert.match(await page.locator('#cm3').innerText(), /\$2.58/);
     const multiExport = page.waitForEvent('download');
     await button('Download Markdown');
     const multiMd = await fs.readFile(await (await multiExport).path(), 'utf8');
-    assert.match(multiMd, /Sales commission: \$0.50 per unit/);
-    assert.match(multiMd, /Total cost of winning a sale: \$1.25/);
+    assert.match(multiMd, /Sales commission: \$0.50 per sale/);
+    assert.match(multiMd, /Total cost to win one sale: \$1.25/);
     await button('Remove sales cost 2');
     assert.match(await page.locator('#cm2').innerText(), /\$3.95/);
     await fillMargin('spend', 0);
     await fillMargin('units', '');
     await fillMargin('cost', 12);
-    await button('Show CM3');
-    assert.match(await page.locator('#interpretation').innerText(), /exceed/);
+    await button('Show me the answer');
+    assert.match(await page.locator('#interpretation').innerText(), /loses/);
     await fillMargin('cost', '');
     assert.equal(await page.locator('#results').isVisible(), false);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));

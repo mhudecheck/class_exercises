@@ -2,13 +2,20 @@ import { assist, defaultEndpoint, quoteContainsValue } from './assist.mjs?v=2';
 import { number } from './math.mjs';
 
 const $ = (id) => document.getElementById(id);
+// `label` is what students see on the field; `says` reads naturally inside a sentence.
 const labels = {
-  cost: 'Cost to make or deliver one unit ($)',
-  price: 'Selling price per unit ($)',
-  fee: 'Payment fee (%)',
-  other: 'Other operating costs per unit ($)',
+  price: 'Price the customer pays ($)',
+  cost: 'Cost to make and deliver one ($)',
+  fee: 'Card or platform fee (%)',
+  other: 'Other costs per sale ($)',
 };
-const ids = ['product', 'description', ...Object.keys(labels), 'reflection', 'evidence'];
+const says = {
+  price: 'the price the customer pays',
+  cost: 'the cost to make and deliver one',
+  fee: 'the card or platform fee (enter 0 if there isn’t one)',
+  other: 'other costs per sale (enter 0 if there aren’t any)',
+};
+const ids = ['team', 'product', 'description', ...Object.keys(labels), 'reflection', 'evidence'];
 const storageKey = 'venture_margin_ladder_v1';
 const read = (key) => {
   try {
@@ -24,9 +31,11 @@ let pending = null;
 const legacy = read('venture_decision_v1_margin');
 const money = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
 const percent = (n) => new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(n) + '%';
-const node = (tag, text) => {
+const share = (value, price) => percent((100 * value) / price);
+const node = (tag, text, className) => {
   const el = document.createElement(tag);
-  el.textContent = text;
+  if (text) el.textContent = text;
+  if (className) el.className = className;
   return el;
 };
 function save() {
@@ -34,7 +43,7 @@ function save() {
     localStorage.setItem(storageKey, JSON.stringify(state));
     $('saved').textContent = 'Saved in this browser';
   } catch {
-    $('saved').textContent = 'Download your worksheet to keep a copy.';
+    $('saved').textContent = 'This browser can’t save your work. Download it to keep a copy.';
   }
 }
 const newSalesCost = (key) => ({ key, name: '', basis: 'total', spend: '', units: '', perUnit: '' });
@@ -52,26 +61,28 @@ function loadSalesCosts() {
   delete state.spend;
   delete state.units;
 }
+const salesName = (row, index) => row.name.trim() || 'Sales cost ' + (index + 1);
 function salesFields(row, index) {
-  const descriptor = row.name.trim() || 'Sales cost ' + (index + 1);
+  const descriptor = salesName(row, index);
   const fields =
     row.basis === 'perUnit'
-      ? [['perUnit', 'Cost per unit ($)']]
+      ? [['perUnit', 'Amount per sale ($)', 'the amount you pay per sale for ' + descriptor]]
       : [
-          ['spend', 'Total spending ($)'],
-          ['units', 'Units this expense helps sell'],
+          ['spend', 'Total spent ($)', 'how much you spent on ' + descriptor],
+          ['units', 'Sales it brought in', 'how many sales ' + descriptor + ' brought in'],
         ];
-  return fields.map(([key, label]) => ({
+  return fields.map(([key, label, sentence]) => ({
     id: row.key === 1 ? key : key + '-' + row.key,
     label: descriptor + ' · ' + label,
     inputLabel: label,
+    says: sentence,
     kind: key,
     row,
   }));
 }
 function worksheetFields() {
   return [
-    ...Object.entries(labels).map(([id, label]) => ({ id, label, kind: id, row: state })),
+    ...Object.entries(labels).map(([id, label]) => ({ id, label, says: says[id], kind: id, row: state })),
     ...state.salesCosts.flatMap(salesFields),
   ];
 }
@@ -79,19 +90,26 @@ function fieldValue(field) {
   return field.row[field.kind];
 }
 function checked(field, raw = fieldValue(field)) {
-  return number(raw, field.label, {
+  return number(raw, field.says || field.label, {
     positive: field.kind === 'price' || field.kind === 'units',
     integer: field.kind === 'units',
     max: field.kind === 'fee' ? 100 : Infinity,
   });
 }
 function checkedBase(id) {
-  return checked({ kind: id, label: labels[id], row: state });
+  return checked({ kind: id, label: labels[id], says: says[id], row: state });
+}
+function resetPractice() {
+  state.revealed = false;
+  delete state.attempts;
+  delete state.practice;
+  $('cm3Guess').value = '';
+  $('checkResult').textContent = '';
 }
 function costChanged(id) {
   pending?.abort();
   delete state.coach;
-  state.revealed = false;
+  resetPractice();
   if (state.sources) delete state.sources[id];
   state.suggestions = id ? (state.suggestions || []).filter((suggestion) => suggestion.id !== id) : [];
   if (!id) state.questions = [];
@@ -104,21 +122,20 @@ function costChanged(id) {
 function renderSalesCosts() {
   const rows = document.createDocumentFragment();
   state.salesCosts.forEach((row, index) => {
-    const group = node('fieldset', '');
-    group.className = 'sales-cost';
+    const group = node('fieldset', '', 'sales-cost');
     group.append(node('legend', 'Sales cost ' + (index + 1)));
     const name = document.createElement('input');
     name.id = row.key === 1 ? 'channel' : 'channel-' + row.key;
     name.value = row.name;
-    name.placeholder = 'For example, campus flyers';
+    name.placeholder = index ? 'Sales commission' : 'Campus flyers';
     name.addEventListener('input', () => {
       row.name = name.value;
       costChanged();
     });
     const basis = document.createElement('select');
     basis.append(
-      new Option('Spread spending across units', 'total'),
-      new Option('Cost per unit', 'perUnit'),
+      new Option('A total amount, spread over sales', 'total'),
+      new Option('A set amount per sale', 'perUnit'),
     );
     basis.value = row.basis;
     basis.addEventListener('change', () => {
@@ -127,14 +144,13 @@ function renderSalesCosts() {
       $(name.id).closest('fieldset').querySelector('select').focus();
       costChanged();
     });
-    const grid = node('div', '');
-    grid.className = 'grid';
+    const grid = node('div', '', 'grid');
     const label = (text, input) => {
       const wrapper = node('label', text);
       wrapper.append(input);
       return wrapper;
     };
-    grid.append(label('Expense', name), label('How is this cost charged?', basis));
+    grid.append(label('What is it?', name), label('How do you pay for it?', basis));
     for (const field of salesFields(row, index)) {
       const input = document.createElement('input');
       input.id = field.id;
@@ -152,9 +168,8 @@ function renderSalesCosts() {
     }
     group.append(grid);
     if (state.salesCosts.length > 1) {
-      const remove = node('button', 'Remove sales cost ' + (index + 1));
+      const remove = node('button', 'Remove sales cost ' + (index + 1), 'quiet');
       remove.type = 'button';
-      remove.className = 'quiet';
       remove.addEventListener('click', () => {
         if (state.sources) {
           for (const key of ['spend', 'units', 'perUnit'])
@@ -193,7 +208,7 @@ function calculate() {
       const amount = checked(amountField);
       const units = unitsField && amount > 0 ? checked(unitsField) : null;
       return {
-        name: row.name.trim() || 'Sales cost ' + (index + 1),
+        name: salesName(row, index),
         amount,
         units,
         perUnit: units ? amount / units : amount,
@@ -201,9 +216,10 @@ function calculate() {
     });
     result.marketing = result.salesCosts.reduce((sum, cost) => sum + cost.perUnit, 0);
     if (!Number.isFinite(result.marketing))
-      throw Error('Check the sales costs. The total is too large to calculate.');
+      throw Error('One of the sales costs is too large to calculate. Check the numbers.');
     result.cm2 = result.cm1 - result.marketing;
-    const fee = price * (checkedBase('fee') / 100),
+    result.feeRate = checkedBase('fee');
+    const fee = price * (result.feeRate / 100),
       other = checkedBase('other');
     result.fee = fee;
     result.other = other;
@@ -213,20 +229,34 @@ function calculate() {
   }
   return result;
 }
-const marginText = (value, price) =>
-  money(value) + ' (' + percent((100 * value) / price) + ' of the selling price)';
+const ofPrice = (value, price) => money(value) + ', or ' + share(value, price) + ' of the price';
+const cm1Working = (r) => money(r.price) + ' − ' + money(r.cost) + ' = ' + ofPrice(r.cm1, r.price);
+const cm2Working = (r) => money(r.cm1) + ' − ' + money(r.marketing) + ' = ' + ofPrice(r.cm2, r.price);
+const cm3Working = (r) =>
+  money(r.cm2) +
+  ' − ' +
+  money(r.fee) +
+  ' fee − ' +
+  money(r.other) +
+  ' other costs = ' +
+  ofPrice(r.cm3, r.price);
+const steps = {
+  cm1: 'CM1 · after making and delivering',
+  cm2: 'CM2 · after winning the sale',
+  cm3: 'CM3 · after fees and other costs',
+};
 function ladderRows(r) {
   return [
-    ['Selling price', money(r.price), '100%'],
-    ['CM1 · After production', money(r.cm1), percent((100 * r.cm1) / r.price)],
-    ['CM2 · After marketing', money(r.cm2), percent((100 * r.cm2) / r.price)],
-    ['CM3 · After fees and overhead', money(r.cm3), percent((100 * r.cm3) / r.price)],
+    ['Price', money(r.price), '100%'],
+    [steps.cm1, money(r.cm1), share(r.cm1, r.price)],
+    [steps.cm2, money(r.cm2), share(r.cm2, r.price)],
+    [steps.cm3, money(r.cm3), share(r.cm3, r.price)],
   ];
 }
 function table(rows) {
   const t = document.createElement('table');
   const tr = t.createTHead().insertRow();
-  for (const h of ['Step', 'Dollars per unit', 'Share of price']) {
+  for (const h of ['Step', 'Per sale', 'Share of price']) {
     const th = node('th', h);
     th.scope = 'col';
     tr.append(th);
@@ -242,31 +272,62 @@ function table(rows) {
   }
   return t;
 }
-function waterfall(r) {
-  const div = $('waterfall');
-  div.replaceChildren();
-  const min = Math.min(0, r.cm3),
-    span = r.price - min;
-  for (const [label, start, end] of [
+function waterfallRows(r) {
+  return [
     ['Price', 0, r.price],
     ['Make and deliver', r.price, r.cm1],
-    ['Marketing', r.cm1, r.cm2],
-    ['Fees and overhead', r.cm2, r.cm3],
-    ['Amount left', 0, r.cm3],
-  ]) {
-    const row = node('div', '');
-    row.className = 'waterrow';
-    const track = node('span', '');
-    track.className = 'track';
-    const bar = node('i', '');
-    bar.className = end < start ? 'cost' : '';
+    ['Win the sale', r.cm1, r.cm2],
+    ['Fees and other', r.cm2, r.cm3],
+    ['What you keep', 0, r.cm3],
+  ];
+}
+function waterfall(r, target) {
+  target.replaceChildren();
+  const min = Math.min(0, r.cm3, r.cm2, r.cm1),
+    span = r.price - min;
+  for (const [label, start, end] of waterfallRows(r)) {
+    const row = node('div', '', 'waterrow');
+    const track = node('span', '', 'track');
+    const bar = node('i', '', end < start ? 'cost' : label === 'Price' ? 'price' : 'kept');
     track.style.setProperty('--zero', (-min / span) * 100 + '%');
     bar.style.left = (100 * (Math.min(start, end) - min)) / span + '%';
     bar.style.width = (100 * Math.abs(end - start)) / span + '%';
     track.append(bar);
     row.append(node('span', label), track, node('span', money(end - start)));
-    div.append(row);
+    target.append(row);
   }
+}
+function interpretation(r) {
+  const cents = Math.round(Math.abs(r.cm3) * 100);
+  if (cents === 0) return 'Each sale just breaks even after the costs you entered.';
+  if (r.cm3 < 0)
+    return (
+      'Each sale loses ' +
+      money(-r.cm3) +
+      ' after the costs you entered. Selling more would make the loss bigger, not smaller.'
+    );
+  return (
+    'After every cost you entered, you keep ' +
+    money(r.cm3) +
+    ' of each ' +
+    money(r.price) +
+    ' sale (' +
+    share(r.cm3, r.price) +
+    ').'
+  );
+}
+function practicePrompt(r) {
+  return (
+    'Start from CM2, ' +
+    money(r.cm2) +
+    '. Take away the ' +
+    percent(r.feeRate) +
+    ' fee on the ' +
+    money(r.price) +
+    ' price and ' +
+    money(r.other) +
+    ' in other costs. How much of each sale is left?'
+  );
 }
 function render() {
   const r = calculate();
@@ -275,93 +336,189 @@ function render() {
     const input = $(row.key === 1 ? 'units' : 'units-' + row.key);
     if (input) input.required = Number(row.spend) > 0;
   }
-  $('cm1').textContent =
-    r.cm1 === undefined
-      ? ''
-      : 'CM1 · ' + money(r.price) + ' − ' + money(r.cost) + ' = ' + marginText(r.cm1, r.price);
+  $('cm1').textContent = r.cm1 === undefined ? '' : 'CM1 · ' + cm1Working(r);
   const working = $('salesCostWorking');
   working.replaceChildren();
   working.hidden = r.cm2 === undefined;
   if (r.cm2 !== undefined) {
-    const list = node('ul', '');
+    const list = node('ul');
     for (const cost of r.salesCosts) list.append(node('li', formatSalesCost(cost)));
-    working.append(
-      list,
-      node('p', 'Total cost of winning a sale: ' + money(r.marketing) + ' per unit.'),
-    );
+    working.append(list, node('p', 'Total cost to win one sale: ' + money(r.marketing) + '.'));
   }
-  $('cm2').textContent =
-    r.cm2 === undefined
-      ? ''
-      : 'CM2 · ' + money(r.cm1) + ' − ' + money(r.marketing) + ' = ' + marginText(r.cm2, r.price);
+  $('cm2').textContent = r.cm2 === undefined ? '' : 'CM2 · ' + cm2Working(r);
   $('practice').hidden = !done || Boolean(state.revealed);
-  $('practicePrompt').textContent = done
-    ? 'Try the last step yourself. Start with CM2 and subtract ' +
-      money(r.fee) +
-      ' in payment fees and ' +
-      money(r.other) +
-      ' in other costs. What percentage of your price is left?'
-    : '';
-  $('cm3').textContent =
-    done && state.revealed
-      ? 'CM3 · ' +
-        money(r.cm2) +
-        ' − ' +
-        money(r.fee) +
-        ' in fees − ' +
-        money(r.other) +
-        ' in other costs = ' +
-        marginText(r.cm3, r.price)
-      : '';
+  $('practicePrompt').textContent = done ? practicePrompt(r) : '';
+  const lead = state.practice === 'right' ? 'Right. ' : state.practice === 'shown' ? 'Here’s the working. ' : '';
+  $('cm3').textContent = done && state.revealed ? lead + 'CM3 · ' + cm3Working(r) : '';
   $('results').hidden = !done || !state.revealed;
   if (done) {
-    waterfall(r);
+    waterfall(r, $('waterfall'));
     $('ladderTable').replaceChildren(table(ladderRows(r)));
-    const cents = Math.round(Math.abs(r.cm3) * 100);
-    $('interpretation').textContent =
-      cents === 0
-        ? 'At this price, the sale just covers the costs you entered.'
-        : r.cm3 < 0
-          ? 'The costs you entered exceed the selling price by ' + money(-r.cm3) + ' per unit.'
-          : 'After the costs you entered, each sale leaves ' + money(r.cm3) + '.';
+    $('interpretation').textContent = interpretation(r);
   }
   $('feedback').textContent = state.coach || '';
   $('printout').replaceChildren();
-  if (done) $('printout').append(node('h1', 'Contribution margin worksheet'), node('pre', report(r)));
+  if (done) $('printout').append(printSheet(r));
 }
 function formatSalesCost(cost) {
-  const amount = cost.units ? money(cost.amount) + ' ÷ ' + cost.units + ' units = ' : '';
-  return cost.name + ': ' + amount + money(cost.perUnit) + ' per unit';
+  const amount = cost.units ? money(cost.amount) + ' ÷ ' + cost.units + ' sales = ' : '';
+  return cost.name + ': ' + amount + money(cost.perUnit) + ' per sale';
+}
+function sourceNotes() {
+  return worksheetFields()
+    .filter((field) => state.sources?.[field.id])
+    .map((field) => field.label + ': ' + state.sources[field.id]);
 }
 function report(r) {
-  const lines = [
-    state.product || 'My venture',
+  const lines = ['# The contribution margin ladder', ''];
+  if (state.team?.trim()) lines.push('**Team:** ' + state.team.trim());
+  lines.push('**One sale:** ' + (state.product?.trim() || 'Not described yet'), '');
+  lines.push(
+    '## 1 · One sale',
+    '- Price the customer pays: ' + money(r.price),
+    '- Cost to make and deliver one: ' + money(r.cost),
+    '- **CM1:** ' + cm1Working(r),
     '',
-    'Selling price per unit: ' + money(r.price),
-    'Cost to make or deliver one unit: ' + money(r.cost),
-    'CM1: ' + $('cm1').textContent.split(' · ')[1],
+    '## 2 · What it costs to win the sale',
+    ...r.salesCosts.map((cost) => '- ' + formatSalesCost(cost)),
+    '- Total cost to win one sale: ' + money(r.marketing),
+    '- **CM2:** ' + cm2Working(r),
     '',
-    'Costs of winning the sale',
-    ...r.salesCosts.map(formatSalesCost),
-    'Total cost of winning a sale: ' + money(r.marketing) + ' per unit',
-    'CM2: ' + marginText(r.cm2, r.price),
+    '## 3 · Fees and everything else',
+    '- Card or platform fee: ' + percent(r.feeRate) + ' of ' + money(r.price) + ' = ' + money(r.fee),
+    '- Other costs per sale: ' + money(r.other),
+    '- **CM3:** ' + cm3Working(r),
     '',
-    'Payment fee: ' + state.fee + '% of price = ' + money(r.fee),
-    'Other operating costs per unit: ' + money(r.other),
-    'CM3: ' + marginText(r.cm3, r.price),
-    $('interpretation').textContent,
+    interpretation(r),
     '',
-    'Which cost would you work on first, and why?',
-    state.reflection || '',
-    'Where did your estimates come from?',
-    state.evidence || '',
-  ];
-  if (state.description) lines.push('', 'Venture notes', state.description);
-  for (const field of worksheetFields()) {
-    if (state.sources?.[field.id]) lines.push(field.label + ' — ' + state.sources[field.id]);
-  }
-  if (state.coach) lines.push('', 'Feedback', state.coach);
+    '## 4 · What we learned',
+    '### Which cost would you go after first, and why?',
+    state.reflection?.trim() || '_Not answered yet._',
+    '',
+    '### Where did your numbers come from?',
+    state.evidence?.trim() || '_Not answered yet._',
+  );
+  const notes = sourceNotes();
+  if (notes.length) lines.push('', '### Numbers suggested by the AI', ...notes.map((n) => '- ' + n));
+  if (state.description?.trim()) lines.push('', '### What we told the AI', state.description.trim());
+  if (state.coach) lines.push('', '### A question from the AI coach', state.coach);
   return lines.join('\n');
+}
+
+// The printout follows the course's Letter exercise sheets: kicker, title, name boxes,
+// then numbered boxes with black headers and the result box in EWU red.
+function sheetBox(number, title, hint, ...content) {
+  const box = node('section', '', 'sh-box');
+  const head = node('div', '', 'sh-boxhead');
+  head.append(node('span', number + ' · ' + title), node('span', hint, 'sh-hint'));
+  const body = node('div', '', 'sh-body');
+  body.append(...content);
+  box.append(head, body);
+  return box;
+}
+function sheetRows(rows) {
+  const list = node('dl', '', 'sh-rows');
+  for (const [term, value, total, note] of rows) {
+    const row = node('div', '', total ? 'sh-total' : '');
+    const dt = node('dt', term);
+    if (note) dt.append(node('small', note));
+    row.append(dt, node('dd', value));
+    list.append(row);
+  }
+  return list;
+}
+function answerOrLines(text, lines = 4) {
+  if (text?.trim()) return node('p', text.trim(), 'sh-answer');
+  const blank = node('div', '', 'sh-lines');
+  for (let i = 0; i < lines; i++) blank.append(node('span'));
+  return blank;
+}
+function printSheet(r) {
+  const sheet = node('div', '', 'sheet');
+  const head = node('header', '', 'sh-head');
+  const titles = node('div');
+  titles.append(
+    node('p', 'ENTP 311 · Engines of growth · Contribution margin', 'sh-kicker'),
+    node('h1', 'The contribution margin ladder', 'sh-title'),
+  );
+  head.append(titles, node('p', 'Group exercise · slides 21–28', 'sh-meta'));
+  const ids = node('div', '', 'sh-ids');
+  const today = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date());
+  for (const [label, value, cls] of [
+    ['Team', state.team?.trim(), 'wide'],
+    ['One sale', state.product?.trim(), 'wide'],
+    ['Date', today, ''],
+  ]) {
+    const box = node('div', '', 'sh-id ' + cls);
+    box.append(node('span', label), node('strong', value || ''));
+    ids.append(box);
+  }
+  const salesRows = r.salesCosts.map((cost) => [
+    cost.name,
+    '− ' + money(cost.perUnit),
+    false,
+    cost.units ? money(cost.amount) + ' ÷ ' + cost.units + ' sales' : 'per sale',
+  ]);
+  if (r.salesCosts.length > 1) salesRows.push(['Total to win one sale', '− ' + money(r.marketing)]);
+  const ladder = node('div', '', 'sh-ladder');
+  const bars = node('div', '', 'sh-waterfall');
+  waterfall(r, bars);
+  const short = ladderRows(r).map(([step, ...rest]) => [step.split(' · ')[0], ...rest]);
+  ladder.append(bars, table(short));
+  const learned = [answerOrLines(state.evidence)];
+  const notes = sourceNotes();
+  if (notes.length) {
+    const list = node('ul', '', 'sh-notes');
+    for (const note of notes) list.append(node('li', note));
+    learned.push(node('p', 'Numbers suggested by the AI', 'sh-sub'), list);
+  }
+  const grid = node('div', '', 'sh-grid');
+  grid.append(
+    sheetBox(
+      1,
+      'One sale',
+      'Price and the cost to make it',
+      sheetRows([
+        ['Price the customer pays', money(r.price)],
+        ['Make and deliver one', '− ' + money(r.cost)],
+        ['CM1', money(r.cm1) + ' · ' + share(r.cm1, r.price), true],
+      ]),
+    ),
+    sheetBox(
+      2,
+      'Winning the sale',
+      'Spread over the sales it brings in',
+      sheetRows([...salesRows, ['CM2', money(r.cm2) + ' · ' + share(r.cm2, r.price), true]]),
+    ),
+    sheetBox(
+      3,
+      'Fees and the rest',
+      'Card fees and a share of overhead',
+      sheetRows([
+        ['Fee: ' + percent(r.feeRate) + ' of ' + money(r.price), '− ' + money(r.fee)],
+        ['Other costs per sale', '− ' + money(r.other)],
+        ['CM3', money(r.cm3) + ' · ' + share(r.cm3, r.price), true],
+      ]),
+    ),
+    sheetBox(
+      4,
+      'The cost we’d go after first',
+      'And why that one',
+      answerOrLines(state.reflection),
+    ),
+  );
+  const result = sheetBox(5, 'Your ladder', 'Per sale and as a share of the price', ladder, node('p', interpretation(r), 'sh-verdict'));
+  result.classList.add('sh-result');
+  const sources = sheetBox(6, 'Where our numbers came from', 'Quotes, prices, sales records or guesses to check', ...learned);
+  sources.classList.add('sh-span');
+  grid.append(result, sources);
+  if (state.coach) {
+    const coach = sheetBox(7, 'A question from the AI coach', 'Talk it through as a group', node('p', state.coach, 'sh-answer'));
+    coach.classList.add('sh-span');
+    grid.append(coach);
+  }
+  sheet.append(head, ids, grid, node('footer', 'EWU · Launching the venture', 'sh-foot'));
+  return sheet;
 }
 function download(name, content, type) {
   const url = URL.createObjectURL(new Blob([content], { type })),
@@ -385,11 +542,13 @@ for (const id of ids)
     if (pending) pending.abort();
     state[id] = $(id).value;
     delete state.coach;
-    if (Object.hasOwn(labels, id)) state.revealed = false;
+    if (Object.hasOwn(labels, id)) resetPractice();
     if (state.sources) delete state.sources[id];
-    state.suggestions = [];
-    state.questions = [];
-    showSuggestions();
+    if (!['team', 'reflection', 'evidence'].includes(id)) {
+      state.suggestions = [];
+      state.questions = [];
+      showSuggestions();
+    }
     $('status').textContent = '';
     $('draftStatus').textContent = '';
     render();
@@ -402,8 +561,7 @@ function showSuggestions() {
   for (const p of state.suggestions || []) {
     const field = worksheetFields().find(({ id }) => id === p.id);
     if (!field || fieldValue(field)) continue;
-    const item = node('div', '');
-    item.className = 'ai-card';
+    const item = node('div', '', 'ai-card');
     const label = node('label', field.label),
       input = document.createElement('input');
     input.type = 'number';
@@ -423,14 +581,14 @@ function showSuggestions() {
       const edited = input.value !== p.value;
       field.row[field.kind] = input.value;
       $(p.id).value = input.value;
-      state.revealed = false;
+      resetPractice();
       state.sources ||= {};
       state.sources[p.id] =
         (edited
-          ? 'Edited suggestion. '
+          ? 'Edited AI suggestion. '
           : p.origin === 'stated'
             ? 'From your notes. '
-            : 'Accepted AI estimate. ') + p.rationale;
+            : 'AI estimate. ') + p.rationale;
       state.suggestions = state.suggestions.filter((v) => v.id !== p.id);
       delete state.coach;
       showSuggestions();
@@ -441,7 +599,7 @@ function showSuggestions() {
       label,
       node(
         'p',
-        (p.origin === 'stated' ? 'From your notes: “' + p.quote + '”. ' : 'AI estimate. ') + p.rationale,
+        (p.origin === 'stated' ? 'From your notes: “' + p.quote + '”. ' : 'AI estimate: ') + p.rationale,
       ),
       accept,
     );
@@ -500,8 +658,8 @@ async function requestEstimates(input, eligible, settings, signal, status) {
   let retryFailed = false;
   if (missingCore.length && !signal.aborted) {
     status.textContent =
-      'Checking for a starting estimate for ' +
-      (missingCore.length === 2 ? 'unit cost and selling price…' : missingCore[0].label + '…');
+      'Still looking for a starting ' +
+      (missingCore.length === 2 ? 'price and cost…' : missingCore[0].id === 'price' ? 'price…' : 'cost…');
     try {
       const followUp = await ask(missingCore);
       suggestions.push(...validSuggestions(followUp, missingCore));
@@ -518,12 +676,12 @@ async function request(mode) {
   const status = mode === 'draft' ? $('draftStatus') : $('feedback'),
     r = calculate();
   if (!state.product?.trim() && (mode !== 'draft' || !state.description?.trim())) {
-    status.textContent = 'Describe the product or service you plan to sell first.';
+    status.textContent = 'First, say what one sale looks like.';
     $('product').focus();
     return;
   }
   if (mode === 'coach' && (r.missing || !state.reflection?.trim())) {
-    status.textContent = r.missing || 'Write a sentence about the cost you would work on first.';
+    status.textContent = r.missing || 'First, write a sentence about the cost you’d go after.';
     return;
   }
   const fields = worksheetFields();
@@ -540,15 +698,15 @@ async function request(mode) {
     status.textContent = state.salesCosts.some(
       (row) => !row.name.trim() && row.spend === '' && row.perUnit === '',
     )
-      ? 'Name a sales expense to get an estimate for it, or enter its cost directly.'
-      : 'You’ve already entered all the figures.';
+      ? 'Name the sales cost first, or type its amount yourself.'
+      : 'Every number is already filled in.';
     return;
   }
   const controller = new AbortController();
   pending = controller;
   const timer = setTimeout(() => controller.abort(), 60000);
   $('draft').disabled = $('coach').disabled = true;
-  status.textContent = 'Waiting for the AI coach…';
+  status.textContent = 'Asking the AI…';
   const input = {
     assignment:
       'Contribution margin ladder for one sale. Use one selling price. Follow CM1 after production, CM2 after marketing, CM3 after fees and overhead.',
@@ -570,11 +728,9 @@ async function request(mode) {
       state.questions = result.questions;
       showSuggestions();
       status.textContent = result.suggestions.length
-        ? 'Review each suggestion before using it.' +
-          (result.retryFailed
-            ? ' Some estimates could not be loaded. Try again for the remaining figures.'
-            : '')
-        : 'The AI had no figures to suggest. Add details about your product, market, or sales costs and try again.';
+        ? 'Check each suggestion before you use it.' +
+          (result.retryFailed ? ' Some numbers didn’t come through. Try again for the rest.' : '')
+        : 'The AI didn’t have enough to go on and had no figures to suggest. Add what you know about the product, your market or your sales costs, then try again.';
     } else {
       const output = await assist(mode, { ...input, worksheet: report(r) }, settings, controller.signal);
       if (controller.signal.aborted) return;
@@ -584,21 +740,51 @@ async function request(mode) {
     save();
   } catch (e) {
     status.textContent =
-      (controller.signal.aborted ? 'Request stopped.' : e.message) +
-      ' You can finish the worksheet using your own estimates.';
+      (controller.signal.aborted ? 'The AI took too long to answer.' : e.message) +
+      ' You can still finish with your own estimates.';
   } finally {
     clearTimeout(timer);
     pending = null;
     $('draft').disabled = $('coach').disabled = false;
   }
 }
-$('reveal').onclick = () => {
+// Hints name the most likely slip; after two misses the working is shown.
+function practiceHint(guess, r) {
+  const near = (value) => Math.abs(guess - value) < 0.006;
+  const rate = r.feeRate / 100;
+  if (near(r.cm2 - r.cm2 * rate - r.other))
+    return 'Close. The fee is ' + percent(r.feeRate) + ' of the price (' + money(r.price) + '), not of CM2.';
+  if (r.feeRate && near(r.cm2 - r.feeRate - r.other))
+    return 'The fee is a percentage. Work out ' + percent(r.feeRate) + ' of ' + money(r.price) + ' first.';
+  if (r.other && near(r.cm2 - r.fee)) return 'You took off the fee. Now take away the other costs too.';
+  if (r.fee && near(r.cm2 - r.other)) return 'You took off the other costs. Now take away the fee too.';
+  return 'Not quite. Start from CM2 and take away the fee and the other costs.';
+}
+function revealCm3(how) {
   state.revealed = true;
+  state.practice = how;
   render();
   save();
   $('cm3').setAttribute('tabindex', '-1');
   $('cm3').focus();
+}
+$('check').onclick = () => {
+  const r = calculate();
+  if (r.missing) return;
+  const raw = $('cm3Guess').value.trim();
+  const guess = Number(raw);
+  if (!raw || !Number.isFinite(guess)) {
+    $('checkResult').textContent = 'Type your answer in dollars first.';
+    $('cm3Guess').focus();
+    return;
+  }
+  if (Math.abs(guess - r.cm3) < 0.006) return revealCm3('right');
+  state.attempts = (state.attempts || 0) + 1;
+  save();
+  if (state.attempts >= 2) return revealCm3('shown');
+  $('checkResult').textContent = practiceHint(guess, r) + ' Try once more.';
 };
+$('reveal').onclick = () => revealCm3('shown');
 $('draft').onclick = () => request('draft');
 $('coach').onclick = () => request('coach');
 $('worksheet').onsubmit = (e) => {
@@ -608,15 +794,12 @@ $('worksheet').onsubmit = (e) => {
     $('status').textContent = r.missing;
     return;
   }
+  if (!state.revealed) state.practice = 'shown';
   state.revealed = true;
   render();
   save();
   if (e.submitter?.id === 'download')
-    download(
-      'contribution-margin.md',
-      '# Contribution margin worksheet\n\n' + report(r) + '\n',
-      'text/markdown',
-    );
+    download('contribution-margin-ladder.md', report(r) + '\n', 'text/markdown');
   else window.print();
 };
 $('settings').onclick = () => {
@@ -638,10 +821,11 @@ $('config').onclose = () => {
   }
 };
 $('reset').onclick = () => {
-  if (confirm('Clear this worksheet and start again?')) {
+  if (confirm('Clear everything on this worksheet and start over?')) {
     pending?.abort();
     state = { salesCosts: [newSalesCost(1)] };
     $('draftStatus').textContent = $('status').textContent = '';
+    resetPractice();
     restore();
   }
 };

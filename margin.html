@@ -3,37 +3,55 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>The contribution margin ladder · Venture decisions</title>
+    <title>The contribution margin ladder · ENTP 311</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400&family=Libre+Baskerville:wght@700&display=swap"
+    />
     <link rel="stylesheet" href="venture/style.css" />
+    <link rel="stylesheet" href="venture/ewu.css" />
     <link rel="stylesheet" href="venture/ladder.css" />
   </head>
-  <body>
+  <body class="ewu">
     <header>
       <div class="bar">
-        <span class="wordmark">Entrepreneurship <span>/</span> Venture decisions</span
+        <span class="wordmark">Eastern Washington University <span>·</span> ENTP 311</span
         ><button id="settings" class="quiet">AI settings</button>
       </div>
     </header>
     <main>
       <div class="mast">
+        <p class="kicker">Group exercise · Contribution margin · 20 minutes</p>
         <h1>The contribution margin ladder</h1>
         <p id="intro">
-          Pick one thing your venture could sell. Follow the money from the price a customer pays to
-          what’s left after each cost.
+          Pick one thing your venture sells and follow its price down the ladder. Each step takes away
+          one kind of cost, so you can see how much of every sale you actually keep. Estimates are fine.
+          Just note where each number came from.
         </p>
       </div>
       <form id="worksheet">
         <section class="panel">
-          <h2>One sale from your venture</h2>
-          <label for="product">What would a customer buy from you?</label>
-          <input
-            id="product"
-            placeholder="For example, one smoothie bowl or one hour of tutoring"
-            required
-          />
+          <h2><span class="step">1</span> Start with one sale</h2>
           <div class="grid pair">
             <label
-              >Cost to make or deliver one unit ($)<input
+              >Team members <span class="optional">optional</span
+              ><input id="team" autocomplete="off" placeholder="Names of everyone in your group"
+            /></label>
+            <label
+              >What does one sale look like?<input
+                id="product"
+                placeholder="One smoothie bowl, one hour of tutoring"
+                required
+            /></label>
+          </div>
+          <div class="grid pair">
+            <label
+              >Price the customer pays ($)<input id="price" type="number" step="any" min="0" required
+            /></label>
+            <label
+              >Cost to make and deliver one ($)<input
                 id="cost"
                 type="number"
                 step="any"
@@ -41,46 +59,45 @@
                 required
                 aria-describedby="productionHelp"
             /></label>
-            <label
-              >Selling price per unit ($)<input id="price" type="number" step="any" min="0" required
-            /></label>
           </div>
           <p class="hint" id="productionHelp">
-            Count the materials, packaging, labor, and delivery for one sale. Use estimates if you
-            haven’t launched yet.
+            Count the materials, packaging, the labor for that one sale, and shipping or delivery.
+            Haven’t launched yet? Use your best estimate.
           </p>
           <details id="draftTools">
-            <summary>Get help estimating costs</summary>
+            <summary>Stuck on a number? Ask the AI for a starting estimate</summary>
             <p>
-              The AI can suggest starting figures from your product description. Add any details you
-              already know, then check each estimate before using it.
+              Tell it what you already know. It suggests numbers for the blanks and explains each one.
+              Nothing goes into your worksheet until you accept it, so check each suggestion against a
+              real quote or price if you can.
             </p>
             <label
               >What do you already know?<textarea
                 id="description"
-                placeholder="Include any costs or prices you’ve looked up."
+                placeholder="Prices you’ve seen, supplier quotes, how you would deliver it…"
               ></textarea>
             </label>
             <button type="button" class="quiet" id="draft">Suggest estimates</button
-            ><small> Sends your description and worksheet to the AI coach.</small>
+            ><small> Sends your notes and worksheet to the AI.</small>
             <p id="draftStatus" role="status"></p>
             <div id="suggestions"></div>
           </details>
           <p class="rung" id="cm1" aria-live="polite"></p>
         </section>
         <section class="panel">
-          <h2>The cost of winning a sale</h2>
+          <h2><span class="step">2</span> What it costs to win the sale</h2>
           <p>
-            List each expense involved in winning the sale, such as ads, flyers, or a commission. Enter a
-            cost per unit directly, or divide total spending by the units that expense helps sell.
+            Ads, flyers, a booth fee, a sales commission: anything you pay to get this customer to buy.
+            If you pay a lump sum, spread it over the sales it brings in. If you pay a set amount for
+            each sale, enter that amount.
           </p>
           <div id="salesCosts">
             <fieldset class="sales-cost">
               <legend>Sales cost 1</legend>
               <div class="grid">
-                <label>Expense<input id="channel" placeholder="For example, campus flyers" /></label>
+                <label>What is it?<input id="channel" placeholder="Campus flyers" /></label>
                 <label
-                  >Total spending ($)<input
+                  >Total spent ($)<input
                     id="spend"
                     type="number"
                     min="0"
@@ -89,7 +106,7 @@
                     aria-describedby="marketingHelp"
                 /></label>
                 <label
-                  >Units this expense helps sell<input
+                  >Sales it brought in<input
                     id="units"
                     type="number"
                     min="1"
@@ -105,21 +122,21 @@
             </button>
           </div>
           <p class="hint" id="marketingHelp">
-            Use the same time period for total spending and units sold. Include only costs that apply to
-            the sale you’re modeling. If there’s no cost, enter $0.
+            Use the same stretch of time for both numbers, such as one month of ads and that month’s
+            sales. No sales cost? Enter $0.
           </p>
           <div id="salesCostWorking" hidden></div>
           <p class="rung" id="cm2" aria-live="polite"></p>
         </section>
         <section class="panel">
-          <h2>Fees and overhead</h2>
+          <h2><span class="step">3</span> Fees and everything else</h2>
           <p>
-            Include the payment fee and one unit’s share of expenses such as rent or insurance. For
-            example, $60 in rent spread over 100 sales adds $0.60 per sale.
+            Card or platform fees, plus each sale’s share of costs such as rent, insurance or permits. If
+            your stall costs $60 a month and you sell 100 bowls, that adds $0.60 to each bowl.
           </p>
           <div class="grid">
             <label
-              >Payment fee (% of selling price)<input
+              >Card or platform fee (% of price)<input
                 id="fee"
                 type="number"
                 min="0"
@@ -128,43 +145,46 @@
                 required
             /></label>
             <label
-              >Other operating costs per unit ($)<input
-                id="other"
-                type="number"
-                min="0"
-                step="any"
-                required
+              >Other costs per sale ($)<input id="other" type="number" min="0" step="any" required
             /></label>
           </div>
-          <p class="hint">Enter 0 for any cost that doesn’t apply. Count each expense once.</p>
-          <div id="practice" hidden>
+          <p class="hint">Enter 0 for anything that doesn’t apply, and count each cost only once.</p>
+          <div id="practice" class="practice" hidden>
+            <h3>Your turn: work out CM3</h3>
             <p id="practicePrompt"></p>
-            <button id="reveal" type="button" class="quiet">Show CM3</button>
+            <div class="answer">
+              <label
+                >Your CM3 ($)<input id="cm3Guess" type="number" step="any" inputmode="decimal"
+              /></label>
+              <button id="check" type="button">Check my answer</button>
+              <button id="reveal" type="button" class="quiet">Show me the answer</button>
+            </div>
+            <p id="checkResult" role="status"></p>
           </div>
           <p class="rung" id="cm3" aria-live="polite"></p>
         </section>
-        <section class="panel" id="results" hidden>
-          <h2>Your contribution margin ladder</h2>
+        <section class="panel result" id="results" hidden>
+          <h2><span class="step">4</span> Your ladder</h2>
           <div id="waterfall" aria-hidden="true"></div>
           <div id="ladderTable"></div>
           <p id="interpretation"></p>
         </section>
         <section class="panel">
-          <h2>What did you learn about this sale?</h2>
+          <h2><span class="step">5</span> What did you learn?</h2>
           <label
-            >Which cost would you work on first, and why?<textarea
+            >Which cost would you go after first, and why?<textarea
               id="reflection"
-              placeholder="Use a figure from your ladder to explain your choice."
+              placeholder="Point to a number in your ladder."
             ></textarea>
           </label>
           <label
-            >Where did your estimates come from?<textarea
+            >Where did your numbers come from?<textarea
               id="evidence"
-              placeholder="For example, a supplier quote, a similar product’s price, or a guess you still need to check."
+              placeholder="A supplier quote, a competitor’s price, last month’s sales, or a guess you still need to check."
             ></textarea>
           </label>
           <button type="button" id="coach" class="quiet">Ask for feedback</button>
-          <small> Sends your worksheet to the AI coach.</small>
+          <small> Sends your worksheet to the AI. It answers with one question to think about.</small>
           <p id="feedback" role="status"></p>
         </section>
         <div class="actions">
@@ -176,7 +196,7 @@
       <footer><span id="saved"></span><button id="reset" class="quiet">Start over</button></footer>
       <details id="legacy" hidden>
         <summary>Earlier worksheet</summary>
-        <p>You have a saved copy of the previous exercise on this device.</p>
+        <p>There’s a saved copy of the earlier version of this exercise on this device.</p>
         <button id="legacyDownload" class="quiet">Download earlier answers</button>
       </details>
     </main>
@@ -199,7 +219,7 @@
       </form>
     </dialog>
     <article id="printout" hidden></article>
-    <noscript>Enable JavaScript to calculate your margins.</noscript>
+    <noscript>Turn on JavaScript to calculate your margins.</noscript>
     <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker
@@ -210,6 +230,6 @@
         });
       }
     </script>
-    <script type="module" src="venture/ladder.mjs?v=2"></script>
+    <script type="module" src="venture/ladder.mjs?v=3"></script>
   </body>
 </html>
