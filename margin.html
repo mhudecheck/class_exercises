@@ -52,8 +52,8 @@
           <details id="draftTools">
             <summary>Get help estimating costs</summary>
             <p>
-              Describe what goes into your product or service. The AI can suggest figures for you to
-              check.
+              The AI can suggest starting figures from your product description. Add any details you
+              already know, then check each estimate before using it.
             </p>
             <label
               >What do you already know?<textarea
@@ -71,28 +71,18 @@
         <section class="panel">
           <h2>The cost of winning a sale</h2>
           <p>
-            Think of one way you’ll find customers. If you plan to spend $100 on flyers, for example, how
-            many sales do you expect those flyers to bring in?
+            List each expense involved in winning the sale, such as ads, flyers, or a commission. Enter a
+            cost per unit directly, or divide total spending by the units that expense helps sell.
           </p>
-          <label
-            >How will you reach customers?<input id="channel" placeholder="For example, campus flyers"
-          /></label>
-          <div class="grid pair">
-            <label
-              >Spending on this channel ($)<input id="spend" type="number" min="0" step="any" required
-            /></label>
-            <label
-              >Units you expect this spending to sell<input
-                id="units"
-                type="number"
-                min="1"
-                step="1"
-                aria-describedby="marketingHelp"
-            /></label>
+          <div id="salesCosts"></div>
+          <div class="actions">
+            <button type="button" class="quiet" id="addSalesCost">Add another sales cost</button>
           </div>
           <p class="hint" id="marketingHelp">
-            Use the same time period for both estimates. If you expect no marketing expense, enter $0.
+            Use the same time period for total spending and units sold. Include only costs that apply to
+            the sale you’re modeling. If there’s no cost, enter $0.
           </p>
+          <div id="salesCostWorking" hidden></div>
           <p class="rung" id="cm2" aria-live="polite"></p>
         </section>
         <section class="panel">

@@ -14,6 +14,7 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
       errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     let failure = false,
+      emptyEstimates = false,
       requests = [];
     await ctx.route('**/v1/responses', async (route) => {
       const body = route.request().postDataJSON(),
@@ -26,27 +27,29 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
           headers: { 'Access-Control-Allow-Origin': '*' },
         });
       const output =
-        name === 'venture_draft'
-          ? {
-              questions: ['Does the stated price apply to a seat?'],
-              suggestions: [
-                {
-                  id: 'units',
-                  value: '30',
-                  origin: 'estimate',
-                  quote: '',
-                  rationale: 'A provisional enrollment target. Check room capacity.',
-                },
-                {
-                  id: 'price',
-                  value: '80',
-                  origin: 'stated',
-                  quote: '$80 per seat',
-                  rationale: 'Price quoted by the student.',
-                },
-              ],
-            }
-          : { question: 'Which customer commitments support the volume in your forecast?' };
+        name === 'venture_margin_draft' && emptyEstimates
+          ? { suggestions: [], questions: ['How many units can you make?'] }
+          : name === 'venture_margin_draft'
+            ? {
+                questions: ['Does the stated price apply to a seat?'],
+                suggestions: [
+                  {
+                    id: 'units',
+                    value: '30',
+                    origin: 'estimate',
+                    quote: '',
+                    rationale: 'A provisional enrollment target. Check room capacity.',
+                  },
+                  {
+                    id: 'price',
+                    value: '80',
+                    origin: 'stated',
+                    quote: '$80 per seat',
+                    rationale: 'Price quoted by the student.',
+                  },
+                ],
+              }
+            : { question: 'Which customer commitments support the volume in your forecast?' };
       await route.fulfill({
         json: { output: [{ content: [{ type: 'output_text', text: JSON.stringify(output) }] }] },
       });
@@ -130,6 +133,24 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
       );
     }
     await page.goto(new URL('margin.html', base).href);
+    // Work saved before the upgrade keeps its original channel and figures.
+    await page.evaluate(() =>
+      localStorage.setItem(
+        'venture_margin_ladder_v1',
+        JSON.stringify({
+          product: 'Coffee beans',
+          channel: 'Campus flyers',
+          spend: '40',
+          units: '20',
+        }),
+      ),
+    );
+    await page.reload();
+    assert.equal(await page.locator('#channel').inputValue(), 'Campus flyers');
+    assert.equal(await page.locator('#spend').inputValue(), '40');
+    assert.equal(await page.locator('#units').inputValue(), '20');
+    await page.evaluate(() => localStorage.removeItem('venture_margin_ladder_v1'));
+    await page.reload();
     await page.locator('#product').fill('One smoothie bowl for students in the library');
     assert.equal(await page.getByRole('spinbutton', { name: /selling price per unit/i }).count(), 1);
     assert.doesNotMatch(
@@ -141,6 +162,11 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     };
     await page.locator('#draftTools summary').click();
     await fillMargin('description', 'We also sell workshops at $80 per seat.');
+    emptyEstimates = true;
+    await button('Suggest estimates');
+    await page.locator('#draftStatus').filter({ hasText: 'no figures to suggest' }).waitFor();
+    await page.locator('#suggestions').filter({ hasText: 'How many units can you make?' }).waitFor();
+    emptyEstimates = false;
     await button('Suggest estimates');
     const suggestion = page
       .locator('#suggestions .ai-card')
@@ -162,7 +188,7 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
       await fillMargin(k, v);
     }
     assert.match(await page.locator('#cm1').innerText(), /\$4.70/);
-    assert.match(await page.locator('#cm2').innerText(), /\$0.75 per unit.*\$3.95/);
+    assert.match(await page.locator('#cm2').innerText(), /\$0.75.*\$3.95/);
     await button('Show CM3');
     assert.match(await page.locator('#cm3').innerText(), /\$3.08 \(34.2%/);
     await page.reload();
@@ -189,6 +215,34 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     await page.emulateMedia({ media: 'print' });
     assert.ok(await page.locator('#printout').isVisible());
     await page.emulateMedia({ media: 'screen' });
+    // A campaign and a commission both apply to the same sale.
+    await button('Add another sales cost');
+    await fillMargin('channel-2', 'Sales commission');
+    await page
+      .getByRole('combobox', { name: 'How is this cost charged?' })
+      .nth(1)
+      .selectOption('perUnit');
+    await fillMargin('perUnit-2', '.50');
+    assert.match(
+      await page.locator('#salesCostWorking').innerText(),
+      /Campus ads: \$300.00 ÷ 400 units = \$0.75/,
+    );
+    assert.match(
+      await page.locator('#salesCostWorking').innerText(),
+      /Sales commission: \$0.50 per unit/,
+    );
+    assert.match(await page.locator('#cm2').innerText(), /\$1.25.*\$3.45/);
+    await page.reload();
+    assert.equal(Number(await page.locator('#perUnit-2').inputValue()), 0.5);
+    await button('Show CM3');
+    assert.match(await page.locator('#cm3').innerText(), /\$2.58/);
+    const multiExport = page.waitForEvent('download');
+    await button('Download Markdown');
+    const multiMd = await fs.readFile(await (await multiExport).path(), 'utf8');
+    assert.match(multiMd, /Sales commission: \$0.50 per unit/);
+    assert.match(multiMd, /Total cost of winning a sale: \$1.25/);
+    await button('Remove sales cost 2');
+    assert.match(await page.locator('#cm2').innerText(), /\$3.95/);
     await fillMargin('spend', 0);
     await fillMargin('units', '');
     await fillMargin('cost', 12);
