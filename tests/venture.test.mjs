@@ -1,6 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { margin, matchingVolume, channel, allocation, funding, number } from '../venture/math.mjs';
+import {
+  margin,
+  matchingVolume,
+  channel,
+  allocation,
+  funding,
+  number,
+  dealTerms,
+  vcMethod,
+  revenueForShare,
+  preForShare,
+} from '../venture/math.mjs';
 import { assignments } from '../venture/assignments.mjs';
 const near = (actual, expected) =>
   assert.ok(Math.abs(actual - expected) < 1e-6, actual + ' ≠ ' + expected);
@@ -110,4 +121,28 @@ test('channel report separates lifetime revenue and lifetime contribution', () =
   const { notes } = assignments.channels.result({}, (k) => values[k] ?? '', false);
   assert.match(notes.join(' '), /revenue per customer = \$180.00/);
   assert.match(notes.join(' '), /contribution before acquisition = \$36.00/);
+});
+test('deal terms agree whether set by share or by valuation', () => {
+  const byValue = dealTerms({ investment: 300000, basis: 'valuation', pre: 1200000 });
+  near(byValue.share, 20);
+  near(byValue.post, 1500000);
+  const byShare = dealTerms({ investment: 300000, basis: 'share', share: 25 });
+  near(byShare.pre, 900000);
+  near(byShare.post, 1200000);
+  near(dealTerms({ investment: 300000, basis: 'valuation', pre: byShare.pre }).share, 25);
+  assert.throws(() => dealTerms({ investment: 300000, basis: 'valuation', pre: 0 }));
+  assert.throws(() => dealTerms({ investment: 300000, basis: 'share', share: 100 }));
+  assert.throws(() => dealTerms({ investment: 0, basis: 'share', share: 10 }));
+});
+test('venture capital method and what would close the gap', () => {
+  const assumptions = { investment: 300000, multiple: 2, years: 5, rate: 60 };
+  const vc = vcMethod({ ...assumptions, revenue: 5000000 });
+  near(vc.exit, 10000000);
+  near(vc.needed, 31.45728);
+  near(revenueForShare(20, assumptions), 7864320);
+  // At the needed share, the offer meets the investor's return exactly.
+  const pre = preForShare(vc.needed, 300000);
+  near(dealTerms({ investment: 300000, basis: 'valuation', pre }).share, vc.needed);
+  assert.equal(preForShare(120, 300000), null);
+  assert.equal(vcMethod({ ...assumptions, revenue: 0 }).needed, null);
 });

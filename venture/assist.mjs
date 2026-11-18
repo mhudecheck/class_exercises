@@ -17,6 +17,20 @@ const draftSchema = object({
   questions: { type: 'array', items: str },
 });
 const coachSchema = object({ question: str });
+// The simulated investor takes a position each turn instead of only asking questions.
+const investorSchema = object({
+  stance: { type: 'string', enum: ['accept', 'counter', 'wait'] },
+  message: str,
+  evidence: str,
+  counter_basis: { type: 'string', enum: ['none', 'share', 'valuation'] },
+  counter_value: str,
+});
+const fundingInvestor = [
+  'Role-play an early-stage angel investor talking with a team of undergraduate founders about their own venture. The offer may be a practice offer; treat it as real for the conversation.',
+  'Each turn, take exactly one position on the team’s current terms (ourTerms). accept: you would sign these terms. counter: propose one change, either the investor’s share in percent (counter_basis share) or the pre-money valuation in dollars (counter_basis valuation), never both, with the same investment. wait: you will not decide until the team shows one specific piece of evidence, named in evidence.',
+  'Ground the position in the calculator. Compare the share the team offers with neededShare, the share you need for your target return under their forecast. If they offer at least neededShare and their reasoning is plausible, lean toward accept. If they offer less, either counter toward neededShare or wait for evidence that supports a higher revenue forecast. Respond to the team’s latest message and do not repeat earlier positions without a reason.',
+  'Write message in the investor’s voice, plain and direct, at most 70 words, using only the supplied figures. Do not recalculate, grade, or invent facts about the venture. For accept, use counter_basis none and an empty counter_value; evidence may be empty. For counter, counter_value is a plain number with no symbols. For wait, use counter_basis none and an empty counter_value.',
+].join(' ');
 export async function assist(mode, input, settings, signal) {
   const url = new URL(settings.endpoint);
   if (url.protocol !== 'https:' || url.username || url.password)
@@ -53,14 +67,13 @@ export async function assist(mode, input, settings, signal) {
     margin_draft: marginDraft,
     channels_draft: channelsDraft,
     channels_coach: channelsCoach,
+    funding_investor: fundingInvestor,
   }[mode];
   const task =
     specificTask ??
     (mode === 'draft'
       ? 'Draft a concise worksheet for this student and their own venture. For each eligible empty field propose an editable value as a string. Use exact field IDs, choices, units and bases. Respect stated facts and copy the exact supporting phrase into quote with origin stated. For an estimate, use origin estimate, an empty quote, and explain why it may fit and what to check. If a stated value has ambiguous units or meaning (for example $80 with no billing unit), ask a clarifying question and omit every affected field; never replace it with a guess. Do not suggest predictions, decisions or a different company. Omit optional values without context.'
-      : (mode === 'investor'
-          ? 'Role-play the prospective investor. Ask one pointed question about the latest counteroffer or evidence, building on the last student message and prior turns.'
-          : 'Coach this student. Ask one specific question that challenges the reasoning in their decision, tied to their own figures or practical constraint.') +
+      : 'Coach this student. Ask one specific question that challenges the reasoning in their decision, tied to their own figures or practical constraint.' +
         ' Use only the supplied confirmed figures and calculator results. Do not recalculate, invent terms, supply an answer, or grade. Maximum 60 words.');
   const body = {
     model: 'gpt-6-luna',
@@ -75,7 +88,7 @@ export async function assist(mode, input, settings, signal) {
         type: 'json_schema',
         name: 'venture_' + mode,
         strict: true,
-        schema: isDraft ? draftSchema : coachSchema,
+        schema: isDraft ? draftSchema : mode === 'funding_investor' ? investorSchema : coachSchema,
       },
     },
   };
@@ -101,6 +114,9 @@ export async function assist(mode, input, settings, signal) {
   if (isDraft) {
     if (!Array.isArray(output.suggestions) || !Array.isArray(output.questions))
       throw Error('The worksheet response was incomplete.');
+  } else if (mode === 'funding_investor') {
+    if (!['accept', 'counter', 'wait'].includes(output.stance) || !String(output.message).trim())
+      throw Error('The investor’s reply was incomplete.');
   } else if (typeof output.question !== 'string' || !output.question.trim())
     throw Error('The service returned no question.');
   return output;

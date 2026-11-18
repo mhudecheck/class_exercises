@@ -95,6 +95,7 @@ textarea,
 select {
   border: 1px solid #8a8a8c;
   border-radius: 2px;
+  font-weight: 400;
 }
 details {
   color: var(--ink);

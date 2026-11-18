@@ -3,48 +3,331 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Funding negotiation · Venture decisions</title>
+    <title>Price your round · ENTP 311</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400&family=Libre+Baskerville:wght@700&display=swap"
+    />
     <link rel="stylesheet" href="venture/style.css" />
+    <link rel="stylesheet" href="venture/ewu.css" />
+    <link rel="stylesheet" href="venture/sheet.css" />
+    <link rel="stylesheet" href="venture/funding.css" />
   </head>
-  <body data-exercise="funding">
+  <body class="ewu">
     <header>
       <div class="bar">
-        <span class="wordmark">Entrepreneurship <span>/</span> Venture decisions</span
-        ><button id="settings" class="quiet">AI settings</button>
+        <span class="wordmark">Eastern Washington University <span>·</span> ENTP 311</span
+        ><button id="settings" class="quiet" type="button">AI settings</button>
       </div>
     </header>
     <main>
       <div class="mast">
-        <p class="topic">Funding negotiation</p>
-        <h1 id="title">Funding negotiation</h1>
-        <p id="intro"></p>
+        <p class="kicker">Group exercise · Valuation · 20 minutes</p>
+        <h1>Price your round</h1>
+        <p id="intro">
+          Take the funding ask from Exercise 5 and price it two ways: the share an investor would
+          get for your money, and the share they would need to earn their return. Then close the
+          gap, negotiate, and decide what you would sign.
+        </p>
       </div>
-      <nav aria-label="Assignment steps" id="steps"></nav>
-      <div id="notice" role="status"></div>
-      <div id="page"></div>
-      <div id="status" role="status"></div>
-      <footer><span id="saved"></span><button id="reset" class="quiet">Start over</button></footer>
+      <form id="worksheet" novalidate>
+        <section class="panel">
+          <h2><span class="step">1</span> Your ask</h2>
+          <div class="grid pair">
+            <label
+              >Team members <span class="optional">optional</span
+              ><input id="team" autocomplete="off" placeholder="Names of everyone in your group"
+            /></label>
+            <label
+              >What does your venture do?<input
+                id="company"
+                placeholder="Refill kits for campus science labs"
+            /></label>
+          </div>
+          <label
+            >What will the money pay for?<input
+              id="milestone"
+              placeholder="Six months of runway to sign three lab distributors"
+          /></label>
+          <div class="grid pair">
+            <label
+              >How much are you asking for? ($)<input
+                id="ask"
+                type="number"
+                min="0"
+                step="any"
+                inputmode="decimal"
+                aria-describedby="askHelp"
+            /></label>
+            <fieldset class="choice">
+              <legend>Is there a real investor?</legend>
+              <label class="check"
+                ><input type="radio" name="status" value="practice" checked /> No, this is a
+                practice offer</label
+              >
+              <label class="check"
+                ><input type="radio" name="status" value="real" /> Yes, we have an offer</label
+              >
+            </fieldset>
+          </div>
+          <p class="hint" id="askHelp">
+            Use the total from Exercise 5. Most groups work with a practice offer. That’s fine: the
+            point is to see what your forecast has to support.
+          </p>
+        </section>
+
+        <section class="panel">
+          <h2><span class="step">2</span> The test offer</h2>
+          <p>
+            An angel offers to put in your ask in exchange for part of the company. They name a
+            <dfn>pre-money valuation</dfn>: what they think the company is worth before their money
+            goes in.
+          </p>
+          <label
+            >Pre-money valuation the investor proposes ($)<input
+              id="pre"
+              type="number"
+              min="0"
+              step="any"
+              inputmode="decimal"
+              aria-describedby="preHelp"
+          /></label>
+          <p class="hint" id="preHelp">
+            Early rounds commonly sell 10–25% of a company, so try a valuation of 3 to 9 times your
+            ask.
+          </p>
+          <div id="offerPractice" class="practice" hidden>
+            <h3>Your turn: work out the deal</h3>
+            <p>
+              <dfn>Post-money valuation</dfn> is what the company is worth right after the money
+              goes in. The investor owns their money’s share of it.
+            </p>
+            <div class="answer">
+              <label
+                >Post-money valuation ($)<input
+                  id="postGuess"
+                  type="number"
+                  step="any"
+                  inputmode="decimal"
+              /></label>
+              <label
+                >Investor’s share (%)<input
+                  id="shareGuess"
+                  type="number"
+                  step="any"
+                  inputmode="decimal"
+              /></label>
+            </div>
+            <div class="actions">
+              <button id="checkOffer" type="button">Check our answers</button>
+              <button id="showOffer" type="button" class="quiet">Show us the answer</button>
+            </div>
+            <p id="offerResult" class="check-result" role="status"></p>
+          </div>
+          <p class="rung" id="offerRung" aria-live="polite"></p>
+        </section>
+
+        <section class="panel">
+          <h2><span class="step">3</span> What the investor needs</h2>
+          <p>
+            Investors work backward from the day they hope to sell their shares. They ask what the
+            company could sell for, then what that is worth today given the return they need. This
+            is the <dfn>venture capital method</dfn>.
+          </p>
+          <label
+            >Your revenue forecast for the year the company is sold ($)<input
+              id="revenue"
+              type="number"
+              min="0"
+              step="any"
+              inputmode="decimal"
+              aria-describedby="revenueHelp"
+          /></label>
+          <p class="hint" id="revenueHelp">
+            Annual revenue, not the total over all years. This is your group’s number to defend.
+          </p>
+          <fieldset class="assumptions">
+            <legend>
+              Course assumptions <span class="optional">change any you have a reason to</span>
+            </legend>
+            <div class="grid">
+              <label
+                >Years until the company is sold<input
+                  id="years"
+                  type="number"
+                  min="0"
+                  step="any" />
+                <span class="tag" id="yearsTag"></span
+              ></label>
+              <label
+                >Revenue multiple<input id="multiple" type="number" min="0" step="any" />
+                <span class="tag" id="multipleTag"></span
+              ></label>
+              <label
+                >Investor’s target return per year (%)<input
+                  id="rate"
+                  type="number"
+                  min="0"
+                  step="any" />
+                <span class="tag" id="rateTag"></span
+              ></label>
+            </div>
+            <p class="hint">
+              A <dfn>revenue multiple</dfn> is what buyers pay for each dollar of annual revenue.
+              Early-stage investors aim for 50–60% a year because most of their bets fail.
+            </p>
+          </fieldset>
+          <div id="needPredict" class="practice" hidden>
+            <h3>Before you look</h3>
+            <fieldset class="choice" id="predictChoices">
+              <legend id="predictQuestion">
+                Will the investor need more or less than they’re offered?
+              </legend>
+              <label class="check"
+                ><input type="radio" name="prediction" value="more" /> More</label
+              >
+              <label class="check"
+                ><input type="radio" name="prediction" value="same" /> About the same</label
+              >
+              <label class="check"
+                ><input type="radio" name="prediction" value="less" /> Less</label
+              >
+            </fieldset>
+            <div class="actions">
+              <button id="showNeed" type="button">Show what the investor needs</button>
+            </div>
+            <p id="needResult" class="check-result" role="status"></p>
+          </div>
+          <div id="needWorking" class="rung working" aria-live="polite" hidden></div>
+        </section>
+
+        <section class="panel result" id="gapPanel" hidden>
+          <h2><span class="step">4</span> Close the gap</h2>
+          <div id="gapBars" class="gap-bars"></div>
+          <p id="gapLead" class="gap-lead"></p>
+          <ul id="gapOptions" class="gap-options"></ul>
+          <label
+            >Which of these could you defend, and with what evidence?<textarea
+              id="fair"
+              placeholder="Signed pilot orders, a distributor’s letter of intent, last semester’s sales…"
+            ></textarea>
+          </label>
+        </section>
+
+        <section class="panel" id="negotiatePanel" hidden>
+          <h2><span class="step">5</span> Negotiate</h2>
+          <p>
+            Set the terms you want to propose. Enter the share or the valuation, and the page works
+            out the other, so your terms always add up.
+          </p>
+          <fieldset class="terms">
+            <legend>Our terms</legend>
+            <div class="grid">
+              <label
+                >Investment ($)<input
+                  id="cInvestment"
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputmode="decimal"
+              /></label>
+              <fieldset class="choice">
+                <legend>Set our terms by</legend>
+                <label class="check"
+                  ><input type="radio" name="basis" value="share" checked /> Investor’s share</label
+                >
+                <label class="check"
+                  ><input type="radio" name="basis" value="valuation" /> Pre-money valuation</label
+                >
+              </fieldset>
+              <label id="cShareLabel"
+                >Investor’s share (%)<input id="cShare" type="number" min="0" max="100" step="any"
+              /></label>
+              <label id="cPreLabel" hidden
+                >Pre-money valuation ($)<input id="cPre" type="number" min="0" step="any"
+              /></label>
+            </div>
+            <p class="rung" id="termsRung" aria-live="polite"></p>
+          </fieldset>
+          <h3>Talk with the investor</h3>
+          <p class="hint">
+            The investor reads your terms and your numbers, then accepts, makes a counteroffer, or
+            waits for evidence. You get up to three replies.
+          </p>
+          <ol id="turns" class="turns"></ol>
+          <div id="composer">
+            <label
+              >What do you say to the investor?<textarea
+                id="message"
+                placeholder="Why your terms are fair, and the evidence behind your forecast."
+              ></textarea>
+            </label>
+            <div class="actions">
+              <button id="send" type="button">Send to the investor</button>
+              <small>Sends your terms and calculations to the AI investor.</small>
+            </div>
+          </div>
+          <p id="investorStatus" role="status"></p>
+        </section>
+
+        <section class="panel" id="decidePanel" hidden>
+          <h2><span class="step">6</span> Decide</h2>
+          <fieldset class="choice" id="outcomes">
+            <legend>What would you sign?</legend>
+          </fieldset>
+          <p class="rung" id="finalRung" aria-live="polite"></p>
+          <label
+            >Why these terms?<textarea
+              id="decision"
+              placeholder="Use the investor’s share and your forecast to explain."
+            ></textarea>
+          </label>
+          <label
+            >What evidence would most strengthen your position?<textarea
+              id="next"
+              placeholder="What you will collect, and by when."
+            ></textarea>
+          </label>
+          <p id="decisionFlag" class="flag" hidden></p>
+        </section>
+
+        <div class="actions">
+          <button id="print" type="submit">Print worksheet</button
+          ><button id="download" type="submit" class="quiet">Download Markdown</button>
+        </div>
+        <p id="status" role="status"></p>
+      </form>
+      <footer>
+        <span id="saved"></span><button id="reset" class="quiet" type="button">Start over</button>
+      </footer>
+      <details id="legacy" hidden>
+        <summary>Earlier worksheet</summary>
+        <p>There’s a saved copy of the earlier version of this exercise on this device.</p>
+        <button id="legacyDownload" class="quiet" type="button">Download earlier answers</button>
+      </details>
     </main>
     <dialog id="config">
       <form method="dialog">
         <h2>AI settings</h2>
-        <p>Requesting assistance sends this exercise’s context to the selected service.</p>
-        <label>Responses endpoint<input id="endpoint" type="url" /></label
+        <label>Responses endpoint<input type="url" id="endpoint" required /></label
         ><label
           >API key for direct OpenAI access<input
-            id="apiKey"
             type="password"
+            id="apiKey"
             autocomplete="off" /></label
         ><label class="check"
-          ><input id="remember" type="checkbox" /> Remember my key on this device</label
+          ><input type="checkbox" id="remember" /> Remember my key on this device</label
         >
-        <p>
-          <button value="save">Save settings</button>
-          <button value="cancel" class="quiet">Cancel</button>
-        </p>
+        <div class="actions">
+          <button value="save">Save settings</button
+          ><button value="cancel" class="quiet" formnovalidate>Cancel</button>
+        </div>
       </form>
     </dialog>
-    <noscript>Enable JavaScript to use the worksheet and calculator.</noscript>
-    <script type="module" src="venture/app.mjs"></script>
+    <article id="printout" hidden></article>
+    <noscript>Turn on JavaScript to price your round.</noscript>
+    <script type="module" src="venture/funding.mjs?v=1"></script>
   </body>
 </html>

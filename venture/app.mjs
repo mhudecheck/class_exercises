@@ -32,9 +32,7 @@ function fresh() {
     fields: {},
     pending: [],
     questions: [],
-    turns: [],
     coach: '',
-    message: '',
     sealed: false,
   };
 }
@@ -333,18 +331,6 @@ function worksheet() {
       button(
         'Correct original inputs',
         () => {
-          if (kind !== 'channels') {
-            if (
-              !confirm(
-                'Keep your original entries for editing and clear the comparison, negotiation, and decision brief?',
-              )
-            )
-              return;
-            const ids = new Set([...context, ...allBase(), ...ex.predict].map((f) => f.id));
-            s.fields = Object.fromEntries(Object.entries(s.fields).filter(([id]) => ids.has(id)));
-            s.turns = [];
-            s.message = '';
-          }
           s.sealed = false;
           s.max = 1;
           s.coach = '';
@@ -568,7 +554,6 @@ function labPage() {
   out.id = 'labOutput';
   updated.append(out);
   frag.append(updated);
-  if (kind === 'funding') frag.append(investor());
   frag.append(
     actions(
       button('Defend your decision', () => {
@@ -578,38 +563,6 @@ function labPage() {
     ),
   );
   return frag;
-}
-function investor() {
-  const p = panel('Talk with the investor');
-  p.append(
-    hint(
-      'Tell the investor why your offer makes sense. You can revise your terms between replies or end the conversation when you’re ready.',
-    ),
-  );
-  for (const [i, t] of s.turns.entries()) {
-    p.append(
-      el('h3', 'Exchange ' + (i + 1)),
-      el('p', 'Founder — ' + t.student),
-      el('p', 'Investor — ' + t.question),
-    );
-    const d = el('details');
-    d.append(el('summary', 'Terms discussed'), el('p', t.terms));
-    p.append(d);
-  }
-  if (s.turns.length < 3) {
-    const message = el('textarea');
-    message.id = 'investorMessage';
-    message.value = s.message;
-    message.oninput = () => {
-      s.message = message.value;
-      save();
-    };
-    p.append(
-      labeled('Your message to the investor', message),
-      actions(button('Ask for investor reply', () => runAI('investor'), true)),
-    );
-  }
-  return p;
 }
 function validateFinal() {
   checkedLab();
@@ -710,11 +663,6 @@ function brief() {
     ['Revised assumptions', entries(flatten(ex.lab(s, get)))],
     ['Revised calculation', resultLines(checkedLab())],
   ];
-  if (kind === 'funding' && s.turns.length)
-    sections.push([
-      'Investor discussion',
-      s.turns.flatMap((t) => [t.terms, 'Founder — ' + t.student, 'Investor — ' + t.question]),
-    ]);
   const decision = entries(ex.final);
   if (kind === 'channels' && get('testChannel')) {
     decision.push(
@@ -725,21 +673,6 @@ function brief() {
     } catch {
       // The live experiment panel explains any edits needed before export.
     }
-  }
-  if (kind === 'funding' && get('outcome')) {
-    const prefix = get('outcome') === 'Stand by the original offer' ? '' : 'counter';
-    decision.push(
-      get('outcome') === 'Walk away'
-        ? 'No deal. No new investor ownership.'
-        : 'Resulting ownership — ' +
-            fmt(
-              (100 * Number(get(prefix + 'investment'))) /
-                (Number(get(prefix + 'pre')) + Number(get(prefix + 'investment'))),
-            ) +
-            '% for ' +
-            money(Number(get(prefix + 'investment'))) +
-            '.',
-    );
   }
   sections.push(['Decision and next step', decision]);
   if (s.coach) sections.push(['Coaching question', [s.coach]]);
@@ -949,16 +882,9 @@ async function runAI(mode) {
         payload.calculations = resultLines(result);
         payload.confirmed = entries([...allBase(), ...flatten(ex.lab(s, get))]);
       }
-      if (mode === 'investor') {
-        if (!s.message.trim() || s.turns.length >= 3)
-          throw Error('Enter your message before requesting an investor reply.');
-        payload.history = s.turns;
-        payload.message = s.message;
-      } else {
-        if (!isChannels && !get('decision').trim())
-          throw Error('Write your decision first so the coach can respond to your reasoning.');
-        payload.reasoning = entries(ex.final);
-      }
+      if (!isChannels && !get('decision').trim())
+        throw Error('Write your decision first so the coach can respond to your reasoning.');
+      payload.reasoning = entries(ex.final);
     }
     controller = new AbortController();
     request = controller;
@@ -993,15 +919,8 @@ async function runAI(mode) {
         controller.signal,
       );
       controller.signal.throwIfAborted();
-      if (mode === 'investor') {
-        const terms = entries(flatten(ex.lab(s, get))).join(' / ');
-        s.turns.push({ student: s.message, question: out.question, terms });
-        s.message = '';
-        message = 'Investor replied.';
-      } else {
-        s.coach = out.question.trim();
-        message = 'Coaching question ready.';
-      }
+      s.coach = out.question.trim();
+      message = 'Coaching question ready.';
     }
     save();
     request = null;
@@ -1022,11 +941,7 @@ async function runAI(mode) {
           ? isChannels
             ? 'Try again or use a small trial for each channel. Estimate its cost, how many people it reaches, and how many will buy.'
             : 'For your venture, list one observed price or cost. Enter other figures as student estimates and note what you would check.'
-          : isChannels
-            ? ex.fallback
-            : 'For your projected exit revenue of ' +
-              money(Number(get('counterrevenue'))) +
-              ', what evidence would persuade the investor?';
+          : ex.fallback;
       const message = serviceError + ' Your entries are saved in this tab. ' + offline;
       if (isChannels) channelMessage(mode, message);
       else error(Error(message));
