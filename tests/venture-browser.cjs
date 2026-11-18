@@ -16,7 +16,8 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     page.on('pageerror', (e) => errors.push(e.message));
     let failure = false,
       emptyEstimates = false,
-      requests = [];
+      requests = [],
+      investorAnswered = 0;
     await ctx.route('**/v1/responses', async (route) => {
       const body = route.request().postDataJSON(),
         name = body.text.format.name;
@@ -63,8 +64,33 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
         };
         return route.fulfill({ json: { output_text: JSON.stringify(output) } });
       }
+      const investorReplies = [
+        {
+          stance: 'counter',
+          message: 'I need about 31% at your forecast. I can do $300,000 for 30%.',
+          evidence: '',
+          counter_basis: 'share',
+          counter_value: '30',
+        },
+        {
+          stance: 'counter',
+          message: 'Somewhere near a third would work.',
+          evidence: 'Signed distributor orders',
+          counter_basis: 'share',
+          counter_value: 'about a third',
+        },
+        {
+          stance: 'accept',
+          message: 'With signed orders, 25% works for me.',
+          evidence: '',
+          counter_basis: 'none',
+          counter_value: '',
+        },
+      ];
       const output =
-        name === 'venture_margin_draft' && emptyEstimates
+        name === 'venture_funding_investor'
+          ? investorReplies[investorAnswered++]
+          : name === 'venture_margin_draft' && emptyEstimates
           ? { suggestions: [], questions: ['How many units can you make?'] }
           : name === 'venture_margin_draft' &&
               context.eligible.map((field) => field.id).join() === 'cost'
@@ -476,51 +502,104 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     await button('Defend your decision');
     assert.equal(await page.locator('#f-cta').inputValue(), 'Book a tune-up');
     assert.equal(await page.locator('#coachNote').count(), 0);
-    await start(
-      'funding',
-      'We sell refill kits to campus labs.',
-      'A hypothetical raise to validate two distributors.',
-    );
-    await fields({
-      status: 'Hypothetical offer',
-      investment: 300000,
+    // Funding: a group prices its own ask, negotiates, and the brief records the terms it chose.
+    await page.goto(new URL('funding.html', base).href);
+    const fund = async (values) => {
+      for (const [id, value] of Object.entries(values)) await page.locator('#' + id).fill(String(value));
+    };
+    await fund({
+      team: 'Ana, Ben',
+      company: 'Refill kits for campus labs',
+      milestone: 'Sign two distributors',
+      ask: 300000,
       pre: 1200000,
-      years: 5,
-      revenue: 5000000,
-      multiple: 2,
-      rate: 60,
-      target: 20,
-      ownership: 20,
-      reason: 'The offer is one fifth of the post-money valuation.',
+      postGuess: 1500000,
+      shareGuess: 25,
     });
-    await seal();
-    await enter('counterpre', 900000);
-    for (let i = 0; i < 3; i++) {
-      const msg = page.locator('#investorMessage');
-      await keyboardFocus(msg);
-      await page.keyboard.insertText('Our pilot supports revision ' + (i + 1));
-      if (i === 0) {
-        failure = true;
-        await button('Ask for investor reply');
-        await page.locator('#status').filter({ hasText: '503' }).waitFor();
-        assert.equal(await msg.inputValue(), 'Our pilot supports revision 1');
-        assert.equal(await page.getByRole('heading', { name: 'Exchange 1' }).count(), 0);
-        failure = false;
-      }
-      await button('Ask for investor reply');
-      await page.getByRole('heading', { name: 'Exchange ' + (i + 1) }).waitFor();
-    }
-    assert.equal(await page.locator('#investorMessage').count(), 0);
-    const turns = requests.filter((r) => r.mode === 'venture_investor');
-    assert.equal(turns.length, 4);
-    assert.ok(turns[0].context.calculations.join(' ').includes('25%'));
-    await button('Defend your decision');
-    await fields({
-      outcome: 'Make the counteroffer',
-      decision: 'Offer 25% and validate the exit forecast using distributor orders.',
-      next: 'Obtain signed pilot orders.',
+    await button('Check our answers');
+    assert.match(await page.locator('#offerResult').innerText(), /not the pre-money/);
+    await fund({ shareGuess: 20 });
+    await button('Check our answers');
+    assert.match(
+      await page.locator('#offerRung').innerText(),
+      /^Right\. Post-money: \$1,200,000 \+ \$300,000 = \$1,500,000\. .* = 20%\.$/,
+    );
+    await fund({ revenue: 5000000 });
+    assert.equal(await page.locator('#yearsTag').innerText(), 'COURSE DEFAULT');
+    await button('Show what the investor needs');
+    assert.match(await page.locator('#needResult').innerText(), /Pick an answer/);
+    await page.getByLabel('More', { exact: true }).check();
+    await button('Show what the investor needs');
+    assert.match(await page.locator('#needWorking').innerText(), /you were right[\s\S]*= 31\.5%/);
+    const gap = await page.locator('#gapOptions').innerText();
+    assert.match(gap, /\$7,864,320/);
+    assert.match(gap, /\$653,674/);
+    await fund({ cShare: 25 });
+    assert.match(await page.locator('#termsRung').innerText(), /25% for \$300,000\. Pre-money \$900,000/);
+    await page.getByLabel('Pre-money valuation', { exact: true }).check();
+    assert.equal(await page.locator('#cPre').inputValue(), '900000');
+    await page.getByLabel('Investor’s share', { exact: true }).check();
+    assert.equal(Number(await page.locator('#cShare').inputValue()), 25);
+    await fund({ message: 'Two distributors have asked for quotes.' });
+    failure = true;
+    await button('Send to the investor');
+    await page.locator('#investorStatus').filter({ hasText: '503' }).waitFor();
+    assert.equal(await page.locator('#message').inputValue(), 'Two distributors have asked for quotes.');
+    assert.equal(await page.locator('.turn').count(), 0);
+    failure = false;
+    await button('Send to the investor');
+    await page.locator('.turn.counter').waitFor();
+    await button('Use these terms');
+    assert.equal(Number(await page.locator('#cShare').inputValue()), 30);
+    await fund({ cShare: 25, message: 'Would 25% work with signed orders?' });
+    await button('Send to the investor');
+    // A counteroffer that isn't a number becomes a request for evidence.
+    await page.locator('.turn.wait').waitFor();
+    await fund({ message: 'We will bring two signed orders.' });
+    await button('Send to the investor');
+    await page.locator('.turn.accept').waitFor();
+    assert.equal(await page.locator('#composer').isVisible(), false);
+    const investorCalls = requests.filter((r) => r.mode === 'venture_funding_investor');
+    assert.equal(investorCalls.length, 4);
+    assert.equal(investorCalls[0].context.ourTerms.share, 25);
+    assert.ok(Math.abs(investorCalls[0].context.forecast.neededShare - 31.45728) < 1e-6);
+    await page.getByLabel(/Propose our terms/).check();
+    assert.match(await page.locator('#finalRung').innerText(), /25% for \$300,000/);
+    await fund({
+      decision: 'Offer 25% once we have signed distributor orders.',
+      next: 'Two signed orders by December 15.',
     });
-    await finish('25% for $300,000.00');
+    // Correcting an input keeps the writing and the negotiation, and flags them.
+    await fund({ pre: 1200001 });
+    assert.equal(await page.locator('#decision').inputValue(), 'Offer 25% once we have signed distributor orders.');
+    assert.equal(await page.locator('.turn').count(), 3);
+    assert.ok(await page.locator('#decisionFlag').isVisible());
+    assert.equal(await page.locator('.turn .flag').count(), 3);
+    await fund({ pre: 1200000 });
+    assert.equal(await page.locator('#decisionFlag').isVisible(), false);
+    await page.reload();
+    assert.equal(await page.locator('.turn').count(), 3);
+    const fundingExport = page.waitForEvent('download');
+    await button('Download Markdown');
+    const fundingMd = await fs.readFile(await (await fundingExport).path(), 'utf8');
+    assert.match(
+      fundingMd,
+      /## Our decision\nPropose our terms: the investor owns 25% for \$300,000 \(pre-money \$900,000/,
+    );
+    assert.match(fundingMd, /Share the investor needs: 31\.5%/);
+    await page.evaluate(
+      () =>
+        (window.print = () => {
+          document.body.dataset.printed = 'yes';
+        }),
+    );
+    await button('Print worksheet');
+    await page.emulateMedia({ media: 'print' });
+    const fundingSheet = await page.locator('#printout').innerText();
+    assert.match(fundingSheet, /5 · Our decision/);
+    assert.match(fundingSheet, /25% for \$300,000/);
+    await page.emulateMedia({ media: 'screen' });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     assert.deepEqual(errors, []);
     console.log(
       'Passed three independent mobile keyboard workflows, reload, AI review and failures, negotiation, print and Markdown exports.',

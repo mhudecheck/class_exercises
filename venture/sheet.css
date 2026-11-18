@@ -1,0 +1,236 @@
+/* Printed worksheets in the style of the course exercise sheets: Letter page, red edge,
+   kicker and serif title, name boxes, numbered boxes with black headers, result box in red.
+   Pages build the sheet inside #printout with the sh- classes below. */
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0.4in 0.45in 0.4in 0.4in;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    font-size: 10pt;
+  }
+
+  #printout,
+  #printout * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .sheet {
+    font:
+      10pt/1.35 Calibri,
+      Carlito,
+      Lato,
+      'Helvetica Neue',
+      Arial,
+      sans-serif;
+    color: #000;
+    border-left: 8pt solid #db1935;
+    padding-left: 0.28in;
+    display: flex;
+    flex-direction: column;
+    gap: 9pt;
+  }
+
+  .sh-head {
+    background: none;
+    color: #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 12pt;
+  }
+
+  .sh-kicker {
+    margin: 0 0 3pt;
+    color: #db1935;
+    font-size: 8.5pt;
+    font-weight: 700;
+    letter-spacing: 1.4pt;
+    text-transform: uppercase;
+  }
+
+  .sh-title {
+    margin: 0;
+    font-family: 'Bookman Old Style', 'URW Bookman', 'Libre Baskerville', Georgia, serif;
+    font-size: 20pt;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+
+  .sh-meta {
+    margin: 0;
+    font-size: 8.5pt;
+    color: #555;
+    text-align: right;
+  }
+
+  .sh-ids {
+    display: grid;
+    grid-template-columns: 1.4fr 1.4fr 1fr;
+    gap: 7pt;
+  }
+
+  .sh-id {
+    border: 1.2pt solid #9a9a9c;
+    padding: 4pt 7pt 5pt;
+    min-height: 34pt;
+    display: flex;
+    flex-direction: column;
+    gap: 1pt;
+  }
+
+  .sh-id span {
+    font-size: 8pt;
+    font-weight: 700;
+    color: #555;
+    letter-spacing: 0.6pt;
+    text-transform: uppercase;
+  }
+
+  .sh-id strong {
+    font-size: 10pt;
+    font-weight: 400;
+    overflow-wrap: anywhere;
+  }
+
+  .sh-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8pt;
+  }
+
+  .sh-box {
+    border: 1.2pt solid #9a9a9c;
+    display: flex;
+    flex-direction: column;
+    break-inside: avoid;
+  }
+
+  .sh-result,
+  .sh-span {
+    grid-column: 1 / -1;
+  }
+
+  .sh-boxhead {
+    background: #000;
+    color: #fff;
+    padding: 3.5pt 8pt;
+    font-size: 10pt;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8pt;
+  }
+
+  .sh-hint {
+    font-size: 8.5pt;
+    font-weight: 400;
+    color: #d9d9d9;
+    text-align: right;
+  }
+
+  .sh-body {
+    padding: 6pt 8pt 7pt;
+    flex-grow: 1;
+  }
+
+  .sh-rows {
+    margin: 0;
+  }
+
+  .sh-rows div {
+    display: flex;
+    justify-content: space-between;
+    gap: 8pt;
+    padding: 2.5pt 0;
+    border-bottom: 0.75pt solid #cfcfcf;
+  }
+
+  .sh-rows dt {
+    overflow-wrap: anywhere;
+  }
+
+  .sh-rows dt small {
+    display: block;
+    font-size: 8.5pt;
+    color: #555;
+  }
+
+  .sh-rows dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .sh-rows .sh-total {
+    border-bottom: 0;
+    border-top: 1.2pt solid #000;
+    margin-top: 2pt;
+    font-weight: 700;
+  }
+
+  .sh-result {
+    border: 1.5pt solid #db1935;
+  }
+
+  .sh-result .sh-boxhead {
+    background: #db1935;
+  }
+
+  .sh-result .sh-hint {
+    color: #fff;
+  }
+
+  .sh-result .sh-body {
+    background: #fce8eb;
+  }
+
+  .sh-verdict {
+    margin: 6pt 0 0;
+    font-weight: 700;
+  }
+
+  .sh-answer {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .sh-lines span {
+    display: block;
+    height: 19pt;
+    border-bottom: 0.75pt solid #c8c8c8;
+  }
+
+  .sh-sub {
+    margin: 6pt 0 2pt;
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: #555;
+    letter-spacing: 0.6pt;
+    text-transform: uppercase;
+  }
+
+  .sh-notes {
+    margin: 0;
+    padding-left: 12pt;
+    font-size: 9pt;
+  }
+
+  .sh-foot {
+    display: block;
+    border: 0;
+    margin: 2pt 0 0;
+    padding: 0;
+    font-size: 8pt;
+    letter-spacing: 1.2pt;
+    text-transform: uppercase;
+    color: #9a9a9c;
+  }
+}

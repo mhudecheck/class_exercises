@@ -122,3 +122,47 @@ export function funding(input) {
   if (required !== null) finite([required]);
   return { post, offered, exit, today, required, targetExit, targetRevenue, payoff };
 }
+
+// Deal terms from either the investor's share or the pre-money valuation, so the
+// two can never disagree. Shares are percentages.
+export function dealTerms({ investment, basis, share, pre }) {
+  const money = number(investment, 'the investment', { positive: true });
+  if (basis === 'share') {
+    const stake = number(share, 'the investor’s share', { positive: true, max: 100 });
+    if (stake >= 100) throw Error('The investor’s share has to be less than 100%.');
+    const post = money / (stake / 100);
+    return { investment: money, share: stake, post, pre: post - money };
+  }
+  const value = number(pre, 'the pre-money valuation', { positive: true });
+  const post = value + money;
+  finite([post]);
+  return { investment: money, pre: value, post, share: (100 * money) / post };
+}
+// The venture capital method from the slides, with no further dilution before the sale.
+export function vcMethod({ investment, revenue, multiple, years, rate }) {
+  const money = number(investment, 'the investment', { positive: true });
+  const sales = number(revenue, 'revenue in your exit year');
+  const times = number(multiple, 'the revenue multiple', { positive: true });
+  const horizon = number(years, 'years until the sale', { positive: true });
+  const target = number(rate, 'the investor’s target return');
+  const factor = (1 + target / 100) ** horizon;
+  const exit = sales * times,
+    today = exit / factor;
+  finite([factor, exit, today]);
+  return {
+    factor,
+    exit,
+    today,
+    payoff: money * factor,
+    needed: today > 0 ? (100 * money) / today : null,
+  };
+}
+// What would have to be true for a given share to meet the investor's return.
+export function revenueForShare(share, { investment, multiple, years, rate }) {
+  const vc = vcMethod({ investment, revenue: 0, multiple, years, rate });
+  return vc.payoff / (share / 100) / Number(multiple);
+}
+export function preForShare(share, investment) {
+  if (!(share > 0 && share < 100)) return null;
+  return Number(investment) / (share / 100) - Number(investment);
+}

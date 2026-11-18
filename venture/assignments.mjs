@@ -1,4 +1,4 @@
-import { number, channel, allocation, funding } from './math.mjs';
+import { number, channel, allocation } from './math.mjs';
 const money = (n) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -230,62 +230,6 @@ export function experimentNotes(test) {
   }
   return notes;
 }
-const dealFields = [
-  ['investment', 'Investment ($)', positive],
-  ['pre', 'Pre-money valuation ($)'],
-  ['years', 'Years to exit', positive],
-  ['revenue', 'Projected annual revenue at exit ($)'],
-  ['multiple', 'Exit revenue multiple', positive],
-  ['rate', 'Annual investor target return (%)'],
-  ['target', 'Ownership you want to offer (%)', { ...positive, max: 100 }],
-];
-function deal(get, prefix) {
-  return Object.fromEntries(dealFields.map(([key]) => [key, get(prefix + key)]));
-}
-function fundingResult(s, get, lab) {
-  function figures(prefix) {
-    const inputs = deal(get, prefix),
-      r = funding(inputs);
-    return [
-      money(r.post),
-      pct(r.offered),
-      money(r.exit),
-      money(r.today),
-      r.required === null ? 'No finite stake (zero exit value)' : pct(r.required),
-      pct(Number(inputs.target)),
-      money(r.targetExit),
-      money(r.targetRevenue),
-    ];
-  }
-  const labels = [
-    'Post-money = pre-money + investment',
-    'Offered ownership = investment ÷ post-money',
-    'Exit value = exit revenue × multiple',
-    'Value today = exit value ÷ (1 + annual return) ^ years',
-    'Required ownership = investment ÷ value today',
-    'Ownership you want to offer',
-    'Required exit value = investor payoff ÷ desired fraction',
-    'Required annual exit revenue = required exit value ÷ multiple',
-  ];
-  const first = figures(''),
-    next = lab ? figures('counter') : [];
-  const latest = funding(deal(get, lab ? 'counter' : ''));
-  return {
-    tables: [
-      {
-        title: 'Terms and exit forecast',
-        head: ['Calculation', 'Original offer', ...(lab ? ['Counteroffer'] : [])],
-        rows: labels.map((label, i) => [label, first[i], ...(lab ? [next[i]] : [])]),
-      },
-    ],
-    notes: [
-      'Assume the company raises no more equity before it sells. The investor gets paid once, at the sale.',
-      ...(latest.required === null || latest.required > 100
-        ? ['Even 100% ownership would not deliver the target return under this forecast.']
-        : []),
-    ],
-  };
-}
 export const assignments = {
   channels: {
     topic: 'Customer acquisition',
@@ -335,41 +279,6 @@ export const assignments = {
     ],
     fallback:
       'Which part of your revised allocation relies on untested reach or capacity? What result would make you stop spending?',
-  },
-  funding: {
-    topic: 'Funding negotiation',
-    title: 'How much of your company would you offer an investor?',
-    scenario: 'What milestone will the investment fund, and what offer are you considering?',
-    intro:
-      'Work out what the investor would own and what your company would need to sell for. Then decide what terms you would offer.',
-    groups: () => [
-      group(
-        'The offer',
-        choice('status', 'Offer status', ['Hypothetical offer', 'Offer received']),
-        ...rowsFor('', dealFields),
-      ),
-    ],
-    predict: [
-      num('ownership', 'Predict the investor’s ownership (%)', { max: 100 }),
-      area('reason', 'Why would you be willing to give up that share of the company?'),
-    ],
-    lab: () => [group('Revise terms or forecast', ...rowsFor('counter', dealFields))],
-    seed: (s, get) => dealFields.map(([key]) => ['counter' + key, get(key), key]),
-    result: fundingResult,
-    final: [
-      choice('outcome', 'Your decision', [
-        'Stand by the original offer',
-        'Make the counteroffer',
-        'Walk away',
-      ]),
-      area(
-        'decision',
-        'What terms would you accept? Use the investor’s share and your expected sale price to explain why.',
-      ),
-      area('next', 'What evidence would most strengthen your position?'),
-    ],
-    fallback:
-      'As the investor, I would ask what evidence supports your exit revenue forecast. Which assumption would you revise if that evidence fell short?',
   },
 };
 export function active(f, get) {
