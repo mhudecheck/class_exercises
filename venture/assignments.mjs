@@ -35,14 +35,24 @@ function channelGroups() {
         ...rowsFor(id, [
           ['Spend', 'Cost of the trial ($)'],
           ['Reach', 'People reached in that trial', count],
-          ['Won', 'First-time paying customers from that trial', count],
+          [
+            'Won',
+            'How many first-time paying customers should I target?',
+            {
+              ...count,
+              help: 'Estimate how many people will buy from you for the first time in this trial. If you’ve already run it, enter the actual count.',
+            },
+          ],
         ]),
         field(id + 'Type', 'How do you pay for this channel?', 'select', {
           choices: ['Flexible dollars', 'Whole bookings'],
-          help: 'For ads, printing, or other costs you can vary, use flexible dollars. For a booth or an event with a set price, use whole bookings.',
+          help: 'Choose Flexible dollars when you decide what to spend, like $40 on ads. Choose Whole bookings when you pay a set price for each spot, like $50 per market table.',
         }),
         num(id + 'Rate', 'Cost per booking ($)', { ...positive, when: [id + 'Type', 'Whole bookings'] }),
-        field(id + 'LimitText', 'Known limit (optional)', 'text', optional),
+        field(id + 'LimitText', 'Does this channel have a limit? (optional)', 'text', {
+          ...optional,
+          help: 'Write down any restriction you already know about, like a $40 printing cap or only one market table available per week.',
+        }),
         num(id + 'Initial', 'Initial allocation (dollars or number of bookings)', {
           help: 'Enter dollars for flexible spending or the number of bookings for a channel with a set price. Enter 0 to leave it unfunded.',
         }),

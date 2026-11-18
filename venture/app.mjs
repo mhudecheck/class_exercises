@@ -6,7 +6,7 @@ import {
   fmt,
   channelExperiment,
   experimentNotes,
-} from './assignments.mjs?v=3';
+} from './assignments.mjs?v=4';
 import {
   channelDraftFields,
   checkChannelCounts,
