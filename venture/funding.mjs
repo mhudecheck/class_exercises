@@ -814,7 +814,7 @@ function renderPrint() {
   meta.append(
     node('span', 'EWU · Launching the venture'),
     document.createElement('br'),
-    node('span', (state.status === 'real' ? 'Real offer' : 'Practice offer') + ' · slides 50–56'),
+    node('span', (state.status === 'real' ? 'Real offer' : 'Practice offer') + ' · slides 52–59'),
   );
   head.append(titles, meta);
   const ids = node('div', '', 'sh-ids');

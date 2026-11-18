@@ -445,7 +445,7 @@ function printSheet(r) {
   meta.append(
     node('span', 'EWU · Launching the venture'),
     document.createElement('br'),
-    node('span', 'Group exercise · slides 21–28'),
+    node('span', 'Group exercise · slides 22–30'),
   );
   head.append(titles, meta);
   const ids = node('div', '', 'sh-ids');
