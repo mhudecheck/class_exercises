@@ -1,4 +1,4 @@
-import { assist, defaultEndpoint, quoteContainsValue } from './assist.mjs';
+import { assist, defaultEndpoint, quoteContainsValue } from './assist.mjs?v=2';
 import { number } from './math.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -43,9 +43,9 @@ function loadSalesCosts() {
   state.salesCosts = [
     {
       ...newSalesCost(1),
-      name: state.channel ?? '',
-      spend: state.spend ?? '',
-      units: state.units ?? '',
+      name: state.channel ?? $('channel')?.value ?? '',
+      spend: state.spend ?? $('spend')?.value ?? '',
+      units: state.units ?? $('units')?.value ?? '',
     },
   ];
   delete state.channel;
@@ -102,8 +102,7 @@ function costChanged(id) {
   save();
 }
 function renderSalesCosts() {
-  const container = $('salesCosts');
-  container.replaceChildren();
+  const rows = document.createDocumentFragment();
   state.salesCosts.forEach((row, index) => {
     const group = node('fieldset', '');
     group.className = 'sales-cost';
@@ -168,8 +167,10 @@ function renderSalesCosts() {
       });
       group.append(remove);
     }
-    container.append(group);
+    rows.append(group);
   });
+  $('salesCosts').replaceChildren(rows);
+  $('addSalesCost').disabled = false;
 }
 $('addSalesCost').onclick = () => {
   const key = Math.max(...state.salesCosts.map((row) => row.key)) + 1;
@@ -447,6 +448,71 @@ function showSuggestions() {
     panel.append(item);
   }
 }
+function validSuggestions(output, fields) {
+  const seen = new Set();
+  return output.suggestions.filter((suggestion) => {
+    const field = fields.find(({ id }) => id === suggestion?.id);
+    if (
+      !field ||
+      fieldValue(field) ||
+      seen.has(suggestion.id) ||
+      !['estimate', 'stated'].includes(suggestion.origin) ||
+      typeof suggestion.rationale !== 'string'
+    )
+      return false;
+    if (suggestion.origin === 'stated') {
+      const sourceText = [state.description, state.product, ...state.salesCosts.map((row) => row.name)];
+      if (
+        !suggestion.quote ||
+        !quoteContainsValue(suggestion.quote, suggestion.value) ||
+        !sourceText.some((text) => text?.includes(suggestion.quote))
+      )
+        return false;
+    }
+    try {
+      checked(field, suggestion.value);
+    } catch {
+      return false;
+    }
+    seen.add(suggestion.id);
+    return true;
+  });
+}
+async function requestEstimates(input, eligible, settings, signal, status) {
+  const ask = (fields) =>
+    assist(
+      'margin_draft',
+      {
+        ...input,
+        eligible: fields.map(({ id, label }) => ({ id, label })),
+      },
+      settings,
+      signal,
+    );
+  const draft = await ask(eligible);
+  const suggestions = validSuggestions(draft, eligible);
+  const questions = draft.questions.filter((question) => typeof question === 'string');
+  const missingCore = eligible.filter(
+    (field) =>
+      ['cost', 'price'].includes(field.id) &&
+      !suggestions.some((suggestion) => suggestion.id === field.id),
+  );
+  let retryFailed = false;
+  if (missingCore.length && !signal.aborted) {
+    status.textContent =
+      'Checking for a starting estimate for ' +
+      (missingCore.length === 2 ? 'unit cost and selling price…' : missingCore[0].label + '…');
+    try {
+      const followUp = await ask(missingCore);
+      suggestions.push(...validSuggestions(followUp, missingCore));
+      questions.push(...followUp.questions.filter((question) => typeof question === 'string'));
+    } catch (error) {
+      if (!suggestions.length) throw error;
+      retryFailed = true;
+    }
+  }
+  return { suggestions, questions: [...new Set(questions)].slice(0, 3), retryFailed };
+}
 async function request(mode) {
   if (pending) return;
   const status = mode === 'draft' ? $('draftStatus') : $('feedback'),
@@ -464,10 +530,18 @@ async function request(mode) {
   const eligible = fields.filter(
     (field) =>
       !fieldValue(field) &&
+      (field.row === state ||
+        field.row.name.trim() ||
+        field.row.spend !== '' ||
+        field.row.perUnit !== '') &&
       !(field.kind === 'units' && field.row.spend !== '' && Number(field.row.spend) === 0),
   );
   if (mode === 'draft' && !eligible.length) {
-    status.textContent = 'You’ve already entered all the figures.';
+    status.textContent = state.salesCosts.some(
+      (row) => !row.name.trim() && row.spend === '' && row.perUnit === '',
+    )
+      ? 'Name a sales expense to get an estimate for it, or enter its cost directly.'
+      : 'You’ve already entered all the figures.';
     return;
   }
   const controller = new AbortController();
@@ -480,56 +554,30 @@ async function request(mode) {
       'Contribution margin ladder for one sale. Use one selling price. Follow CM1 after production, CM2 after marketing, CM3 after fees and overhead.',
     product: state.product,
     notes: state.description || '',
-    salesCosts: state.salesCosts.map(({ name, basis }) => ({ name, basis })),
+    salesCosts: state.salesCosts
+      .filter((row) => row.name.trim())
+      .map(({ name, basis }) => ({ name, basis })),
     figures: fields
       .filter((field) => fieldValue(field))
       .map((field) => ({ id: field.id, label: field.label, value: fieldValue(field) })),
   };
+  const settings = { endpoint: config.endpoint || defaultEndpoint, key: apiKey };
   try {
-    const output = await assist(
-      mode === 'draft' ? 'margin_draft' : mode,
-      mode === 'draft'
-        ? { ...input, eligible: eligible.map(({ id, label }) => ({ id, label })) }
-        : { ...input, worksheet: report(r) },
-      { endpoint: config.endpoint || defaultEndpoint, key: apiKey },
-      controller.signal,
-    );
-    if (controller.signal.aborted) return;
     if (mode === 'draft') {
-      const seen = new Set();
-      state.suggestions = output.suggestions.filter((p) => {
-        const field = eligible.find(({ id }) => id === p?.id);
-        if (
-          !field ||
-          fieldValue(field) ||
-          seen.has(p.id) ||
-          !['estimate', 'stated'].includes(p.origin) ||
-          typeof p.rationale !== 'string'
-        )
-          return false;
-        if (
-          p.origin === 'stated' &&
-          (!p.quote ||
-            !quoteContainsValue(p.quote, p.value) ||
-            ![state.description, state.product, ...state.salesCosts.map((row) => row.name)].some((v) =>
-              v?.includes(p.quote),
-            ))
-        )
-          return false;
-        try {
-          checked(field, p.value);
-        } catch {
-          return false;
-        }
-        seen.add(p.id);
-        return true;
-      });
-      state.questions = output.questions.filter((q) => typeof q === 'string');
+      const result = await requestEstimates(input, eligible, settings, controller.signal, status);
+      if (controller.signal.aborted) return;
+      state.suggestions = result.suggestions;
+      state.questions = result.questions;
       showSuggestions();
-      status.textContent = state.suggestions.length
-        ? 'Review each suggestion before using it.'
+      status.textContent = result.suggestions.length
+        ? 'Review each suggestion before using it.' +
+          (result.retryFailed
+            ? ' Some estimates could not be loaded. Try again for the remaining figures.'
+            : '')
         : 'The AI had no figures to suggest. Add details about your product, market, or sales costs and try again.';
     } else {
+      const output = await assist(mode, { ...input, worksheet: report(r) }, settings, controller.signal);
+      if (controller.signal.aborted) return;
       state.coach = output.question;
       render();
     }
@@ -592,7 +640,7 @@ $('config').onclose = () => {
 $('reset').onclick = () => {
   if (confirm('Clear this worksheet and start again?')) {
     pending?.abort();
-    state = {};
+    state = { salesCosts: [newSalesCost(1)] };
     $('draftStatus').textContent = $('status').textContent = '';
     restore();
   }

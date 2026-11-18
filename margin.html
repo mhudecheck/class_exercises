@@ -74,9 +74,35 @@
             List each expense involved in winning the sale, such as ads, flyers, or a commission. Enter a
             cost per unit directly, or divide total spending by the units that expense helps sell.
           </p>
-          <div id="salesCosts"></div>
+          <div id="salesCosts">
+            <fieldset class="sales-cost">
+              <legend>Sales cost 1</legend>
+              <div class="grid">
+                <label>Expense<input id="channel" placeholder="For example, campus flyers" /></label>
+                <label
+                  >Total spending ($)<input
+                    id="spend"
+                    type="number"
+                    min="0"
+                    step="any"
+                    required
+                    aria-describedby="marketingHelp"
+                /></label>
+                <label
+                  >Units this expense helps sell<input
+                    id="units"
+                    type="number"
+                    min="1"
+                    step="1"
+                    aria-describedby="marketingHelp"
+                /></label>
+              </div>
+            </fieldset>
+          </div>
           <div class="actions">
-            <button type="button" class="quiet" id="addSalesCost">Add another sales cost</button>
+            <button type="button" class="quiet" id="addSalesCost" disabled>
+              Add another sales cost
+            </button>
           </div>
           <p class="hint" id="marketingHelp">
             Use the same time period for total spending and units sold. Include only costs that apply to
@@ -174,6 +200,16 @@
     </dialog>
     <article id="printout" hidden></article>
     <noscript>Enable JavaScript to calculate your margins.</noscript>
-    <script type="module" src="venture/ladder.mjs"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+          .register('./margin-sw.js', { scope: './margin.html', updateViaCache: 'none' })
+          .catch((error) => console.warn('Could not enable fresh worksheet loading.', error));
+        window.addEventListener('pageshow', (event) => {
+          if (event.persisted) window.location.reload();
+        });
+      }
+    </script>
+    <script type="module" src="venture/ladder.mjs?v=2"></script>
   </body>
 </html>

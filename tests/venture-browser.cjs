@@ -9,6 +9,7 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     const ctx = await browser.newContext({
       viewport: { width: 390, height: 844 },
       acceptDownloads: true,
+      serviceWorkers: 'block',
     });
     const page = await ctx.newPage(),
       errors = [];
@@ -19,7 +20,8 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
     await ctx.route('**/v1/responses', async (route) => {
       const body = route.request().postDataJSON(),
         name = body.text.format.name;
-      requests.push({ mode: name, context: JSON.parse(body.input) });
+      const context = JSON.parse(body.input);
+      requests.push({ mode: name, context });
       if (failure)
         return route.fulfill({
           status: 503,
@@ -29,27 +31,41 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
       const output =
         name === 'venture_margin_draft' && emptyEstimates
           ? { suggestions: [], questions: ['How many units can you make?'] }
-          : name === 'venture_margin_draft'
+          : name === 'venture_margin_draft' &&
+              context.eligible.map((field) => field.id).join() === 'cost'
             ? {
-                questions: ['Does the stated price apply to a seat?'],
+                questions: [],
                 suggestions: [
                   {
-                    id: 'units',
-                    value: '30',
+                    id: 'cost',
+                    value: '4.30',
                     origin: 'estimate',
                     quote: '',
-                    rationale: 'A provisional enrollment target. Check room capacity.',
-                  },
-                  {
-                    id: 'price',
-                    value: '80',
-                    origin: 'stated',
-                    quote: '$80 per seat',
-                    rationale: 'Price quoted by the student.',
+                    rationale: 'An illustrative ingredient and labor cost.',
                   },
                 ],
               }
-            : { question: 'Which customer commitments support the volume in your forecast?' };
+            : name === 'venture_margin_draft'
+              ? {
+                  questions: ['Does the stated price apply to a seat?'],
+                  suggestions: [
+                    {
+                      id: 'units',
+                      value: '30',
+                      origin: 'estimate',
+                      quote: '',
+                      rationale: 'A provisional enrollment target. Check room capacity.',
+                    },
+                    {
+                      id: 'price',
+                      value: '80',
+                      origin: 'stated',
+                      quote: '$80 per seat',
+                      rationale: 'Price quoted by the student.',
+                    },
+                  ],
+                }
+              : { question: 'Which customer commitments support the volume in your forecast?' };
       await route.fulfill({
         json: { output: [{ content: [{ type: 'output_text', text: JSON.stringify(output) }] }] },
       });
@@ -132,7 +148,57 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
         'mobile overflow',
       );
     }
-    await page.goto(new URL('margin.html', base).href);
+    const marginUrl = new URL('margin.html', base).href;
+    const initialMargin = await browser.newContext({
+      viewport: { width: 360, height: 800 },
+      serviceWorkers: 'block',
+    });
+    // The first row is present even before the worksheet script runs.
+    await initialMargin.route('**/venture/ladder.mjs*', (route) => route.abort());
+    const initialPage = await initialMargin.newPage();
+    await initialPage.goto(marginUrl);
+    for (const label of ['Expense', 'Total spending ($)', 'Units this expense helps sell']) {
+      assert.ok(
+        await initialPage.getByLabel(label, { exact: true }).isVisible(),
+        label + ' is on the initial page',
+      );
+    }
+    assert.ok(await initialPage.getByRole('button', { name: 'Add another sales cost' }).isDisabled());
+    await initialMargin.close();
+
+    const freshLoads = await browser.newContext();
+    const freshPage = await freshLoads.newPage();
+    await freshPage.goto(marginUrl);
+    await freshPage.waitForFunction(() => navigator.serviceWorker.controller, undefined, {
+      timeout: 15000,
+    });
+    const scriptResponse = freshPage.waitForResponse((response) =>
+      response.url().includes('/venture/ladder.mjs'),
+    );
+    const worksheetResponse = await freshPage.reload();
+    assert.ok(
+      worksheetResponse.fromServiceWorker(),
+      'the worksheet navigation goes through the freshness worker',
+    );
+    assert.match(await worksheetResponse.headerValue('cache-control'), /no-store/);
+    const script = await scriptResponse;
+    assert.ok(script.fromServiceWorker());
+    assert.match(await script.headerValue('cache-control'), /no-store/);
+    assert.ok(await freshPage.locator('#addSalesCost').isEnabled());
+    const channelsResponse = await freshPage.goto(new URL('channels.html', base).href);
+    assert.equal(
+      channelsResponse.fromServiceWorker(),
+      false,
+      'other exercises are outside the worker scope',
+    );
+    await freshLoads.close();
+
+    await page.goto(marginUrl);
+    assert.ok(
+      await page.locator('#salesCosts #spend').isVisible(),
+      'first row is ready without adding it',
+    );
+    assert.ok(await page.getByRole('button', { name: 'Add another sales cost' }).isEnabled());
     // Work saved before the upgrade keeps its original channel and figures.
     await page.evaluate(() =>
       localStorage.setItem(
@@ -172,6 +238,17 @@ const base = process.env.EXERCISE_URL || 'http://127.0.0.1:8793/';
       .locator('#suggestions .ai-card')
       .filter({ hasText: 'Selling price per unit' });
     await suggestion.waitFor();
+    await page.locator('#suggestions .ai-card').filter({ hasText: 'Cost to make or deliver' }).waitFor();
+    const estimateRequests = requests.filter((request) => request.mode === 'venture_margin_draft');
+    assert.deepEqual(
+      estimateRequests.at(-1).context.eligible.map((field) => field.id),
+      ['cost'],
+    );
+    assert.ok(
+      estimateRequests.every((request) =>
+        request.context.eligible.every((field) => !field.label.includes('Sales cost 1')),
+      ),
+    );
     assert.equal(await page.locator('#price').inputValue(), '');
     await suggestion.getByRole('button').click();
     assert.equal(await page.locator('#price').inputValue(), '80');
