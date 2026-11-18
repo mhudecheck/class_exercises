@@ -1,0 +1,139 @@
+/* EWU look for the class exercises: black and white with EWU red, the grays and type
+   used on the course slides and printed exercise sheets. Load after style.css. */
+:root {
+  --paper: #f4f4f4;
+  --ink: #000000;
+  --muted: #555555;
+  --teal: #a10022; /* EWU red, used for actions and links (8.3:1 on white) */
+  --red: #db1935; /* bright accent from the slides, used for marks and rules */
+  --tint: #fce8eb;
+  --line: #cfcfcf;
+  --rule: #9a9a9c;
+  --soft: #f4f4f4;
+  font:
+    17px/1.55 Calibri,
+    Carlito,
+    Lato,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+}
+body {
+  background: var(--paper);
+}
+header {
+  background: #000;
+}
+.wordmark {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.wordmark span {
+  color: var(--red);
+}
+header .quiet {
+  color: #fff;
+  background: transparent;
+  border-color: #6b6b6d;
+}
+header .quiet:hover {
+  border-color: #fff;
+}
+h1,
+h2 {
+  font-family: 'Libre Baskerville', 'Bookman Old Style', 'URW Bookman', Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+h1 {
+  font-size: clamp(2rem, 4.6vw, 3.1rem);
+}
+h2 {
+  font-size: clamp(1.3rem, 2.4vw, 1.6rem);
+}
+h3,
+.topic {
+  color: var(--ink);
+}
+.kicker {
+  margin: 0 0 10px;
+  color: var(--teal);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+button {
+  border-radius: 2px;
+  font-weight: 700;
+}
+.quiet {
+  color: var(--teal);
+  background: #fff;
+  border-color: var(--rule);
+}
+.quiet:hover {
+  border-color: var(--teal);
+}
+button:not(.quiet):hover {
+  background: #7d001a;
+}
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--red);
+  outline-offset: 2px;
+}
+section.panel {
+  border: 1.5px solid var(--rule);
+  border-radius: 0;
+}
+input,
+textarea,
+select {
+  border: 1px solid #8a8a8c;
+  border-radius: 2px;
+}
+details {
+  color: var(--ink);
+}
+summary {
+  color: var(--teal);
+  font-weight: 700;
+}
+th {
+  color: var(--ink);
+  background: var(--soft);
+}
+td,
+th {
+  border-bottom-color: var(--line);
+}
+.note,
+.ai-card {
+  background: var(--soft);
+  border-radius: 0;
+}
+#notice:not(:empty),
+#status:not(:empty) {
+  background: var(--tint);
+  border: 1px solid var(--red);
+  border-radius: 0;
+}
+.track {
+  background: var(--soft);
+}
+.track i {
+  background: #000;
+}
+.track .cost {
+  background: var(--red);
+}
+dialog {
+  border-radius: 0;
+}
+dialog::backdrop {
+  background: #000a;
+}
