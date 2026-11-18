@@ -441,7 +441,13 @@ function printSheet(r) {
     node('p', 'ENTP 311 · Engines of growth · Contribution margin', 'sh-kicker'),
     node('h1', 'The contribution margin ladder', 'sh-title'),
   );
-  head.append(titles, node('p', 'Group exercise · slides 21–28', 'sh-meta'));
+  const meta = node('p', '', 'sh-meta');
+  meta.append(
+    node('span', 'EWU · Launching the venture'),
+    document.createElement('br'),
+    node('span', 'Group exercise · slides 21–28'),
+  );
+  head.append(titles, meta);
   const ids = node('div', '', 'sh-ids');
   const today = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date());
   for (const [label, value, cls] of [
@@ -517,7 +523,7 @@ function printSheet(r) {
     coach.classList.add('sh-span');
     grid.append(coach);
   }
-  sheet.append(head, ids, grid, node('footer', 'EWU · Launching the venture', 'sh-foot'));
+  sheet.append(head, ids, grid);
   return sheet;
 }
 function download(name, content, type) {
